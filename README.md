@@ -31,3 +31,27 @@ $ sudo python setup.py install
 ```
 
 Good Luck!
+
+Tutorial
+--------
+
+### `units`
+
+Type in your Python console:
+```
+from units import *
+```
+Now you have an access to the tools of units module.
+
+## Units and standard converters
+
+The class `UNITS` contains all of the necessary converters. Your Python classes can inherit the attributes of `UNITS` class.
+To see all of the converters type:
+```
+t = UNITS()
+print t
+```
+For instance, to change Bohrs to Angstroms you can do it like this:
+```
+print t.BohrToAngstrom
+```
