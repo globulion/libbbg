@@ -10,7 +10,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'Read_xyz_file','Vr_dma','Allign','ElectricField',
          'FrequencyShiftPol','Newton','Parse_EDS_InteractionEnergies',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
-         'MakeSoluteAndSolventFiles']
+         'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix']
 
 import re
 from numpy import transpose, zeros, dot, \
@@ -23,9 +23,84 @@ from dma   import DMA
 from units import *
 from re_templates import *
 import copy, os, math
-os.system('export __IMPORT_EASYVIZ__=0')
-if os.environ['__IMPORT_EASYVIZ__']:
-   from scitools.all import *
+#if bool(os.environ.get('__IMPORT_EASYVIZ__')):
+from scitools.all import *
+   
+class GROUPS:
+      """ 
+grouping algorithm from numerical project: 
+------------------------------------------
+     Assignemt for the purpose of:
+==========================================
+ADVANCED PROGRAMMING AND NUMERICAL METHODS
+==========================================
+Teacher    : dr inż. Paweł Szarek
+Author     : inż.    Bartosz Błasiak
+Affiliation: 
+    - - - - - - - - - - - - - - - - -
+    Wrocław University of Technology
+   - - - - - - - - - - - - - - - - - 
+                CUBEFILER (c) 2012
+"""
+      def __init__(self,A):
+          self.groups = self.__make_GROUPS(A)
+          
+      def __make_GROUPS(self,A):
+          """group items according to boolean relation matrix A_ij"""
+          def add(a,b):
+              c = []
+              for i in b: c.append(i)
+              for i in a:
+                  if i not in b: c.append(i)
+              return c
+
+          def add_line(i,group,A):
+              for j in range(len(A)):
+                  if A[i][j] and j not in group: group.append(j)
+              if i not in group: group.append(i)
+              return group
+
+          def make_group(i,A):
+              g_old = add_line(i,[],A)
+              g_new1 = []
+              g_new2 = []
+              while len(g_new1)!=len(g_old):
+                     for j in g_old:
+                         g_new1 = add_line(j,g_old,A)
+                         g_new1 = add(g_new1,g_old)
+                     for j in g_new1:
+                         g_new2 = add_line(j,g_new1,A)
+                         g_new2 = add(g_new2,g_new1)
+                     g_old = g_new1
+                     g_new = g_new2
+              return g_new2
+
+          GROUPS = []
+          G_0 = make_group(0,A)
+          GROUPS.append(G_0)
+          for i in range(len(A)-1):
+              t=i+1
+              Q=[]
+              for G in GROUPS:
+                  Q+=G
+              if t not in Q:
+                 GROUPS.append(make_group(t,A))
+          return GROUPS
+         
+def DistanceRelationMatrix(xyz,threshold=1):
+    """calculate boolean relation matrix for structure xyz (array).
+    Threshold = 1 Bohr and coordinates of xyz have to be Bohr too!
+    You can then search for groups using: GROUPS(A_ij).groups"""
+    
+    K = len(xyz)
+    A_ij = zeros((K,K),dtype=bool)
+    for i in range(K):
+        for j in range(i):
+            if sqrt(sum((xyz[i]-xyz[j])**2))<=threshold:
+               A_ij[i,j] = True
+               A_ij[j,i] = True
+               
+    return A_ij
 
 ### SVDSuperimposer from BIOPYTHON PACKAGE
 # Copyright (C) 2002, Thomas Hamelryck (thamelry@vub.ac.be)
@@ -442,7 +517,7 @@ def ParseDMA(file,type):
                if line =='': raise Exception('No CHELPG population found!')
          for i in range(4): line = data.readline()
          Structure = []
-         while 'Atomic Center' in line:
+         while ('Atomic Center' in line or 'Ghost Center' in line):
                Structure.append( array(line.split()[-3:],dtype=float64)  )
                line = data.readline()
 
@@ -1049,18 +1124,19 @@ class ModifyStruct(object):
         self.rings = []
         
     def write(self,name,units='angs'):
-        if units=='angs': self.ring*= UNITS.BohrToAngstrom
+        ring = self.ring.copy()
+        if units=='angs': ring*= UNITS.BohrToAngstrom
         out = open(name,'w')
-        out.write('%d\n\n' % self.n_atoms)
-        for i in range(len(self.ring)):
-            out.write(" X %13.6f %13.6f %13.6f\n"%tuple(self.ring[i]))
+        out.write('%d\n\n' % len(ring))
+        for i in range(len(ring)):
+            out.write(" X %13.6f %13.6f %13.6f\n"%tuple(ring[i]))
         out.write('\n')
         return
         
     def makeRing(self,p1,p2,p3,n,r,scale=0):
         """kreuje obwolutek wokół atomu p1 składający się z n punktów
         oddalonych od atomu p1 o odległość r"""
-        new, center, rot = self.makeAxes(p1,p2,p3,scale)
+        new, center, rot = self.__makeAxes(p1,p2,p3,scale)
         obw = zeros((n,3),dtype=float64)
         for i in range(n):
             obw[i,0] = r  * cos(2*pi*i/n)
@@ -1070,7 +1146,60 @@ class ModifyStruct(object):
         self.rings.append(obw)
         return 
     
-    def makeAxes(self,p1,p2,p3,scale=0):
+    def makeMidBonds(self,all=True,bonds=None):
+        """adds dummy atom in the middle between atoms"""
+        midBonds = []
+        if all:
+           for i in range(self.n_atoms):
+               for j in range(i):
+                   point = 0.5 * (self.xyz[i]+self.xyz[j])
+                   midBonds.append(point)
+        else:
+            for i in bonds:
+                point = 0.5 * (self.xyz[i[0]]+self.xyz[i[1]])
+                midBonds.append(point)
+
+        midBonds = array( midBonds,dtype=float64)
+        #
+        self.ring = concatenate((self.ring, midBonds),axis=0)
+        return
+    
+    def add(self,xyz):
+        """add points to ring"""
+        pass
+    
+    def shrink(self,threshold=0.5):
+        """find groups of points lying to close to one another
+        and delete them"""
+        n_points = len(self.ring[1:])
+        A_ij = DistanceRelationMatrix(self.ring[1:],threshold=threshold)
+        g = GROUPS(A_ij).groups
+        n_groups = len(g)
+        
+        if n_points==n_groups:
+           print "\n No groups found for thershold = %.5f a.u.\n" % threshold
+        else:
+           n_del = n_points - n_groups
+           ring = [zeros(3,dtype=float64)]
+           for group in g:
+               average_point = zeros(3,dtype=float64)
+               for i in group:
+                   average_point+=self.ring[i+1]
+               average_point /= len(group)
+               ring.append(average_point)
+               #ring.append(self.ring[group[0]+1])
+           self.ring = array( ring, dtype=float64)
+           print "\n %i points deleted for thershold = %.5f a.u.\n" % (n_del,threshold)
+           
+        return
+    
+    def reset(self):
+        """resets previous changes"""
+        self.ring = zeros((1,3),dtype=float64)
+        self.rings = []
+        return
+    
+    def __makeAxes(self,p1,p2,p3,scale=0):
         P1,P2,P3 = self.xyz[(p1,p2,p3),]
 
         c = P2 - P1
@@ -1087,6 +1216,13 @@ class ModifyStruct(object):
 
         return new, P1 + (P2 - P1) * scale , rot
 
+    def __repr__(self):
+        """print the status"""
+        log = '\n'
+        log+= ' Number of points: %10i\n' % (len(self.ring)-1)
+        #log+= '\n'
+        return str(log)
+    
 class Grid2D:
     """represents 2D-grid of points"""
     def __init__(self,

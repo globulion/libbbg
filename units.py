@@ -31,7 +31,7 @@ class Atom:
                      'O':15.9949146,  'F':18.9984033,  'S':32.0666   ,
                     'Fe':55.847    , 'Na':22.9897697,  'X':0.0000}
           # isotopes
-          masses.update({'D': 2.0141018, 'H(iso=2)': 2.0141018})
+          masses.update({'D': 2.0141018, 'H(iso=2)': 2.0141018, 'Bq': 0.00000})
           
           return masses[symbol]
 
@@ -42,7 +42,7 @@ class Atom:
                              'N': 7,  'O': 8, 'F': 9,
                              'S':16, 'Fe':26, 'Na': 11, 'X': 0 }
           # isotopes
-          atomic_numbers.update({'D': 1, 'H(iso=2)': 1})
+          atomic_numbers.update({'D': 1, 'H(iso=2)': 1, 'Bq': 0})
                              
           return atomic_numbers[symbol]
 
@@ -53,7 +53,7 @@ class Atom:
                              'N': 2,  'O': 2.0000, 'F': 2.0000,
                              'S':2.0000, 'Fe':3.0000, 'Na': 2.0000, 'X': 0 }
           # isotopes
-          wdW_radius.update({'D': 0.5000, 'H(iso=2)': 0.5000})
+          wdW_radius.update({'D': 0.5000, 'H(iso=2)': 0.5000, 'Bq': 0.0001})
                              
           return wdW_radius[symbol]
 
