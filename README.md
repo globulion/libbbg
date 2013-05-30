@@ -24,6 +24,10 @@ The tutorial is under preparation.
 
 ### Installation ###
 
+Installation prerequisites: 
+- Python 2.6 or newer
+- NumPy
+- python scitools
 To install the LIBBBG package you have to download the files to your computer and type:
 
 ```
