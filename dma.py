@@ -61,6 +61,17 @@ class DMA:
         # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
         self.traceless = False
     
+    def set_structure(self,pos=None,origin=None,atoms=None):
+        """sets new positions or origins and atoms"""
+        # update positions
+        if pos is not None:
+           if len(self.pos) != len(pos): # it means you have to update self.atoms
+              self.atoms = [ Atom('X') for x in range(len(pos)) ]
+           self.pos = pos.copy()
+        # update atoms
+        if atoms is not None:
+           self.atoms = [ Atom(x) for x in atoms.split(',') ]
+           
     def write(self, file):
         """writes  the DMA distribution in a file"""
         newfile = open(file,'w')
@@ -71,6 +82,15 @@ class DMA:
         for i,atom in enumerate(self.atoms):
             log+= " %-10s %14.8f %14.8f %14.8f\n" % (atom.symbol, self.pos[i,0], self.pos[i,1], self.pos[i,2])
         log+='\n'
+        
+        # print origins in case the where different that structure
+        if (self.pos.shape != self.origin.shape or not (self.pos==self.origin).all() ):
+           log += ' Origins\n'
+           log += ' -------\n\n'
+           for i,point in enumerate(self.origin):
+               log+= " %-10s %14.8f %14.8f %14.8f\n" % ('X', point[0], point[1], point[2])
+           log+='\n'
+        
         newfile.write(log)
         newfile.close()
         
@@ -623,7 +643,7 @@ class DMA:
         log+= " "+"-"*100+"\n"
         if self.nfrag == 1:
            if self.traceless: 
-              log+= (" traceless form,   origin: %s\n" % str(self.origin*0.5291772086)[1:-1]).rjust(100)  
+              log+= (" traceless form,   origin: %s\n"  % str(self.origin*0.5291772086)[1:-1]).rjust(100)  
            else: 
               log+= (" primitive form,   origin: %s \n" % str(self.origin*0.5291772086)[1:-1]).rjust(100) 
         else:

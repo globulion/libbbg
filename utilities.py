@@ -883,7 +883,7 @@ Emtp.E *= converter
 """
 command = compile(code,'<string>','exec')             
              
-def Emtp(DMA1,DMA2,threshold=1000,hash=True):
+def Emtp(DMA1,DMA2,threshold=1000,hash=True,add=False,L=0):
     """calculates E(EL)MTP from two DMA distributions.
 dma1 and dma2 are the objects of the class DMA. Calculations are
 in atomic units and a respective interaction energy is in 
@@ -914,6 +914,9 @@ a.u. as well. """
     QO = 0 ; OQ = 0
     OO = 0 ;
     qH = 0 ; Hq = 0
+    #if add:
+    #    for i in xrange(len(Ra)):
+    #        qq+= q[i] * dot(L[mode],ElectricField(dma2,Ra,is_full=True)) * sqrt(redmass[mode]*UNITS.AmuToElectronMass)
     #
     for i in xrange(len(Ra)):
          for j in xrange(len(Rb)):
@@ -1222,6 +1225,97 @@ class ModifyStruct(object):
         log+= ' Number of points: %10i\n' % (len(self.ring)-1)
         #log+= '\n'
         return str(log)
+    
+class status(object):
+    """defines the status of the object"""
+    def __init__(self,some_object):
+        self.object = some_object
+        # is object rotated or in its initial orientation?
+        self.__rotated = False
+        # is object translated or in its initial position?
+        self.__translated = False
+        # is object a copy of another object?
+        self.__copied = False
+    
+    def get_object(self):
+        return self.object
+    
+    def get_status(self): 
+        return self.__rotated, self.__translated, self.__copied
+    
+    def set_status(rotated=None,copied=None,translated=None):
+        if rotated     is not None: self.__rotated     = rotated
+        if copied      is not None: self.__copied      = copied
+        if translated  is not None: self.__translated  = translated
+        
+class ROTATE:
+    """Rotates the object from gasphase orientation to target orientation in    
+    solvent. The form or rotation depends of the type of object:                
+    - list: is treated as eigenvector matrix of dimension 3NxM where N is number
+      of atoms and M is number of modes. The shape of that matrix is the same   
+      as from FREQ class;                                                       
+    - ndarray: is treated as a list of DMA objects (e.g. first DMA derivatives);
+    - DMA: is one DMA object obviously.                                         
+    Final is the solute target structure and initial is gas phase structure.    
+                                                                                
+    The class is a container for storing rotated eigenvectors and DMA objects   
+    in one place."""
+    
+    def __init__(self,initial=0,final=0,object=None):
+        self.__initial=array(initial)
+        self.__final=array(final)
+        self.__objects = []
+        if object is not None: self.__objects.append(status(object))
+        ### superimpose structures
+        self.__superimpose()
+
+    def __superimpose(self):
+        """compute rotation matrix and translation vector"""
+        sup = SVDSuperimposer()
+        sup.set(self.__final,self.__initial)
+        sup.run()
+        rms = sup.get_rms()
+        rot, transl = sup.get_rotran()
+        transformed_gas_phase_str = sup.get_transformed()
+            
+        self.__rot = rot
+        self.__transformed_gas_phase_str = transformed_gas_phase_str 
+        self.__transl = transl
+        return
+    
+    def get(self):
+        """return rotated objects in a list"""
+        A = []
+        for i in self.__objects:
+            A.append(i.object)
+        return A
+    
+    def rotate(self):         
+        """rotate the object if is not rotated"""
+        for object in self.__objects:
+            if not object.get_status()[0]:
+              
+              if object.object.__class__.__name__ == 'list':
+              ### rotate the DMA list
+                for dma in object.object:
+                    dma.pos  =array(self.__initial)
+                    dma.origin  = array(self.__initial)
+                    dma.MAKE_FULL()
+                    dma.Rotate(self.__rot)
+              elif object.object.__class__.__name__ == 'ndarray':
+              ### rotate the eigenvectors
+                  N,M = object.object.shape; N/=3
+                  object.object = object.object.reshape(N,3,M)
+                  object.object = tensordot(object.object,self.__rot,(1,0))   # dimension: nstat,nmodes,3
+                  object.object = transpose(object.object,(0,2,1))            # dimension: nstat,3,nmodes
+                  object.object = object.object.reshape(N*3,M)                # dimension: nstat*3,nmodes
+              elif object.object.__class__.__name__ == 'DMA':
+              ### rotate the DMA object 
+                  object.object.MAKE_FULL()
+                  object.object.Rotate(self.__rot)
+                  
+              ### set status to rotated
+              object.set_status(rotated=True)
     
 class Grid2D:
     """represents 2D-grid of points"""
