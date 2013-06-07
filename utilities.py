@@ -10,7 +10,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'Read_xyz_file','Vr_dma','Allign','ElectricField',
          'FrequencyShiftPol','Newton','Parse_EDS_InteractionEnergies',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
-         'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix']
+         'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
+         'status','ROTATE']
 
 import re
 from numpy import transpose, zeros, dot, \
