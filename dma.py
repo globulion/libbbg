@@ -68,6 +68,9 @@ class DMA:
            if len(self.pos) != len(pos): # it means you have to update self.atoms
               self.atoms = [ Atom('X') for x in range(len(pos)) ]
            self.pos = pos.copy()
+        # update origins
+        if origin is not None:
+           self.origin = origin.copy()
         # update atoms
         if atoms is not None:
            self.atoms = [ Atom(x) for x in atoms.split(',') ]
