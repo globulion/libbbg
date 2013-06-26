@@ -61,7 +61,11 @@ class DMA:
         # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
         self.traceless = False
     
-    def set_structure(self,pos=None,origin=None,atoms=None):
+    def contract(self,_list):
+        """shrink the dimensions of DMA object by eliminating rows in attributes"""
+        pass
+     
+    def set_structure(self,pos=None,origin=None,atoms=None,equal=False):
         """sets new positions or origins and atoms"""
         # update positions
         if pos is not None:
@@ -74,6 +78,9 @@ class DMA:
         # update atoms
         if atoms is not None:
            self.atoms = [ Atom(x) for x in atoms.split(',') ]
+        # equal the positions and origins
+        if equal:
+           self.origin = pos.copy()
            
     def write(self, file):
         """writes  the DMA distribution in a file"""
@@ -395,7 +402,7 @@ class DMA:
            
         else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
 
-    def MakeUa(self,ua_list,change_origin=True):
+    def MakeUa(self,ua_list,change_origin=True,contract=True):
         """transforms the object to the contracted DMA form employing united atoms. 
         Usage:
         MakeUa( ua_list )
@@ -422,6 +429,9 @@ class DMA:
         if change_origin:
            self.MAKE_FULL()
            self.ChangeOrigin(new_origin_set=origin)
+      
+        if contract:
+           self.contract(ua_list)
         
     def Rotate(self,rotmat):
         """rotates the ordinary full-formatted DMA_FULL

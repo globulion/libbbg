@@ -72,8 +72,10 @@ class UNITS:
       HzToAuAngFreq          = 2.41888433412929E-17
       BohrElectronToDebye    = 2.541746
       DebyeToBohrElectron    = 0.39343034276438327
-      AngstromToBohr         = 1.889725989 
-      BohrToAngstrom         = 0.5291772086      
+      AngstromToBohr         = 1.889725989
+      NanometerToBohr        = 18.89725989 
+      BohrToAngstrom         = 0.5291772086
+      BohrToNanometer        = 0.05291772086      
       ElectronMassToAmu      = 1./1822.8889
       AmuToElectronMass      = 1822.8889      
       KmMToIrInt             = 1./42.2561
