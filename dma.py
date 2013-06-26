@@ -15,16 +15,41 @@ import copy
 from units import *
 
 class DMA:
-    """represents DMA distribution object. 
-       Inputs are q,m,T and O that mean
-       a set of distributed multipoles on 
-       n centers, ie.: 
-            Q = array([Q1,Q2, ... ,Qn])
-       where Qi is i-th distributed tensor.
-       The DMA class stores also vectors
-       of position and origin of each of 
-       distributed center in a form of a
-       NumPy array"""
+    """\
+Represents the DMA distribution object. Inputs are q,m,T and O that mean
+a set of distributed multipoles on n centers, ie.:                      
+   Q = array([Q1,Q2, ... ,Qn])                                          
+where Qi is i-th distributed tensor. The DMA class stores also vectors  
+of position and origin of each of distributed center in a form of a     
+NumPy array. As a zero object you can specify DMA(nfrag=<n>) after which
+the DMA of n distributed centers (zero moments at each) will be created.
+                                                                        
+Usage:                                                                  
+                                                                        
+DMA(nfrag=<n>)                  return zero DMA object with <n> centers 
+<object>.contract(<list>)       contract the DMA <object> using <list>  
+                                that specifies the indices of origins to
+                                be saved. Others will be removed.       
+<object>.MakeUa(<list>,change_origin=<True>,contract=<False>)           
+                                create united atoms within the DMA.     
+                                unset 'change_origin' option when using 
+                                distributed charges                     
+<object>.Rotate(<rot>)          rotate the DMA about the rotation matrix
+<object>.ChangeOrigin(new_origin_set=<0>,zero=<False>)                  
+                                change the origins of distribited moments
+                                to the new origin set specified by array
+                                (in bohrs) of dimension (<n>,3). If you 
+                                want to translate the centers to the    
+                                origin of coordinate system specify only
+                                zero=True.                              
+<object>.ChangeUnits                                                    
+<object>.MAKE_FULL()            create full DMA format                  
+<object>.MakeTraceless()        transform the DMA quadrupoles and octu- 
+                                poles to traceless form. Needs full for-
+                                mat created first (above)               
+                                                                        
+                                                                        
+"""
     
     def __init__(self,
                  nfrag=0,
@@ -61,9 +86,16 @@ class DMA:
         # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
         self.traceless = False
     
-    def contract(self,_list):
+    def contract(self,contrlist):
         """shrink the dimensions of DMA object by eliminating rows in attributes"""
-        pass
+        K = len(contrlist)
+        self.nfrag = K
+        self.DMA[0] = self.DMA[0][contrlist]
+        self.DMA[1] = self.DMA[1][contrlist]
+        self.DMA[2] = self.DMA[2][contrlist]
+        self.DMA[3] = self.DMA[3][contrlist]
+        self.origin = self.origin[contrlist]
+        return
      
     def set_structure(self,pos=None,origin=None,atoms=None,equal=False):
         """sets new positions or origins and atoms"""
@@ -402,7 +434,7 @@ class DMA:
            
         else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
 
-    def MakeUa(self,ua_list,change_origin=True,contract=True):
+    def MakeUa(self,ua_list,change_origin=True,contract=False):
         """transforms the object to the contracted DMA form employing united atoms. 
         Usage:
         MakeUa( ua_list )
@@ -431,8 +463,13 @@ class DMA:
            self.ChangeOrigin(new_origin_set=origin)
       
         if contract:
-           self.contract(ua_list)
+           contrlist = self.__contrListFromUaList(ua_list)
+           self.contract(contrlist)
         
+    def __contrListFromUaList(self,ua_list):
+       """creates the contraction list from ua_list"""
+       return []
+    
     def Rotate(self,rotmat):
         """rotates the ordinary full-formatted DMA_FULL
            in molecular space based on rotation matrix
