@@ -96,7 +96,12 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         self.DMA[3] = self.DMA[3][contrlist]
         self.origin = self.origin[contrlist]
         return
-     
+    
+    def set_name(self,name):
+        """sets the name for the object""" 
+        self.name = name
+        return
+    
     def set_structure(self,pos=None,origin=None,atoms=None,equal=False):
         """sets new positions or origins and atoms"""
         # update positions
@@ -605,7 +610,7 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         quad = zeros((3,3),dtype=float64)
         oct  = zeros((3,3,3),dtype=float64)
         for atom in range(self.nfrag):
-            r     = self.pos[atom] #- origin
+            r     = self.origin[atom]### zmiana origin z pos!!!
             qatom = self.DMA[0][atom]
             ### calculate dipole moment
             mu   += self.DMA[1][atom]

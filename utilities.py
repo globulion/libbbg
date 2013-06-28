@@ -923,6 +923,9 @@ a.u. as well. """
          for j in xrange(len(Rb)):
             R    = Rb[j]-Ra[i]
             Rab=sqrt(sum(R**2,axis=0))
+            print Rab *UNITS.BohrToAngstrom,
+            if Rab > threshold: print "Odrzucono..."
+            else: print
             if (Rab < threshold and Rab !=0):
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
              #if not hash:
@@ -938,44 +941,44 @@ a.u. as well. """
              QD  +=-5*tensordot(Db[j],R,(0,0))*tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))/Rab**7   # Db - Qa  | R4
              qO  +=  -qa[i]*tensordot(R,tensordot(R,tensordot(Ob[j],R,(0,0)),(0,0)),(0,0))/Rab**7   # qa - Ob  | R4
              Oq  +=   qb[j]*tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))/Rab**7   # qb - Oa  | R4
-             QQ  += (35.)/(3.)* (tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0)) *
-                                 tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))  ) / Rab**9            # Qa - Qb  | R5
-             OD  +=-7*(tensordot(Db[j],R,(0,0)) *
-                       tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Db - Oa  | R5
-             DO  +=-7*(tensordot(Da[i],R,(0,0)) *
-                       tensordot(R,tensordot(R,tensordot(Ob[j],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Da - Ob  | R5
-             QQ  +=-(20.)/(3.) * tensordot(tensordot(R,Qa[i],(0,0)),
-                                           tensordot(R,Qb[j],(0,0)),(0,0)) / Rab**7                 # Qa - Qb  | R5
-             QQ  +=(2.)/(3.)  * tensordot(Qa[i],Qb[j])  / Rab**5                                    # Qa - Qb  | R5
-             OD  +=3 * tensordot(R,tensordot(R,tensordot(Oa[i],Db[j],(0,0)),(0,0)),(0,0)) / Rab**7  # Db - Oa  | R5
-             DO  +=3 * tensordot(R,tensordot(R,tensordot(Ob[j],Da[i],(0,0)),(0,0)),(0,0)) / Rab**7  # Da - Ob  | R5
+             #QQ  += (35.)/(3.)* (tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0)) *
+             #                    tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))  ) / Rab**9            # Qa - Qb  | R5
+             #OD  +=-7*(tensordot(Db[j],R,(0,0)) *
+             #          tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Db - Oa  | R5
+             #DO  +=-7*(tensordot(Da[i],R,(0,0)) *
+             #          tensordot(R,tensordot(R,tensordot(Ob[j],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Da - Ob  | R5
+             #QQ  +=-(20.)/(3.) * tensordot(tensordot(R,Qa[i],(0,0)),
+             #                              tensordot(R,Qb[j],(0,0)),(0,0)) / Rab**7                 # Qa - Qb  | R5
+             #QQ  +=(2.)/(3.)  * tensordot(Qa[i],Qb[j])  / Rab**5                                    # Qa - Qb  | R5
+             #OD  +=3 * tensordot(R,tensordot(R,tensordot(Oa[i],Db[j],(0,0)),(0,0)),(0,0)) / Rab**7  # Db - Oa  | R5
+             #DO  +=3 * tensordot(R,tensordot(R,tensordot(Ob[j],Da[i],(0,0)),(0,0)),(0,0)) / Rab**7  # Da - Ob  | R5
              ### The remaining terms with hexadecapoles are not implemented yet
              #Eint+= qb[j] * tensordot(R,tensordot(R,tensordot(R,tensordot(R,Ha[i],
              #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Ha - qb  | R5
              #Eint+= qa[i] * tensordot(R,tensordot(R,tensordot(R,tensordot(R,Hb[j],
              #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Hb - qj  | R5
              ### these are implemented already !
-             OQ  += 2* tensordot(tensordot(Oa[i],Qb[j],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qb - Oa  | R6
-             QO  +=-2* tensordot(tensordot(Ob[j],Qa[i],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qa - Ob  | R6
-             OQ  +=-14*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)) ,                      # Qb - Oa  | R6
-                                 tensordot(R,Qb[j],(0,0)) ,(0,0)) / Rab**9                          
-             QO  += 14*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)) ,                      # Qa - Ob  | R6
-                                 tensordot(R,Qa[i],(0,0)) ,(0,0)) / Rab**9
-             OQ  +=( 21*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
-                      * tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))) / Rab**11
-             QO  +=(-21*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
-                      * tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))) / Rab**11   
-             OO  +=(2.)/(5.)*tensordot(Oa[i],Ob[j],((0,1,2),(0,1,2))) / Rab**7                      # Ob - Oa  | R7
-             OO  +=(-42./5.)*tensordot(tensordot(R,Oa[i],(0,0)),
-                                       tensordot(R,Ob[j],(0,0)),
-                                       ((0,1),(0,1))) / Rab**9                                      # Ob - Oa  | R7
-             OO  +=(189.)/(5.)*tensordot(
-                                         tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),
-                                         tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),
-                                         (0,0)) /Rab**11
-             OO  +=-(231./5.)*(tensordot(tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),R,(0,0)) *
-                               tensordot(tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),R,(0,0)) ) /\
-                               Rab**13
+             #OQ  += 2* tensordot(tensordot(Oa[i],Qb[j],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qb - Oa  | R6
+             #QO  +=-2* tensordot(tensordot(Ob[j],Qa[i],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qa - Ob  | R6
+             #OQ  +=-14*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)) ,                      # Qb - Oa  | R6
+             #                    tensordot(R,Qb[j],(0,0)) ,(0,0)) / Rab**9                          
+             #QO  += 14*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)) ,                      # Qa - Ob  | R6
+             #                    tensordot(R,Qa[i],(0,0)) ,(0,0)) / Rab**9
+             #OQ  +=( 21*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
+             #         * tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))) / Rab**11
+             #QO  +=(-21*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
+             #         * tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))) / Rab**11   
+             #OO  +=(2.)/(5.)*tensordot(Oa[i],Ob[j],((0,1,2),(0,1,2))) / Rab**7                      # Ob - Oa  | R7
+             #OO  +=(-42./5.)*tensordot(tensordot(R,Oa[i],(0,0)),
+             #                          tensordot(R,Ob[j],(0,0)),
+             #                          ((0,1),(0,1))) / Rab**9                                      # Ob - Oa  | R7
+             #OO  +=(189.)/(5.)*tensordot(
+             #                            tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),
+             #                            tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),
+             #                            (0,0)) /Rab**11                                            # Oa - Ob  | R7
+             #OO  +=-(231./5.)*(tensordot(tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),R,(0,0)) *
+             #                  tensordot(tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),R,(0,0)) ) /\
+             #                  Rab**13                                                              # Oa - Ob  | R7
              
              Eint = qq + qD + Dq + qQ + Qq + qO + Oq + DD + DQ + QD + DO + OD + QQ + QO + OQ + OO
              
