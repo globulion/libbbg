@@ -327,13 +327,26 @@ if not is_full - the dma object is turned into traceless object
         
     return field
     
-def ParseDMA(file,type):
-    """parse DMA from GAMESS or COULOMB.py file. 
-       It returns a DMA object."""
+def ParseDMA(file,type='coulomb'):
+    """\
+============================================================================
+Parse DMA from GAUSSIAN, GAMESS or COULOMB.py file. It returns a DMA object.
+Usage:
+ParseDMA(type='coulomb')
+----------------------------------------------------------------------------
+<type>s:
+1) coulomb  or c (or just nothing - it is default)
+2) gaussian or gau
+3) gamess   or gms
+Notes:
+Gaussian file has to have pop=ChelpG printout in log
+Gamess reads Stone's DMA analysis
+============================================================================
+"""
     if   type.lower() == 'slv':
          pass
          
-    elif type.lower() == 'gamess':
+    elif type.lower() == 'gamess' or type.lower() == 'gms':
          data = open(file)
          # ----------------------------------
          #querry1 = "PROPERTIES FOR THE B3LYP    DFT FUNCTIONAL (RHF  TYPE) DENSITY MATRIX"
@@ -403,10 +416,10 @@ def ParseDMA(file,type):
                      m=array(FirstMoments )   ,
                      T=array(SecondMoments)   ,
                      O=array(ThirdMoments )   ,
-                     pos=array(Structure)    ),Structure
+                     pos=array(Structure)    )#,Structure
 
     # -----------------------------------------------------------------------------
-    elif type.lower() == 'coulomb':
+    elif type.lower() == 'coulomb' or type.lower() == 'c':
          # return DMA object
          data = open(file)
          line = data.readline()
@@ -505,9 +518,9 @@ def ParseDMA(file,type):
                      O=array(ThirdMoments )   ,
                      atoms=atoms              ,
                      pos=Structure            ,
-                     origin=Origin),Structure
+                     origin=Origin)#,Structure
     # -----------------------------------------------------------------------------
-    elif type.lower() == 'gaussian':
+    elif type.lower() == 'gaussian' or type.lower() == 'gau':
          data = open(file)
          # seek for atomic positions!
          querry = "Electrostatic Properties Using The SCF Density"
@@ -537,7 +550,7 @@ def ParseDMA(file,type):
          Result.pos = array(Structure) * UNITS.AngstromToBohr
          Result.DMA[0] = array(ZerothMoments)
          
-         return Result, array(Structure) * UNITS.AngstromToBohr
+         return Result#, array(Structure) * UNITS.AngstromToBohr
 
 
 def ParseDmatFromFchk(file,basis_size):
@@ -613,8 +626,10 @@ def CalculateCAMM(basis='6-311++G**'):
     print
        
     for i,file_log in enumerate(pliki_log):
-        dma, fragment = ParseDMA( file_log, 'gaussian' )
-       
+        #dma, fragment = ParseDMA( file_log, 'gaussian' )
+        dma = ParseDMA( file_log, 'gaussian' )
+        fragment = array(dma.pos)
+        
         frag_file = open('slv.frags','r')
         frag_names = []
         line = frag_file.readline()
@@ -1699,7 +1714,7 @@ def MakeSoluteAndSolventFiles(file,typ,solute_ids,charges=0):
 
 if __name__ == '__main__':
    from sys import argv
-   a=ParseDMA(argv[1],argv[2])[0]
+   a=ParseDMA(argv[1],argv[2])#[0]
    #b=ParseDMA(argv[1][:-4]+'log','gaussian')[0]
    #a.pos = array(b.pos)
    #a.origin = array(b.pos)

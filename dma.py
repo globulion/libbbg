@@ -11,8 +11,8 @@ from utilities2 import array_outer_product,    \
                        array_outer_product_1_2,\
                        array_outer_product_2_1,\
                        array_outer_product_1_n
-import copy
 from units import *
+import copy
 
 class DMA:
     """\
@@ -86,24 +86,33 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
         self.traceless = False
     
-    def contract(self,contrlist):
-        """shrink the dimensions of DMA object by eliminating rows in attributes"""
-        K = len(contrlist)
-        self.nfrag = K
-        self.DMA[0] = self.DMA[0][contrlist]
-        self.DMA[1] = self.DMA[1][contrlist]
-        self.DMA[2] = self.DMA[2][contrlist]
-        self.DMA[3] = self.DMA[3][contrlist]
-        self.origin = self.origin[contrlist]
-        return
+    def get_pos(self):
+        """return positions of atoms"""
+        return self.pos
+     
+    def get_origin(self):
+        """return origins of distributed multipoles"""
+        return self.origin
     
+    def get_name(self):
+        """return the name of distribution"""
+        return self.name
+    
+    def get_nfrags(self):
+        """return number of distributed sites"""
+        return self.nfrag
+    
+    def get_natoms(self):
+        """return number of atoms"""
+        return len(self.pos)
+     
     def set_name(self,name):
         """sets the name for the object""" 
         self.name = name
         return
     
     def set_structure(self,pos=None,origin=None,atoms=None,equal=False):
-        """sets new positions or origins and atoms"""
+        """sets new positions or/and origins and atoms"""
         # update positions
         if pos is not None:
            if len(self.pos) != len(pos): # it means you have to update self.atoms
@@ -118,7 +127,22 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         # equal the positions and origins
         if equal:
            self.origin = pos.copy()
-           
+
+    def copy(self):
+        """creates deepcopy of the object"""
+        return copy.deepcopy(self)
+
+    def contract(self,contrlist):
+        """shrink the dimensions of DMA object by eliminating rows in attributes"""
+        K = len(contrlist)
+        self.nfrag = K
+        self.DMA[0] = self.DMA[0][contrlist]
+        self.DMA[1] = self.DMA[1][contrlist]
+        self.DMA[2] = self.DMA[2][contrlist]
+        self.DMA[3] = self.DMA[3][contrlist]
+        self.origin = self.origin[contrlist]
+        return
+                     
     def write(self, file):
         """writes  the DMA distribution in a file"""
         newfile = open(file,'w')
@@ -148,10 +172,8 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         self.DMA[index] = array(value)
     
     def __len__(self):
+        """number of distributed sites"""
         return (len(self.DMA[0]))
-                
-    def copy(self):
-        return copy.deepcopy(self)
 
     def __add__(self,other):
         if (isinstance(self,DMA) and (not isinstance(other,DMA))):
