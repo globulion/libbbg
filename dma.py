@@ -317,7 +317,7 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
             OCTPLES[site,1,2,0] = OCTPLES[site,0,1,2]
             OCTPLES[site,2,1,0] = OCTPLES[site,0,1,2]
             
-        self.DMA_FULL = [ self.pos , CHARGES , DIPOLES , QDPOLES , OCTPLES ]
+        self.DMA_FULL = [ self.origin , CHARGES , DIPOLES , QDPOLES , OCTPLES ]
         self.full = True
 
     def makeDMAfromFULL(self):
@@ -462,18 +462,20 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
 
     def MakeUa(self,ua_list,change_origin=True,contract=False):
-        """transforms the object to the contracted DMA form employing united atoms. 
-        Usage:
-        MakeUa( ua_list )
+        """\
+Transforms the object to the contracted DMA form employing united atoms. 
+Usage:
+MakeUa( ua_list )
         
-        where 'ua_list' is a list of tuples ti containing integers:
+where 'ua_list' is a list of tuples ti containing integers:
         
-        ua+list = [ t1, t2, t3 , ... ], 
-        ti = ( A, a1, a2, a3, ... )
+ua+list = [ t1, t2, t3 , ... ], 
+ti = ( A, a1, a2, a3, ... )
         
-        For i-th tuple corresponding to i-th UA the first integer A
-        is the atom id of UA center atom and the remaining a1, a2 etc relate to 
-        the atoms supposed to be contracted within a united atom UA for A-th center"""
+For i-th tuple corresponding to i-th UA the first integer A
+is the atom id of UA center atom and the remaining a1, a2 etc relate to 
+the atoms supposed to be contracted within a united atom UA for A-th center.
+The numbers are normal numbers (not in Python convention)."""
         
         origin = self.origin
         if change_origin:

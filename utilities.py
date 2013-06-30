@@ -938,9 +938,9 @@ a.u. as well. """
          for j in xrange(len(Rb)):
             R    = Rb[j]-Ra[i]
             Rab=sqrt(sum(R**2,axis=0))
-            print Rab *UNITS.BohrToAngstrom,
-            if Rab > threshold: print "Odrzucono..."
-            else: print
+            #print Rab *UNITS.BohrToAngstrom,
+            #if Rab > threshold: print "Odrzucono..."
+            #else: print
             if (Rab < threshold and Rab !=0):
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
              #if not hash:
