@@ -11,9 +11,9 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'FrequencyShiftPol','Newton','Parse_EDS_InteractionEnergies',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
-         'status','ROTATE']
+         'status','ROTATE','get_tcf']
 
-import re
+import re, gentcf
 from numpy import transpose, zeros, dot, \
                   float64, shape, array, \
                   sqrt, ceil, tensordot, \
@@ -88,6 +88,52 @@ Affiliation:
                  GROUPS.append(make_group(t,A))
           return GROUPS
          
+
+def get_tcf(file,nmax,norgns,ndels,
+                 nskip=0,lprint=False,
+                 save=False,outfile='tcf.out'):
+    """\
+Computes time auto-correlation function.
+
+Usage:
+get_tcf(file,nmax,norgns,ndels,
+            [nkip=0,lprint=False,
+             save=False,outfile='tcf.out'])
+
+returns:
+2-d ndarray of shape(ndels,2)
+
+arguments:
+file   - input file with observable in two-column
+         FORTRAN format (I6,13.5D) 
+nmax   - the number of time steps in the file
+norgns - number of time origins for tcf
+         norgns < nmax
+ndels  - maximum delay time in time steps
+         for which tcf is to be computed
+nskip  - number of time steps to be omitted
+         from trajectory in input file
+lprint - whether print the results or not
+save   - whether save the tcf file or not
+outfile- if save: provide the name of output
+         tcf file 
+"""
+    # compute tcf from data input file
+    r = gentcf.gentcf(file,nmax,nskip,norgns,lprint,ndels)
+    r = r[:ndels]
+    # write the tcf file on disk
+    if save:
+       out = open(outfile,'w')
+       for i in range(ndels):
+           print >> out, "%10i %13.5E" % ((i+1),r[i])
+       out.close()
+    # return results:
+    tcf = zeros((ndels,2),dtype=float64)
+    tcf[:,0] = linspace(1,ndels,ndels)
+    tcf[:,1] = array(r)
+
+    return r
+
 def DistanceRelationMatrix(xyz,threshold=1):
     """calculate boolean relation matrix for structure xyz (array).
     Threshold = 1 Bohr and coordinates of xyz have to be Bohr too!
@@ -930,6 +976,8 @@ a.u. as well. """
     QO = 0 ; OQ = 0
     OO = 0 ;
     qH = 0 ; Hq = 0
+    # 
+    mid = Ra.sum(axis=0)/len(Ra)
     #if add:
     #    for i in xrange(len(Ra)):
     #        qq+= q[i] * dot(L[mode],ElectricField(dma2,Ra,is_full=True)) * sqrt(redmass[mode]*UNITS.AmuToElectronMass)
@@ -937,11 +985,13 @@ a.u. as well. """
     for i in xrange(len(Ra)):
          for j in xrange(len(Rb)):
             R    = Rb[j]-Ra[i]
+            Rm   = Rb[j]-mid
             Rab=sqrt(sum(R**2,axis=0))
+            Rabm = sqrt(sum(Rm**2,axis=0))
             #print Rab *UNITS.BohrToAngstrom,
             #if Rab > threshold: print "Odrzucono..."
             #else: print
-            if (Rab < threshold and Rab !=0):
+            if (Rabm < threshold and Rab !=0):
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
              #if not hash:
              qD  +=  -qa[i]*tensordot(Db[j],R,(0,0))/Rab**3                                         # qa - Db  | R2
