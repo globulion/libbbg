@@ -132,7 +132,7 @@ outfile- if save: provide the name of output
     tcf[:,0] = linspace(1,ndels,ndels)
     tcf[:,1] = array(r)
 
-    return r
+    return tcf
 
 def DistanceRelationMatrix(xyz,threshold=1):
     """calculate boolean relation matrix for structure xyz (array).
