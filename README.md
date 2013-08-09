@@ -26,15 +26,17 @@ The tutorial is under preparation.
 
 Installation prerequisites: 
 - Python 2.6 or newer
-- NumPy
-- python scitools
-To install the LIBBBG package you have to download the files to your computer and type:
+- NumPy 1.6.1 or newer
+- python scitools 0.8 or newer
+
+To install the LIBBBG package you have to make the main directory for LIBBBG,
+download the files on this directory and type:
 
 ```
 $ sudo python setup.py install
 ```
 
-Good Luck!
+in the main directory. Good Luck!
 
 Tutorial
 --------
