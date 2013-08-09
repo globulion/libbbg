@@ -128,6 +128,17 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         if equal:
            self.origin = pos.copy()
 
+    def set_moments(self,charges=None,dipoles=None,
+                         quadrupoles=None,octupoles=None):
+        """\
+set multipoles given as n-d array
+where n is rank of multipole moment"""
+        if charges     is not None: self.DMA[0] = charges.copy()
+        if dipoles     is not None: self.DMA[1] = dipoles.copy()
+        if quadrupoles is not None: self.DMA[2] = quadrupoles.copy()
+        if octupoles   is not None: self.DMA[2] = octupoles.copy()
+        return
+     
     def copy(self):
         """creates deepcopy of the object"""
         return copy.deepcopy(self)
@@ -164,7 +175,11 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
         
         newfile.write(log)
         newfile.close()
-        
+
+    def __contrListFromUaList(self,ua_list):
+       """creates the contraction list from ua_list"""
+       return []
+            
     def __getitem__(self,index): 
         return array(self.DMA[index])
 
@@ -494,10 +509,7 @@ The numbers are normal numbers (not in Python convention)."""
         if contract:
            contrlist = self.__contrListFromUaList(ua_list)
            self.contract(contrlist)
-        
-    def __contrListFromUaList(self,ua_list):
-       """creates the contraction list from ua_list"""
-       return []
+
     
     def Rotate(self,rotmat):
         """rotates the ordinary full-formatted DMA_FULL
