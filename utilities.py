@@ -11,7 +11,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'FrequencyShiftPol','Newton','Parse_EDS_InteractionEnergies',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
-         'status','ROTATE','get_tcf']
+         'status','ROTATE','get_tcf','choose']
 
 import re, gentcf
 from numpy import transpose, zeros, dot, \
@@ -26,6 +26,29 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
+
+def choose(a,ids):
+    """\
+choose the array barray
+
+Usage:
+
+choose(barray,index_list)
+it returns the barray similar to array,
+but without elements of array placed in
+indices given by index_list (indices are 
+Python-like!)"""
+    inranges = len(ids)-1
+    t = []
+    # first range
+    t.append(a[:ids[0]])
+    # inranges
+    for r in xrange(inranges):
+        t.append( a[ ids[r]+1: ids[r+1] ] )
+    # last range
+    t.append(a[ids[-1]+1:])
+    #
+    return concatenate(t)
    
 class GROUPS:
       """ 
@@ -984,14 +1007,15 @@ a.u. as well. """
     #
     for i in xrange(len(Ra)):
          for j in xrange(len(Rb)):
-            R    = Rb[j]-Ra[i]
-            Rm   = Rb[j]-mid
-            Rab=sqrt(sum(R**2,axis=0))
-            Rabm = sqrt(sum(Rm**2,axis=0))
+             R    = Rb[j]-Ra[i]
+            #Rm   = Rb[j]-mid
+             Rab=sqrt(sum(R**2,axis=0))
+            #Rabm = sqrt(sum(Rm**2,axis=0))
             #print Rab *UNITS.BohrToAngstrom,
             #if Rab > threshold: print "Odrzucono..."
             #else: print
-            if (Rabm < threshold and Rab !=0):
+            #if (Rabm < threshold and Rab !=0):
+            #if (Rab < threshold):
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
              #if not hash:
              qD  +=  -qa[i]*tensordot(Db[j],R,(0,0))/Rab**3                                         # qa - Db  | R2
