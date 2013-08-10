@@ -136,7 +136,7 @@ where n is rank of multipole moment"""
         if charges     is not None: self.DMA[0] = charges.copy()
         if dipoles     is not None: self.DMA[1] = dipoles.copy()
         if quadrupoles is not None: self.DMA[2] = quadrupoles.copy()
-        if octupoles   is not None: self.DMA[2] = octupoles.copy()
+        if octupoles   is not None: self.DMA[3] = octupoles.copy()
         return
      
     def copy(self):
@@ -190,6 +190,10 @@ where n is rank of multipole moment"""
         """number of distributed sites"""
         return (len(self.DMA[0]))
 
+    ### --- mathematical operations
+    ###     Warning! If between 2 DMA objects they have to have
+    ###     same dimensions!
+    
     def __add__(self,other):
         if (isinstance(self,DMA) and (not isinstance(other,DMA))):
            q = self.DMA[0] + other
@@ -206,14 +210,16 @@ where n is rank of multipole moment"""
            m = other.DMA[1] + self.DMA[1]
            T = other.DMA[2] + self.DMA[2]
            O = other.DMA[3] + self.DMA[3]     
-        return DMA(q=q,m=m,T=T,O=O)
+        return DMA(q=q,m=m,T=T,O=O,
+                   pos=self.pos.copy(),origin=self.origin.copy())
 
     def __sub__(self,other):
         q = self.DMA[0] - other.DMA[0]
         m = self.DMA[1] - other.DMA[1]
         T = self.DMA[2] - other.DMA[2]
         O = self.DMA[3] - other.DMA[3]
-        return DMA(q=q,m=m,T=T,O=O)
+        return DMA(q=q,m=m,T=T,O=O,
+                   pos=self.pos.copy(),origin=self.origin.copy())
     
     def __div__(self,other):
         if (isinstance(self,DMA) and (not isinstance(other,DMA))):
@@ -232,7 +238,8 @@ where n is rank of multipole moment"""
            T = self.DMA[2] / other.DMA[2]
            O = self.DMA[3] / other.DMA[3]     
 
-        return DMA(q=q,m=m,T=T,O=O)
+        return DMA(q=q,m=m,T=T,O=O,
+                   pos=self.pos.copy(),origin=self.origin.copy())
 
     def __mul__(self,other):
         if (isinstance(self,DMA) and (not isinstance(other,DMA))):
@@ -250,7 +257,8 @@ where n is rank of multipole moment"""
            m = other.DMA[1] * self.DMA[1]
            T = other.DMA[2] * self.DMA[2]
            O = other.DMA[3] * self.DMA[3]            
-        return DMA(q=q,m=m,T=T,O=O)
+        return DMA(q=q,m=m,T=T,O=O,
+                   pos=self.pos.copy(),origin=self.origin.copy())
 
     def __rmul__(self,other):
         if (isinstance(self,DMA) and (not isinstance(other,DMA))):
@@ -263,14 +271,16 @@ where n is rank of multipole moment"""
            m = other.DMA[1] * self
            T = other.DMA[2] * self
            O = other.DMA[3] * self
-        return DMA(q=q,m=m,T=T,O=O)
+        return DMA(q=q,m=m,T=T,O=O,
+                   pos=self.pos.copy(),origin=self.origin.copy())
 
     def __neg__(self):
         q = -self.DMA[0]
         m = -self.DMA[1]
         T = -self.DMA[2]
         O = -self.DMA[3]
-        return DMA(q=q,m=m,T=T,O=O)
+        return DMA(q=q,m=m,T=T,O=O,
+                   pos=self.pos.copy(),origin=self.origin.copy())
 
     def MAKE_FULL(self):
         """creates arrays of ordinary forms of distributed multipoles
