@@ -1010,6 +1010,7 @@ a.u. as well. """
              R    = Rb[j]-Ra[i]
             #Rm   = Rb[j]-mid
              Rab=sqrt(sum(R**2,axis=0))
+             #if Rab==0: print "!!!!!!!!!!!!!!",dma1.name,dma2.name
             #Rabm = sqrt(sum(Rm**2,axis=0))
             #print Rab *UNITS.BohrToAngstrom,
             #if Rab > threshold: print "Odrzucono..."
