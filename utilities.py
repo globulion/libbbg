@@ -11,9 +11,9 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'FrequencyShiftPol','Newton','Parse_EDS_InteractionEnergies',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
-         'status','ROTATE','get_tcf','choose']
+         'status','ROTATE','get_tcf','choose','get_pmloca']
 
-import re, gentcf
+import re, gentcf, orbloc
 from numpy import transpose, zeros, dot, \
                   float64, shape, array, \
                   sqrt, ceil, tensordot, \
@@ -49,6 +49,59 @@ Python-like!)"""
     t.append(a[ids[-1]+1:])
     #
     return concatenate(t)
+
+def get_pmloca(natoms,mapi,sao,vecin,nae,
+               maxit=1000,conv=1.0E-06,lprint=False,
+               freeze=None):
+    """\
+Performs Pipek-Mezey molecular orbital localization.
+
+Usage:
+get_pmloca(natoms,mapi,sao,vecin,nae,
+           [maxit=1000,conv=1.0E-06,lprint=False,
+            freeze=None])
+
+returns:
+transormation matrix: 2-d ndarray of shape(nmos,nmos)
+input orbitals      : 2-d ndarray of shape(nmos,nbasis)
+transformed orbitals: 2-d ndarray of shape(nmos,nbasis)
+
+NMOS and NBASIS are taken from the dimensions of VECIN.
+If you want to exclude some MOs provide MOs indices in
+freeze list (Python convenction,N-1). The program will
+get a slice ov VECIN and return full transformation U
+with frozen orbitals too (not written yet).
+
+arguments:
+natoms - number of atoms in molecule
+mapi   - list of atoms in basis set order (LIST1 in PyQuanteM)
+sao    - array of AO overlap integrals of size (nbasis,nbasis)
+vecin  - input MO coefficients
+nae    - number of alpha electrons
+
+optional:
+maxit  - maximum number of iterations
+conv   - convergence for electron population
+lprint - whether print no of iteration or not after finish
+
+"""
+    # freeze the orbitals requested
+    if freeze is not None: 
+       vecin = choose(vecin,freeze)
+    # mapi in FORTRAN default indexes, nmos and no of elements
+    # in triangular matrix (n2) for PM localizator matrix elements
+    mapi = array(mapi,int) + 1
+    nmos = len(vecin)
+    n2   = (nmos+1)*nmos/2
+    #
+    tran = orbloc.pmloca(natoms=natoms,mapi=mapi,sao=sao,vecin=vecin,
+                         maxit=maxit,cvgloc=conv,n2=n2,nae=nae,
+                         lprint=lprint)
+    #
+    vecout = dot(tran,vecin)
+    #
+    return tran, vecin, vecout
+
    
 class GROUPS:
       """ 

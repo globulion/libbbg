@@ -19,9 +19,9 @@ print "Compiling extension module: ", f2py_cmd
 
 # extension module specifications
 GENTCF = Extension(name='gentcf',
-                   sources=['gentcf.f'],
-                   f2py_options=["--fcompiler='gnu95'"])
-                   
+                   sources=['gentcf.f'],)
+ORBLOC = Extension(name='orbloc',
+                   sources=['pmloca.f'],)                  
 
 # --- Install libbbg!
 
@@ -35,5 +35,5 @@ setup(name='LIBBBG',
       py_modules=['dma','gaussfreq','units',
                   'utilities','utilities2',
                   'dipderiv','re_templates'],
-      ext_modules=[GENTCF],
+      ext_modules=[GENTCF,ORBLOC],
      )
