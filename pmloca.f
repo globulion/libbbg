@@ -3,12 +3,14 @@ C-----|--|---------|---------|---------|---------|---------|---------|--|------|
       SUBROUTINE PMLOCA(NATOMS,NBASIS,NMOS,MAPI,SAO,VECIN,
      &                  MAXIT,CVGLOC,N2,NAE,LPRINT,TRAN)
 C
-C          Pipek-Mezey molecular orbital localization scheme
-C          -------------------------------------------------
-C          The algorithm is taken from GAMESS package
+C -----------------------------------------------------------------------------
+C              PIPEK-MEZEY MOLECULAR ORBITAL LOCALIZATION SCHEME
+C          J. PIPEK AND P. G. MEZEY  J. CHEM. PHYS. 90, 4916 (1989),
+C 
+C                The algorithm is taken from GAMESS package
 C
-C                                                 19.08.2013
-C
+C                                                  19.08.2013
+C -----------------------------------------------------------------------------
 C   Variables:
 C     MAPI   - list of atomic indices in bfs order
 C     VECIN  - input canonical orbitals

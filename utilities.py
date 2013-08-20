@@ -54,7 +54,10 @@ def get_pmloca(natoms,mapi,sao,vecin,nae,
                maxit=1000,conv=1.0E-06,lprint=False,
                freeze=None):
     """\
+===============================================================
 Performs Pipek-Mezey molecular orbital localization.
+Reference: 
+J. PIPEK AND P. G. MEZEY  J. CHEM. PHYS. 90, 4916 (1989)
 
 Usage:
 get_pmloca(natoms,mapi,sao,vecin,nae,
@@ -71,7 +74,7 @@ If you want to exclude some MOs provide MOs indices in
 freeze list (Python convenction,N-1). The program will
 get a slice ov VECIN and return full transformation U
 with frozen orbitals too (not written yet).
-
+---------------------------------------------------------------
 arguments:
 natoms - number of atoms in molecule
 mapi   - list of atoms in basis set order (LIST1 in PyQuanteM)
@@ -83,7 +86,7 @@ optional:
 maxit  - maximum number of iterations
 conv   - convergence for electron population
 lprint - whether print no of iteration or not after finish
-
+===============================================================
 """
     # freeze the orbitals requested
     if freeze is not None: 
