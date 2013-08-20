@@ -11,7 +11,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'FrequencyShiftPol','Newton','Parse_EDS_InteractionEnergies',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
-         'status','ROTATE','get_tcf','choose','get_pmloca']
+         'status','ROTATE','get_tcf','choose','get_pmloca',
+         'ParseVecFromFchk']
 
 import re, gentcf, orbloc, PyQuante
 from numpy import transpose, zeros, dot, \
@@ -710,6 +711,23 @@ Gamess reads Stone's DMA analysis
          
          return Result#, array(Structure) * UNITS.AngstromToBohr
 
+def ParseVecFromFchk(file):
+    """parse Ci\mu coeeficients from g09 fchk"""
+    querry = "Alpha MO coefficients"
+    data = open(file)
+    line = data.readline()
+    while querry not in line:
+          line = data.readline()
+    NSQ = int(line.split()[-1])
+    N   = math.sqrt(NSQ)
+    line = data.readline()
+    C = []
+    g = lambda n: n/5+bool(n%5)
+    for i in range(g(NSQ)):
+        C+= line.split()
+        line = data.readline()
+    C = array(C,dtype=float64).reshape(N,N)
+    return C
 
 def ParseDmatFromFchk(file,basis_size):
     """parses density matrix from Gaussian fchk file"""
