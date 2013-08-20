@@ -13,7 +13,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca']
 
-import re, gentcf, orbloc
+import re, gentcf, orbloc, PyQuante
 from numpy import transpose, zeros, dot, \
                   float64, shape, array, \
                   sqrt, ceil, tensordot, \
@@ -350,8 +350,30 @@ class SVDSuperimposer(object):
         return self.rms
 
 
-def Read_xyz_file(file,ar=False):
-    """reads xyz file and returns coords and atoms. Coordinates are returned in AU!"""
+def Read_xyz_file(file,ar=False,mol=False,mult=1,charge=0,name='dummy',
+                  units='Angstrom'):
+    """\
+reads xyz file and returns coords and atoms. 
+Coordinates are returned in AU!
+
+Usage:
+get_mol(file,[ar=False,mol=False,mult=1,charge=0,name='dummy',
+              units='Angstrom'])
+
+Returns: 
++ list of coords plus ...
++ numpy.array of xyz (if ar=True) 
++ or Molecule object
+
+Description:
+file   - xyz file
+units  - input units (output is always in Bohr!)
+mol    - wheather return Molecule object
+name   - name of Molecule object
+mult   - multiplicity
+charge - charge
+ar     - return also array with only coordinates
+"""
     data = open(file).readlines()
     n_atoms = int(data[0])
     data.pop(0);data.pop(0)
@@ -359,15 +381,26 @@ def Read_xyz_file(file,ar=False):
     for i in range(n_atoms):
         coord.append(data[i].split()[:4])
         coord[i][1:] = map(float64,coord[i][1:])
-        for j in range(3):
-            coord[i][j+1]*= UNITS.AngstromToBohr
+        if units.lower()=='Angstrom':
+           for j in range(3):
+               coord[i][j+1]*= UNITS.AngstromToBohr
             
     if ar:
         data = [map(float64,[x for x in coord[y][1:]]) for y in range( len(coord))]
         data = array(data,dtype=float64)
-        
-    if ar: return coord, data
-    else:  return coord
+    if mol:
+        Coords = []
+        for i in range(n_atoms):
+            atom  = (Atom(coord[i][0]).atno, (coord[i][1], 
+                                              coord[i][2],
+                                              coord[i][3]) )
+            Coords.append(atom)
+        Mol = PyQuante.Molecule(name,Coords,units=units,
+                                multiplicity=mult,charge=charge)
+    
+    if   mol : return Mol                 
+    elif ar  : return coord, data
+    else     : return coord
 
 def Vr_dma(dma,Rb,is_full=False):
     """calculates electrostatic potential in point Rb 
