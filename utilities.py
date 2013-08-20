@@ -745,7 +745,6 @@ def ParseDmatFromFchk(file,basis_size):
     for i in range(int(ceil(N/5.))): 
         dmat+=[x for x in line.split()] 
         line = data.readline()
-    print len(dmat)
     #dmat = array(dmat,dtype=float64)
         
     # construct explicit 2D density matrix
