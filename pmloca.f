@@ -20,6 +20,7 @@ C     N2     - no of triangular matrix elements (N+1)N/2
 C     
 C   Returns:
 C     TRAN   - transformation matrix
+C -----------------------------------------------------------------------------
 C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION VECIN(NMOS,NBASIS), SAO(NBASIS,NBASIS),
