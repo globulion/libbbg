@@ -66,7 +66,6 @@ get_pmloca(natoms,mapi,sao,vecin,nae,
 
 returns:
 transormation matrix: 2-d ndarray of shape(nmos,nmos)
-input orbitals      : 2-d ndarray of shape(nmos,nbasis)
 transformed orbitals: 2-d ndarray of shape(nmos,nbasis)
 
 NMOS and NBASIS are taken from the dimensions of VECIN.
@@ -101,9 +100,10 @@ lprint - whether print no of iteration or not after finish
                          maxit=maxit,cvgloc=conv,n2=n2,nae=nae,
                          lprint=lprint)
     #
+    tran = transpose(tran)
     vecout = dot(tran,vecin)
     #
-    return tran, vecin, vecout
+    return tran, vecout
 
    
 class GROUPS:
@@ -1670,7 +1670,7 @@ def PRINTL(M,list1="",list2=""):
 
            for u in range(len(m)):
              for i in range(len(transpose(m))):
-               v = "%12.5f" % m[u][i]
+               v = "%12.6f" % m[u][i]
                print "%14s" % v.rjust(14),
              print
            print
