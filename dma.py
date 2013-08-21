@@ -160,7 +160,7 @@ where n is rank of multipole moment"""
         log = ' SLV output file. All units in AU\n\n'
         log+= self.__repr__()
         log += ' Structure\n'
-        log += ' ---------\n\n'
+        log += ' ---------\n\n'  
         for i,atom in enumerate(self.atoms):
             log+= " %-10s %14.8f %14.8f %14.8f\n" % (atom.symbol, self.pos[i,0], self.pos[i,1], self.pos[i,2])
         log+='\n'
