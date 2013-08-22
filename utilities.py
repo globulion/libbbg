@@ -135,7 +135,27 @@ lprint - whether print no of iteration or not after finish
     #
     return tran, vecout
 
-   
+def order(R,P,start=0):
+    new_P = P.copy()
+    sim   = []
+    rad =  []
+    for i in range(len(R)-start):
+        J = 0+start
+        r = 1.0E+100
+        rads = []
+        for j in range(len(P)-start):
+            r_ = sum(( R[i+start]-P[j+start])**2)
+            r__= sum((-R[i+start]-P[j+start])**2)
+            if r__<r_: r_=r__
+            rads.append(r_)
+            if r_<r:
+               r=r_
+               J = j
+        sim.append((i+1,J+1))
+        new_P[i+start] = P[J+start]
+        rad.append(rads)
+    return new_P, sim, array(rad,dtype=float)
+
 class GROUPS:
       """ 
 grouping algorithm from numerical project: 
@@ -809,6 +829,7 @@ def ParseVecFromFchk(file):
         C+= line.split()
         line = data.readline()
     C = array(C,dtype=float64).reshape(N,N)
+    data.close()
     return C
 
 def ParseDmatFromFchk(file,basis_size):
@@ -837,7 +858,7 @@ def ParseDmatFromFchk(file,basis_size):
             P[i,j] = float64(dmat.pop(0))#dmat[I]
             P[j,i] = P[i,j] #dmat[I]
             #I += 1
-
+    data.close()
     return array(P)
 
 def Parse_EDS_InteractionEnergies(file):
