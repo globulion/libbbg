@@ -14,6 +14,35 @@ from utilities2 import array_outer_product,    \
 from units import *
 import copy
 
+def interchange(T,ind):
+    """\
+interchange rows according to order list
+
+Usage: ingerchange(array,order_list)
+
+Returns: permuted array
+
+Example: 
+
+Assume we have initial matrix T. We want obtain T':
+
+T =  [[ 1  6  8]         T'=  [[ 3 -4 -4]
+      [ 2  5  7]               [ 7 -1  9]
+      [ 3 -4 -4]      ind      [ 1  6  8]
+      [ 4  1  0]     ---->     [ 4  1  0]
+      [ 5 -7 -8]               [ 2  5  7]
+      [ 6  6  2]               [ 5 -7 -8]
+      [ 7 -1  9]]              [ 6  6  2]]
+      
+This is accomplished by run:
+T_prime = interchange(T,ind=[3, 7, 1, 4, 2, 5, 6])
+"""
+    ind = array(ind)-1
+    B = T.copy()
+    for i,index in enumerate(ind):
+        B[i] = T[index]
+    return B
+ 
 class DMA:
     """\
 ==============================LIBBBG:DMA================================
@@ -52,6 +81,7 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
                                 Needs full format created first (above) 
 <object>.copy()                 return a deepcopy of <object>           
 <object>.write(<file>)          write DMA distribution to a <file> in cf
+<object>.interchange(<ind>)     interchange all memorials using ind list
 ------------------------------------------------------------------------
 "get" methods:                                                          
 ------------------------------------------------------------------------
@@ -178,6 +208,16 @@ where n is rank of multipole moment"""
         if octupoles   is not None: self.DMA[3] = octupoles.copy()
         return
      
+    def interchange(self,ind):
+        """
+premute all moments, positions and origins using ind list 
+(ind has the same meaning as in interchange function"""
+        for i in range(4):
+            self.DMA[i]  = interchange(self.DMA[i],ind)
+        self.pos = interchange(self.pos,ind)
+        self.origin = interchange(self.origin,ind)
+        return
+        
     def copy(self):
         """creates deepcopy of the object"""
         return copy.deepcopy(self)

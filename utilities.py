@@ -52,7 +52,7 @@ This is accomplished by run:
 T_prime = interchange(T,ind=[3, 7, 1, 4, 2, 5, 6])
 """
     ind = array(ind)-1
-    B = T.copy();B.fill(0)
+    B = T.copy()
     for i,index in enumerate(ind):
         B[i] = T[index]
     return B
