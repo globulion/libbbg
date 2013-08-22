@@ -195,7 +195,7 @@ C          ---------------------------------
       IF (LPRINT) THEN
           WRITE (6,9080) ITER
       ENDIF
- 9080 FORMAT(10X,'LOCALIZATION CONVERGED IN',I4,' ITERATIONS')
+ 9080 FORMAT(10X,'LOCALIZATION CONVERGED IN',I6,' ITERATIONS')
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
