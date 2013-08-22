@@ -12,7 +12,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
-         'ParseVecFromFchk']
+         'ParseVecFromFchk','interchange']
 
 import re, gentcf, orbloc, PyQuante
 from numpy import transpose, zeros, dot, \
@@ -27,6 +27,35 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
+
+def interchange(T,ind):
+    """\
+interchange rows according to order list
+
+Usage: ingerchange(array,order_list)
+
+Returns: permuted array
+
+Example: 
+
+Assume we have initial matrix T. We want obtain T':
+
+T =  [[ 1  6  8]         T'=  [[ 3 -4 -4]
+      [ 2  5  7]               [ 7 -1  9]
+      [ 3 -4 -4]      ind      [ 1  6  8]
+      [ 4  1  0]     ---->     [ 4  1  0]
+      [ 5 -7 -8]               [ 2  5  7]
+      [ 6  6  2]               [ 5 -7 -8]
+      [ 7 -1  9]]              [ 6  6  2]]
+      
+This is accomplished by run:
+T_prime = interchange(T,ind=[3, 7, 1, 4, 2, 5, 6])
+"""
+    ind = array(ind)-1
+    B = T.copy();B.fill(0)
+    for i,index in enumerate(ind):
+        B[i] = T[index]
+    return B
 
 def choose(a,ids):
     """\
@@ -354,7 +383,7 @@ class SVDSuperimposer(object):
 def Read_xyz_file(file,ar=False,mol=False,mult=1,charge=0,name='dummy',
                   units='Angstrom'):
     """\
-reads xyz file and returns coords and atoms. 
+reads xyz or fchk file and returns coords and atoms. 
 Coordinates are returned in AU!
 
 Usage:
@@ -375,34 +404,87 @@ mult   - multiplicity
 charge - charge
 ar     - return also array with only coordinates
 """
-    data = open(file).readlines()
-    n_atoms = int(data[0])
-    data.pop(0);data.pop(0)
-    coord = []
-    for i in range(n_atoms):
-        coord.append(data[i].split()[:4])
-        coord[i][1:] = map(float64,coord[i][1:])
-        if units.lower()=='Angstrom':
-           for j in range(3):
-               coord[i][j+1]*= UNITS.AngstromToBohr
+    ### handle *.xyz files
+    if file[-4:].lower() == '.xyz':
+       data = open(file).readlines()
+       n_atoms = int(data[0])
+       data.pop(0);data.pop(0)
+       coord = []
+       for i in range(n_atoms):
+           coord.append(data[i].split()[:4])
+           coord[i][1:] = map(float64,coord[i][1:])
+           if units.lower()=='Angstrom':
+              for j in range(3):
+                  coord[i][j+1]*= UNITS.AngstromToBohr
             
-    if ar:
-        data = [map(float64,[x for x in coord[y][1:]]) for y in range( len(coord))]
-        data = array(data,dtype=float64)
-    if mol:
-        Coords = []
-        for i in range(n_atoms):
-            atom  = (Atom(coord[i][0]).atno, (coord[i][1], 
-                                              coord[i][2],
-                                              coord[i][3]) )
-            Coords.append(atom)
-        Mol = PyQuante.Molecule(name,Coords,units=units,
-                                multiplicity=mult,charge=charge)
+       if ar:
+           data = [map(float64,[x for x in coord[y][1:]]) \
+                                  for y in range( len(coord))]
+           data = array(data,dtype=float64)
+       if mol:
+           Coords = []
+           for i in range(n_atoms):
+               atom  = (Atom(coord[i][0]).atno, (coord[i][1], 
+                                                 coord[i][2],
+                                                 coord[i][3]) )
+               Coords.append(atom)
+           Mol = PyQuante.Molecule(name,Coords,units=units,
+                                   multiplicity=mult,charge=charge)
     
-    if   mol : return Mol                 
-    elif ar  : return coord, data
-    else     : return coord
+       if   mol : return Mol                 
+       elif ar  : return coord, data
+       else     : return coord
 
+    ### handle g09.fchk files
+    elif file[-4:].lower() == 'fchk':
+       file = open(file)
+       line = file.readline()
+       g = lambda n,m: n/m+bool(n%m)
+       
+       # search for atomic numbers
+       querry = "Atomic numbers"
+       while True:
+           if querry in line: break
+           line = file.readline()       
+       n_atoms = int(line.split()[-1])
+       line = file.readline()
+       
+       atnos = []
+       for i in xrange(g(n_atoms,6)):
+           atnos += line.split()
+           line = file.readline()
+           
+       atnos = array(atnos,dtype=float64)
+       
+       # search for atomic coordinates       
+       querry = "Current cartesian coordinates"
+       while True:
+           if querry in line: break
+           line = file.readline()
+       N = int(line.split()[-1])
+       line = file.readline()
+       
+       coord = []
+       for i in xrange(g(N,5)):
+           coord += line.split()
+           line = file.readline()
+           
+       coord = array(coord,dtype=float64).reshape(n_atoms,3)
+
+       # create Molecule object
+       if mol:
+           Coords = []
+           for i in range(n_atoms):
+               atom  = (atnos[i], (coord[i][0],
+                                   coord[i][1],
+                                   coord[i][2]) )
+               Coords.append(atom)
+           Mol = PyQuante.Molecule(name,Coords,units='Bohr',
+                                   multiplicity=mult,charge=charge)
+    
+           return Mol                        
+       else: return None
+       
 def Vr_dma(dma,Rb,is_full=False):
     """calculates electrostatic potential in point Rb 
 from dma distribution."""
@@ -1267,7 +1349,8 @@ def FrequencyShift(solute=0,solvent=0,solute_structure=0,threshold=5630):
     # The final cm-1 unit is obtained at the very end
     # of the computations.
     new = solute.copy()
-    new.pos = array(solute_structure)
+    #new.pos = array(solute_structure)
+    new.set_structure(pos=solute_structure,equal=True)
     A,B,C,D,E = Emtp(new,solvent.copy(),threshold=threshold)
     result = array([A,B,C,D,E])
     # switch to cm-1

@@ -1,5 +1,5 @@
 # ---------------------------------------------- #
-#     DISTRIBUTED MULTIPOLE ANALYSIS OBJECT      #
+#     DISTRIBUTED MULTIPOLE ANALYSIS MODULE      #
 # ---------------------------------------------- #
 
 __all__ = ['DMA']
@@ -16,6 +16,7 @@ import copy
 
 class DMA:
     """\
+==============================LIBBBG:DMA================================
 Represents the DMA distribution object. Inputs are q,m,T and O that mean
 a set of distributed multipoles on n centers, ie.:                      
    Q = array([Q1,Q2, ... ,Qn])                                          
@@ -24,8 +25,9 @@ of position and origin of each of distributed center in a form of a
 NumPy array. As a zero object you can specify DMA(nfrag=<n>) after which
 the DMA of n distributed centers (zero moments at each) will be created.
                                                                         
+========================================================================
 Usage:                                                                  
-                                                                        
+------------------------------------------------------------------------
 DMA(nfrag=<n>)                  return zero DMA object with <n> centers 
 <object>.contract(<list>)       contract the DMA <object> using <list>  
                                 that specifies the indices of origins to
@@ -34,8 +36,7 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
                                 create united atoms within the DMA.     
                                 unset 'change_origin' option when using 
                                 distributed charges                     
-<object>.Rotate(<rot>)          rotate the DMA about the rotation matrix
-<object>.ChangeOrigin(new_origin_set=<0>,zero=<False>)                  
+<object>.ChangeOrigin(new_origin_set=<0>,zero=<False>)                 
                                 change the origins of distribited moments
                                 to the new origin set specified by array
                                 (in bohrs) of dimension (<n>,3). If you 
@@ -47,8 +48,46 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
 <object>.MakeTraceless()        transform the DMA quadrupoles and octu- 
                                 poles to traceless form. Needs full for-
                                 mat created first (above)               
-                                                                        
-                                                                        
+<object>.Rotate(<rot>)          rotate the DMA about the rotation matrix
+                                Needs full format created first (above) 
+<object>.copy()                 return a deepcopy of <object>           
+<object>.write(<file>)          write DMA distribution to a <file> in cf
+------------------------------------------------------------------------
+"get" methods:                                                          
+------------------------------------------------------------------------
+<object>.get_pos()              return atomic positions ndarray (in bohr)
+<object>.get_origin()           return origins ndarray (in bohr)       
+<object>.get_name()             return name of distribution             
+<object>.get_nfrags()           return number of distributed sites      
+<object>.get_natoms()           return number of atoms                  
+------------------------------------------------------------------------
+"set" methods:                                                          
+------------------------------------------------------------------------
+<object>.set_name(<name>)       set the name of distribution            
+<object>.set_moments(charges=<None>,dipoles=<None>,                     
+                     quadrupoles=<None>,octupoles=<None>)               
+                                set moments as numpy arrays in reduced  
+                                format                                  
+<object>.set_structure(pos=<None>,origin=<None>,                        
+                       atoms=<None>,equal=<False>)                      
+                                set positions and/or origins and/or atom
+                                symbols. If equal=<True> setting only po
+                                sitions will set the same origins too   
+                                without explicit call for origins       
+------------------------------------------------------------------------
+mathematical operations:                                                
+------------------------------------------------------------------------
+1) addition                                                             
+   <object> + <number> = adds number to all moments (new <object>)      
+   <object> + <object> = adds moments of two objects (new <object>)     
+   <object> - <number> = substract number to all moments (new <object>)
+   <object> - <object> = substract moments from each other (new <object>)
+   <object> * <number> = multiply all moments by number (new <object>)  
+   <object> / <number> = divide all moments by number (new <object>)    
+   - <object>          = return negative moments (new <object>)         
+   len(object)         = return number of distributed sites             
+------------------------------------------------------------------------
+========================================================================
 """
     
     def __init__(self,
@@ -154,13 +193,13 @@ where n is rank of multipole moment"""
         self.origin = self.origin[contrlist]
         return
                      
-    def write(self, file):
+    def write(self, file, type='c'):
         """writes  the DMA distribution in a file"""
         newfile = open(file,'w')
         log = ' SLV output file. All units in AU\n\n'
         log+= self.__repr__()
         log += ' Structure\n'
-        log += ' ---------\n\n'  
+        log += ' ---------\n\n'
         for i,atom in enumerate(self.atoms):
             log+= " %-10s %14.8f %14.8f %14.8f\n" % (atom.symbol, self.pos[i,0], self.pos[i,1], self.pos[i,2])
         log+='\n'
