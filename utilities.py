@@ -14,7 +14,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange']
 
-import re, gentcf, orbloc, PyQuante
+import re, gentcf, orbloc, PyQuante, clemtp
 from numpy import transpose, zeros, dot, \
                   float64, shape, array, \
                   sqrt, ceil, tensordot, \
@@ -85,7 +85,7 @@ def get_pmloca(natoms,mapi,sao,vecin,nae,
                freeze=None):
     """\
 ===============================================================
-Performs Pipek-Mezey molecular orbital localization.
+Performs the Pipek-Mezey molecular orbital localization.
 Reference: 
 J. PIPEK AND P. G. MEZEY  J. CHEM. PHYS. 90, 4916 (1989)
 
@@ -154,7 +154,7 @@ def order(R,P,start=0):
         sim.append((i+1,J+1))
         new_P[i+start] = P[J+start]
         rad.append(rads)
-    return new_P, sim, array(rad,dtype=float)
+    return new_P, sim#, array(rad,dtype=float)
 
 class GROUPS:
       """ 
@@ -1176,8 +1176,68 @@ Emtp.D *= converter
 Emtp.E *= converter
 """
 command = compile(code,'<string>','exec')             
-             
-def Emtp(DMA1,DMA2,threshold=1000,hash=True,add=False,L=0):
+
+def Emtp(DMA1,DMA2):
+    """calculates E(EL)MTP from two DMA distributions.
+dma1 and dma2 are the objects of the class DMA. Calculations are
+in atomic units and a respective interaction energy is in 
+a.u. as well. Uses FORTRAN subroutine CLEMTP"""
+    
+    converter=UNITS.HartreePerHbarToCmRec
+    #
+    dma1=DMA1.copy()
+    dma2=DMA2.copy()
+    # make FULL format of DMA distribution
+    dma1.MAKE_FULL() # hexadecapole integrals not implemented yet
+    dma2.MAKE_FULL()
+    # transform FULL format to fraceless forms for quadrupoles and octupoles
+    dma1.MakeTraceless()
+    dma2.MakeTraceless()
+    #
+    Ra,qa,Da,Qa,Oa = dma1.DMA_FULL
+    Rb,qb,Db,Qb,Ob = dma2.DMA_FULL
+    #
+    Eint,A,B,C,D,E,CC,CD,CQ,CO,DD,DQ=clemtp.clemtp(Ra,qa,Da,Qa,Oa,Rb,qb,Db,Qb,Ob)
+    DO = 0; QQ = 0; QO = 0; OO = 0
+    #
+    Emtp.A = A
+    Emtp.B = B
+    Emtp.C = C
+    Emtp.D = D
+    Emtp.E = E
+    Emtp.F = 0
+    Emtp.G = 0
+    Emtp.H = 0
+    #
+    Emtp.A *= converter
+    Emtp.B *= converter
+    Emtp.C *= converter
+    Emtp.D *= converter
+    Emtp.E *= converter
+    #
+    log = "\n" 
+    log+= " --------------------------------:--------------------------\n"
+    log+= " INTERACTION ENERGY TERMS [cm-1] : PARTITIONING TERMS [cm-1]\n"
+    log+= " --------------------------------:--------------------------\n"
+    log+= "%6s %20.2f      :\n" % ("Total".rjust(6),Eint*converter)
+    log+= " "+"-"*32+":"+"-"*26+"\n"
+    log+= "%7s %19.2f      :  1        %10.2f\n" % ("q-q".rjust(6), CC *converter,Emtp.A)
+    log+= "%7s %19.2f      :  1+2      %10.2f\n" % ("q-D".rjust(6), CD *converter,Emtp.B)
+    log+= "%7s %19.2f      :  1+2+3    %10.2f\n" % ("q-Q".rjust(6), CQ *converter,Emtp.C)
+    log+= "%7s %19.2f      :  1+2+3+4  %10.2f\n" % ("q-O".rjust(6), CO *converter,Emtp.D)
+    log+= "%7s %19.2f      :  1+2+3+4+5%10.2f\n" % ("D-D".rjust(6), DD *converter,Emtp.E)
+    log+= "%7s %19.2f      :\n"                  % ("D-Q".rjust(6), DQ *converter)
+    log+= "%7s %19.2f      :\n"                  % ("D-O".rjust(6), DO *converter)
+    log+= "%7s %19.2f      :\n"                  % ("Q-Q".rjust(6), QQ *converter)
+    log+= "%7s %19.2f      :\n"                  % ("Q-O".rjust(6), QO *converter)
+    log+= "%7s %19.2f      :\n"                  % ("O-O".rjust(6), OO *converter)
+    log+= " "+"-"*32+":"+"-"*26+"\n"
+    log+= "\n"
+    Emtp.log = log
+
+    return Emtp.A, Emtp.B, Emtp.C, Emtp.D, Emtp.E
+    
+def get_elmtp(DMA1,DMA2):
     """calculates E(EL)MTP from two DMA distributions.
 dma1 and dma2 are the objects of the class DMA. Calculations are
 in atomic units and a respective interaction energy is in 
@@ -1208,26 +1268,12 @@ a.u. as well. """
     QO = 0 ; OQ = 0
     OO = 0 ;
     qH = 0 ; Hq = 0
-    # 
-    mid = Ra.sum(axis=0)/len(Ra)
-    #if add:
-    #    for i in xrange(len(Ra)):
-    #        qq+= q[i] * dot(L[mode],ElectricField(dma2,Ra,is_full=True)) * sqrt(redmass[mode]*UNITS.AmuToElectronMass)
     #
     for i in xrange(len(Ra)):
          for j in xrange(len(Rb)):
              R    = Rb[j]-Ra[i]
-            #Rm   = Rb[j]-mid
              Rab=sqrt(sum(R**2,axis=0))
-             #if Rab==0: print "!!!!!!!!!!!!!!",dma1.name,dma2.name
-            #Rabm = sqrt(sum(Rm**2,axis=0))
-            #print Rab *UNITS.BohrToAngstrom,
-            #if Rab > threshold: print "Odrzucono..."
-            #else: print
-            #if (Rabm < threshold and Rab !=0):
-            #if (Rab < threshold):
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
-             #if not hash:
              qD  +=  -qa[i]*tensordot(Db[j],R,(0,0))/Rab**3                                         # qa - Db  | R2
              Dq  +=  +qb[j]*tensordot(Da[i],R,(0,0))/Rab**3                                         # qb - Da  | R2
              DD  +=-3*tensordot(Da[i],R,(0,0))*tensordot(Db[j],R,(0,0))/Rab**5                      # Da - Db  | R3
@@ -1363,7 +1409,7 @@ def FrequencyShiftPol(solvent,solpol,point):
     
     return shift * UNITS.HartreePerHbarToCmRec
 
-def FrequencyShift(solute=0,solvent=0,solute_structure=0,threshold=5630):
+def FrequencyShift(solute=0,solvent=0,solute_structure=0):
     """calculates frequency shift of solute (MCHO instance)
     as well as solvent (tuple of DMA instances)."""
     # all calculations are performed in atomic units.
@@ -1372,7 +1418,7 @@ def FrequencyShift(solute=0,solvent=0,solute_structure=0,threshold=5630):
     new = solute.copy()
     #new.pos = array(solute_structure)
     new.set_structure(pos=solute_structure,equal=True)
-    A,B,C,D,E = Emtp(new,solvent.copy(),threshold=threshold)
+    A,B,C,D,E = Emtp(new,solvent.copy())
     result = array([A,B,C,D,E])
     # switch to cm-1
     # result  *= UNITS.HartreePerHbarToCmRec

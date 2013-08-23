@@ -21,7 +21,9 @@ print "Compiling extension module: ", f2py_cmd
 GENTCF = Extension(name='gentcf',
                    sources=['gentcf.f'],)
 ORBLOC = Extension(name='orbloc',
-                   sources=['pmloca.f'],)                  
+                   sources=['pmloca.f'],)
+CLEMTP = Extension(name='clemtp',
+                   sources=['clemtp.f'])
 
 # --- Install libbbg!
 
@@ -35,5 +37,5 @@ setup(name='LIBBBG',
       py_modules=['dma','gaussfreq','units',
                   'utilities','utilities2',
                   'dipderiv','re_templates'],
-      ext_modules=[GENTCF,ORBLOC],
+      ext_modules=[GENTCF,ORBLOC,CLEMTP],
      )
