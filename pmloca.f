@@ -58,6 +58,7 @@ C
 C...seed the random function
       ONEPT0 = ONE
       IF (NREDO.EQ.1) XX = LMORND(ONEPT0,VECIN,NBASIS,NAE,NBASIS)
+c      IF (NREDO.EQ.1) XX = LMORN2(ONEPT0,NMOS)
 C
 C...initialize transformation matrix
       CALL VCLR(TRAN,1,NMOS*NMOS)
@@ -79,7 +80,9 @@ C
       NNN = NMOS
       DO 400 I = 1,NMOS
          XX = LMORND(CHANGE,VECIN,NBASIS,NAE,NBASIS)
+c         XX = LMORN2(CHANGE,NMOS)
          III = INT(XX*NNN+ONE)
+c         III = INT(XX*NNN)
          IORD(I) = IIR(III)
          IIR(III) = IIR(NNN)
          NNN = NNN-1
@@ -260,14 +263,18 @@ C         Return some random
 C
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
       PARAMETER (MXATM=2000)
-      DIMENSION D(L1,L1),U(1)
+C      DIMENSION D(L1,L1),U(1)
+      DIMENSION D(NAE,NBASIS),U(1)
       SAVE U
       PARAMETER (ZERO=0.0D+00, ONE=1.0D+00)
 C
       PI = DACOS(-ONE)
       IF (XX .EQ. ZERO) GO TO 100
-         N = ABS(NAE-NBASIS)+1
+c         N = ABS(NAE-NBASIS)+1
+         N = 1
+c         N = NAE
          M = N+5
+c         M = N
          XY = D(N,M)*DATAN(ONE)
          U(1) = (PI+XY)**5
          IU1 = INT(U(1))
@@ -284,4 +291,31 @@ C
       LMORND = U(1)
       RETURN
       END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+c
+c     DOUBLE PRECISION FUNCTION LMORN2(XX,NMOS)
+C
+C         Return some random LMO indice
+C
+c     IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+c     DIMENSION U(1)
+c     SAVE U
+c     PARAMETER (ZERO=0.0D+00, ONE=1.0D+00)
+C
+c     IF (XX .EQ. ZERO) GO TO 100
+cc        CALL INIT_RANDOM_SEED()
+c         CALL RANDOM_NUMBER(U)
+c         U(1) = INT(U(1)*NMOS)
+c         LMORN2 = U(1)
+c         RETURN
+C
+c100  CONTINUE
+c     PI = DACOS(-ONE)
+c     U(1) = (PI+U(1))**5
+c     IU1 = INT(U(1))
+c     XY = IU1
+c     U(1) = U(1)-XY
+c     LMORN2 = U(1)
+c     RETURN
+c     END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
