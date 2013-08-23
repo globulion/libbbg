@@ -95,6 +95,7 @@ C
          DC = DC + DCIJ
 C
          DD = DD + ( SUM3 / RAB3 )
+         DD = DD - (( THREE * SUM1 * SUM2 ) / RAB5)
 C
          CQIJ = CA(I) * SUM4 / RAB5
          QCIJ = CB(J) * SUM5 / RAB5
