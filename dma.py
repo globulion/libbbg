@@ -236,24 +236,33 @@ premute all moments, positions and origins using ind list
     def write(self, file, type='c'):
         """writes  the DMA distribution in a file"""
         newfile = open(file,'w')
-        log = ' SLV output file. All units in AU\n\n'
-        log+= self.__repr__()
-        log += ' Structure\n'
-        log += ' ---------\n\n'
-        for i,atom in enumerate(self.atoms):
-            log+= " %-10s %14.8f %14.8f %14.8f\n" % (atom.symbol, self.pos[i,0], self.pos[i,1], self.pos[i,2])
-        log+='\n'
-        
-        # print origins in case the where different that structure
-        if (self.pos.shape != self.origin.shape or not (self.pos==self.origin).all() ):
-           log += ' Origins\n'
-           log += ' -------\n\n'
-           for i,point in enumerate(self.origin):
-               log+= " %-10s %14.8f %14.8f %14.8f\n" % ('X', point[0], point[1], point[2])
+        if type=='c':
+           log = ' SLV output file. All units in AU\n\n'
+           log+= self.__repr__()
+           log += ' Structure\n'
+           log += ' ---------\n\n'
+           for i,atom in enumerate(self.atoms):
+               log+= " %-10s %14.8f %14.8f %14.8f\n" % (atom.symbol, self.pos[i,0], self.pos[i,1], self.pos[i,2])
            log+='\n'
         
+           # print origins in case the where different that structure
+           if (self.pos.shape != self.origin.shape or not (self.pos==self.origin).all() ):
+              log += ' Origins\n'
+              log += ' -------\n\n'
+              for i,point in enumerate(self.origin):
+                  log+= " %-10s %14.8f %14.8f %14.8f\n" % ('X', point[0], point[1], point[2])
+              log+='\n'
+        
+        elif type=='xyz':
+           log = "  %i\n\n"%len(self.pos)
+           pos = self.pos*UNITS.BohrToAngstrom
+           for i,atom in enumerate(self.atoms):
+              log+= " %-10s %14.8f %14.8f %14.8f\n" % (atom.symbol, pos[i,0], pos[i,1], pos[i,2])
+           log+='\n'
+           
         newfile.write(log)
-        newfile.close()
+        newfile.close() 
+        return          
 
     def __contrListFromUaList(self,ua_list):
        """creates the contraction list from ua_list"""

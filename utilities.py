@@ -433,7 +433,7 @@ ar     - return also array with only coordinates
        for i in range(n_atoms):
            coord.append(data[i].split()[:4])
            coord[i][1:] = map(float64,coord[i][1:])
-           if units.lower()=='Angstrom':
+           if units.lower()=='angstrom':
               for j in range(3):
                   coord[i][j+1]*= UNITS.AngstromToBohr
             
