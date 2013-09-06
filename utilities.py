@@ -27,6 +27,7 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
+from scipy import optimize
 
 class Peak:
     """
