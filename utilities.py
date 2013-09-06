@@ -12,7 +12,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
-         'ParseVecFromFchk','interchange']
+         'ParseVecFromFchk','interchange','Peak']
 
 import re, gentcf, orbloc, PyQuante, clemtp
 from numpy import transpose, zeros, dot, \
@@ -27,6 +27,108 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
+
+class Peak:
+    """
+Represent a peak in the spectrum of signals
+
+Usage:
+
+a = Peak(x=<coordsx>,y=<coordsy>)
+a.set_peak(<n>=1,<func_name>='g')
+a.fit([options])
+a.get_r2()
+a.get_param()
+
+Notes:
+
+ 1) <x> and <y> are lists or numpy arrays
+ 2) <n> is number of subpeaks subject to extract
+ 3) 'g' - Gaussian distributions (default)
+ 4) [options] is the list of lists or tuples
+    of the form:
+
+      [['par1',val1],
+       ['par2',val2],
+           . . .
+       ['parn',valn]]
+
+    Parameter (par) have to be strings 
+    whereas initial values (valn) floats.
+
+    [options] depend on a type of function
+    selected. Here I list {parn} names:
+    a) Gaussian 1 peak:
+       sigma, x_o
+    b) Gaussian 2 peaks:
+       A_1, sigma_1, x_o1,
+       A_2, sigma_2, x_o2
+"""
+    def __init__(self,x,y):
+        self.x = x
+        self.y = y
+        self.func = None
+        self.init = None
+        self.out  = None
+        self.status = -1
+
+    # public
+    def set_peak(self,n=1,func_name='g'):
+        """set the type of peak"""
+        if func_name=='g':
+           if   n==1: self.func = self._gauss1
+           elif n==2: self.func = self._gauss2
+
+
+    def get_r2(self):
+        """return R^2 coefficient of fitting"""
+        data_av = numpy.average(self.y)
+        sse = numpy.sum((self.func(**self.args)-self.y)**2)
+        sst = numpy.sum((self.y-data_av)**2)
+        return 1 - sse/sst
+        
+    def fit(self,opts):
+        """perform fitting using [options] list"""
+        self.__set_param(opts)
+        param, flag = optimize.leastsq(self._resid,
+                                       self.init_list,
+                                 args=(opts,))
+        self.param = param
+        self.status= flag
+
+    # protected 
+    def _resid(self,params,opts):
+        """residual function for optimization"""
+        self.__update_args(params,opts)
+        return self.y - self.func(**self.args)
+
+    def _gauss1(self,sigma,x_o):
+        """single Gaussian distribution"""
+        return (1./(sigma*math.sqrt(2*math.pi)))\
+               *numpy.exp(-(self.x-x_o)**2/(2*sigma**2))
+
+    def _gauss2(self,A_1,sigma_1,x_o1,
+                     A_2,sigma_2,x_o2):
+        """bimodal gaussian distribution"""
+        pass
+  
+    # private
+    def __set_param(self,param):
+        args, init_list = self.__make_args(param)
+        self.opts = param
+        self.args = args
+        self.init_list = init_list
+
+    def __make_args(self,init):
+        args = dict(init)
+        init_list=[]
+        for opt in init:
+            init_list.append(opt[1])
+        return dict(init), init_list
+
+    def __update_args(self,params,opts):
+        for i in range(len(opts)):
+            self.args[opts[i][0]] = params[i]
 
 def interchange(T,ind):
     """\
@@ -867,7 +969,7 @@ def Parse_EDS_InteractionEnergies(file):
     data = open(file).read()
     #line = data.readline()
     querry = r'.*VARIATIONAL-PERTURBATIONAL DECOMPOSITION.*'
-    E = ['DE\\(HL\\)'   , 'E\\(EL,10\\)', 'E\\(EL,M,1\\)', 
+    E = ['DE\\(HL\\)'   , 'E\\(EL,10\\)', 'E\\(EL,M,1\\)',
          'E\\(EL,P,1\\)', 'E\\(EX,HL\\)', 'DE\\(DEL,HF\\)', 
          'DE\\(HF\\)']
          
