@@ -80,11 +80,13 @@ Notes:
     def set_peak(self,n=1,func_name='g'):
         """set the type of peak"""
         self.__func = func_name
+        
         if func_name=='g':
            if   n==1: self.func = self._gauss1
            elif n==2: self.func = self._gauss2
            elif n==3: self.func = self._gauss3
            elif n==4: self.func = self._gauss4
+           
         elif func_name=='l':
            if   n==1: self.func = self._lorentz1
            elif n==2: self.func = self._lorentz2
@@ -97,6 +99,12 @@ Notes:
            elif n==3: self.func = self._lg13
            elif n==4: self.func = self._lg14
 
+        elif func_name=='lg2':
+           if   n==1: self.func = self._lg21
+           elif n==2: self.func = self._lg22
+           elif n==3: self.func = self._lg23
+           elif n==4: self.func = self._lg24
+           
         self.n = n
     
     def get_parameters(self):
@@ -129,6 +137,13 @@ Notes:
                A     = self.param[4*i+2]
                m     = self.param[4*i+3]
                peak  = self._lg11(x_0,sigma,A,m)
+            elif self.__func == 'lg2':
+               x_0   = self.param[5*i+0]
+               sigmaL= self.param[5*i+1]
+               sigmaG= self.param[5*i+2]
+               A     = self.param[5*i+3]
+               m     = self.param[5*i+4]
+               peak  = self._lg21(x_0,sigmaL,sigmaG,A,m)
             peaks.append(peak)
         return array(peaks,dtype=float64)
 
@@ -180,7 +195,9 @@ Notes:
         """square residual function for optimization"""
         self.__update_args(params,opts)
         return sum((self.y - self.func(**self.args))**2.)
-    
+
+    ### pure Gaussian profiles
+        
     def _gauss1(self,xo_1,sigma_1,A_1):
         """single Gaussian distribution"""
         return (A_1/(sigma_1*math.sqrt(2*math.pi)))\
@@ -223,6 +240,8 @@ Notes:
 
         return A_1*g1 + A_2*g2 + A_3*g3 + A_4*g4
 
+    ### pure Lorentzian profiles
+    
     def _lorentz1(self,xo_1,sigma_1,A_1):
         """single Lorenzian distribution"""
         return 2.*A_1/math.pi * sigma_1/(4.*(self.x-xo_1)**2.+sigma_1**2.)
@@ -253,7 +272,9 @@ Notes:
         l3 = 2.*A_3/math.pi * sigma_3/(4.*(self.x-xo_3)**2.+sigma_3**2.)
         l4 = 2.*A_4/math.pi * sigma_4/(4.*(self.x-xo_4)**2.+sigma_4**2.)
         return l1 + l2 + l3 + l4
-
+    
+    ### pseudo-Voigt-1 profiles
+    
     def _lg11(self,xo_1,sigma_1,A_1,m_1):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
@@ -301,7 +322,57 @@ Notes:
         lg4 = m_4*2./math.pi * sigma_4/(4.*(self.x-xo_4)**2. + sigma_4**2.) + \
               (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_4**2.)*(self.x-xo_4)**2.)/sigma_4
         return A_1 * lg1 + A_2 * lg2 + A_3 * lg3 + A_4 * lg4
-                                  
+
+    ### pseudo-Voigt-2 profiles
+    
+    def _lg21(self,xo_1,sigmaL_1,sigmaG_1,A_1,m_1):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigmaL_1/(4.*(self.x-xo_1)**2. + sigmaL_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
+        return A_1 * lg1
+
+    def _lg22(self,xo_1,sigmaL_1,sigmaG_1,A_1,m_1,
+                   xo_2,sigmaL_2,sigmaG_2,A_2,m_2):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigmaL_1/(4.*(self.x-xo_1)**2. + sigmaL_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
+              
+        lg2 = m_2*2./math.pi * sigmaL_2/(4.*(self.x-xo_2)**2. + sigmaL_2**2.) + \
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_2**2.)*(self.x-xo_2)**2.)/sigmaG_2
+        return A_1 * lg1 + A_2 * lg2
+
+    def _lg23(self,xo_1,sigmaL_1,sigmaG_1,A_1,m_1,
+                   xo_2,sigmaL_2,sigmaG_2,A_2,m_2,
+                   xo_3,sigmaL_3,sigmaG_3,A_3,m_3):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigmaL_1/(4.*(self.x-xo_1)**2. + sigmaL_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
+              
+        lg2 = m_2*2./math.pi * sigmaL_2/(4.*(self.x-xo_2)**2. + sigmaL_2**2.) + \
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_2**2.)*(self.x-xo_2)**2.)/sigmaG_2
+
+        lg3 = m_3*2./math.pi * sigmaL_3/(4.*(self.x-xo_3)**2. + sigmaL_3**2.) + \
+              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_3**2.)*(self.x-xo_3)**2.)/sigmaG_3
+        return A_1 * lg1 + A_2 * lg2 + A_3 * lg3
+    
+    def _lg24(self,xo_1,sigmaL_1,sigmaG_1,A_1,m_1,
+                   xo_2,sigmaL_2,sigmaG_2,A_2,m_2,
+                   xo_3,sigmaL_3,sigmaG_3,A_3,m_3,
+                   xo_4,sigmaL_4,sigmaG_4,A_4,m_4):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigmaL_1/(4.*(self.x-xo_1)**2. + sigmaL_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
+              
+        lg2 = m_2*2./math.pi * sigmaL_2/(4.*(self.x-xo_2)**2. + sigmaL_2**2.) + \
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_2**2.)*(self.x-xo_2)**2.)/sigmaG_2
+
+        lg3 = m_3*2./math.pi * sigmaL_3/(4.*(self.x-xo_3)**2. + sigmaL_3**2.) + \
+              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_3**2.)*(self.x-xo_3)**2.)/sigmaG_3
+              
+        lg4 = m_4*2./math.pi * sigmaL_4/(4.*(self.x-xo_4)**2. + sigmaL_4**2.) + \
+              (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_4**2.)*(self.x-xo_4)**2.)/sigmaG_4
+        return A_1 * lg1 + A_2 * lg2 + A_3 * lg3 + A_4 * lg4
+                                              
     # private
     def __set_param(self,param):
         args, init_list = self.__make_args(param)
