@@ -14,12 +14,13 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange','Peak']
 
-import re, gentcf, orbloc, PyQuante, clemtp
+import re, gentcf, orbloc, PyQuante, clemtp, scipy.optimize
 from numpy import transpose, zeros, dot, \
                   float64, shape, array, \
                   sqrt, ceil, tensordot, \
                   cross, sum, where    , \
-                  concatenate
+                  concatenate, average , \
+                  exp
 from numpy.linalg import svd, det, norm
 from dma   import DMA
 from units import *
@@ -27,7 +28,6 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
-from scipy import optimize
 
 class Peak:
     """
@@ -60,10 +60,11 @@ Notes:
     [options] depend on a type of function
     selected. Here I list {parn} names:
     a) Gaussian 1 peak:
-       sigma, x_o
+       A, sigma, x_o
     b) Gaussian 2 peaks:
        A_1, sigma_1, x_o1,
        A_2, sigma_2, x_o2
+       and so on
 """
     def __init__(self,x,y):
         self.x = x
@@ -72,30 +73,102 @@ Notes:
         self.init = None
         self.out  = None
         self.status = -1
+        self.param = None
+        self.__func = 'g'
 
     # public
     def set_peak(self,n=1,func_name='g'):
         """set the type of peak"""
+        self.__func = func_name
         if func_name=='g':
            if   n==1: self.func = self._gauss1
            elif n==2: self.func = self._gauss2
+           elif n==3: self.func = self._gauss3
+           elif n==4: self.func = self._gauss4
+        elif func_name=='l':
+           if   n==1: self.func = self._lorentz1
+           elif n==2: self.func = self._lorentz2
+           elif n==3: self.func = self._lorentz3
+           elif n==4: self.func = self._lorentz4
+           
+        elif func_name=='lg1':
+           if   n==1: self.func = self._lg11
+           elif n==2: self.func = self._lg12
+           elif n==3: self.func = self._lg13
+           elif n==4: self.func = self._lg14
 
+        self.n = n
+    
+    def get_parameters(self):
+        print " No fitting performed - no parameters."
+        return self.param
+    
+    def get_fit(self):
+        if self.param is None: 
+           print " No fitting performed - no parameters."
+           return None
+        else:
+           return self.func(**self.args)
+
+    def get_peaks(self):
+        peaks = []
+        for i in xrange(self.n):
+            if self.__func == 'g':
+               x_0   = self.param[3*i+0]
+               sigma = self.param[3*i+1]
+               A     = self.param[3*i+2]
+               peak  = self._gauss1  (x_0,sigma,A)
+            elif self.__func == 'l':
+               x_0   = self.param[3*i+0]
+               sigma = self.param[3*i+1]
+               A     = self.param[3*i+2]
+               peak  = self._lorentz1(x_0,sigma,A)
+            elif self.__func == 'lg1':
+               x_0   = self.param[4*i+0]
+               sigma = self.param[4*i+1]
+               A     = self.param[4*i+2]
+               m     = self.param[4*i+3]
+               peak  = self._lg11(x_0,sigma,A,m)
+            peaks.append(peak)
+        return array(peaks,dtype=float64)
 
     def get_r2(self):
         """return R^2 coefficient of fitting"""
-        data_av = numpy.average(self.y)
-        sse = numpy.sum((self.func(**self.args)-self.y)**2)
-        sst = numpy.sum((self.y-data_av)**2)
+        data_av = average(self.y)
+        sse = sum((self.func(**self.args)-self.y)**2)
+        sst = sum((self.y-data_av)**2)
         return 1 - sse/sst
         
-    def fit(self,opts):
+    def fit(self,opts,method='leastsq',disp=1,bounds=[],
+            epsilon=1e-08,pgtol=1e-012,factr=100.0,m=8000,
+            approx_grad=True,fprime=None,maxfun=2000000000,acc=1e-13):
         """perform fitting using [options] list"""
         self.__set_param(opts)
-        param, flag = optimize.leastsq(self._resid,
-                                       self.init_list,
-                                 args=(opts,))
+        if method=='leastsq':
+           param, flag = scipy.optimize.leastsq(self._resid,
+                                          self.init_list,
+                                          args=(opts,),
+                                          ftol=1e-12,
+                                          xtol=1e-12,maxfev=2000000000,)
+           self.status= flag
+        elif method=='l-bfgs-b':
+           if bounds  ==[]: bounds=None
+           param, f, d = scipy.optimize.fmin_l_bfgs_b(self._residsq,
+                                          self.init_list,factr=factr,
+                                          args=(opts,),pgtol=pgtol,
+                                          bounds=bounds,fprime=fprime,
+                                          disp=disp,m=m,approx_grad=approx_grad,
+                                          epsilon=epsilon,maxfun=maxfun,)
+        elif method=='slsqp':
+           result  = scipy.optimize.fmin_slsqp(self._residsq,
+                                          self.init_list,iter=maxfun,
+                                          acc=acc,disp=2,bounds=bounds,
+                                          args=(opts,),full_output=True)
+           param ,a,b,c,s = result
+           self.status = c
+        #
         self.param = param
-        self.status= flag
+        self.__update_args(param,opts)
 
     # protected 
     def _resid(self,params,opts):
@@ -103,16 +176,132 @@ Notes:
         self.__update_args(params,opts)
         return self.y - self.func(**self.args)
 
-    def _gauss1(self,sigma,x_o):
+    def _residsq(self,params,opts):
+        """square residual function for optimization"""
+        self.__update_args(params,opts)
+        return sum((self.y - self.func(**self.args))**2.)
+    
+    def _gauss1(self,xo_1,sigma_1,A_1):
         """single Gaussian distribution"""
-        return (1./(sigma*math.sqrt(2*math.pi)))\
-               *numpy.exp(-(self.x-x_o)**2/(2*sigma**2))
+        return (A_1/(sigma_1*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
 
-    def _gauss2(self,A_1,sigma_1,x_o1,
-                     A_2,sigma_2,x_o2):
+    def _gauss2(self,xo_1,sigma_1,A_1,
+                     xo_2,sigma_2,A_2):
         """bimodal gaussian distribution"""
-        pass
-  
+        g1 = (1./(sigma_1*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
+        g2 = (1./(sigma_2*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_2)**2/(2*sigma_2**2))
+        return A_1*g1 + A_2*g2
+
+    def _gauss3(self,xo_1,sigma_1,A_1,
+                     xo_2,sigma_2,A_2,
+                     xo_3,sigma_3,A_3):
+        """trimodal gaussian distribution"""
+        g1 = (1./(sigma_1*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
+        g2 = (1./(sigma_2*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_2)**2/(2*sigma_2**2))
+        g3 = (1./(sigma_3*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_3)**2/(2*sigma_3**2))
+        return A_1*g1 + A_2*g2 + A_3*g3
+
+    def _gauss4(self,xo_1,sigma_1,A_1,
+                     xo_2,sigma_2,A_2,
+                     xo_3,sigma_3,A_3,
+                     xo_4,sigma_4,A_4):
+        """trimodal gaussian distribution"""
+        g1 = (1./(sigma_1*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
+        g2 = (1./(sigma_2*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_2)**2/(2*sigma_2**2))
+        g3 = (1./(sigma_3*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_3)**2/(2*sigma_3**2))
+        g4 = (1./(sigma_4*math.sqrt(2*math.pi)))\
+               * exp(-(self.x-xo_4)**2/(2*sigma_4**2))
+
+        return A_1*g1 + A_2*g2 + A_3*g3 + A_4*g4
+
+    def _lorentz1(self,xo_1,sigma_1,A_1):
+        """single Lorenzian distribution"""
+        return 2.*A_1/math.pi * sigma_1/(4.*(self.x-xo_1)**2.+sigma_1**2.)
+
+    def _lorentz2(self,xo_1,sigma_1,A_1,
+                       xo_2,sigma_2,A_2):
+        """bimodal Lorenzian distribution"""
+        l1 = 2.*A_1/math.pi * sigma_1/(4.*(self.x-xo_1)**2.+sigma_1**2.)
+        l2 = 2.*A_2/math.pi * sigma_2/(4.*(self.x-xo_2)**2.+sigma_2**2.)
+        return l1 + l2
+
+    def _lorentz3(self,xo_1,sigma_1,A_1,
+                       xo_2,sigma_2,A_2,
+                       xo_3,sigma_3,A_3):
+        """trimodal Lorenzian distribution"""
+        l1 = 2.*A_1/math.pi * sigma_1/(4.*(self.x-xo_1)**2.+sigma_1**2.)
+        l2 = 2.*A_2/math.pi * sigma_2/(4.*(self.x-xo_2)**2.+sigma_2**2.)
+        l3 = 2.*A_3/math.pi * sigma_3/(4.*(self.x-xo_3)**2.+sigma_3**2.)
+        return l1 + l2 + l3
+    
+    def _lorentz4(self,xo_1,sigma_1,A_1,
+                       xo_2,sigma_2,A_2,
+                       xo_3,sigma_3,A_3,
+                       xo_4,sigma_4,A_4):
+        """4-modal Lorenzian distribution"""
+        l1 = 2.*A_1/math.pi * sigma_1/(4.*(self.x-xo_1)**2.+sigma_1**2.)
+        l2 = 2.*A_2/math.pi * sigma_2/(4.*(self.x-xo_2)**2.+sigma_2**2.)
+        l3 = 2.*A_3/math.pi * sigma_3/(4.*(self.x-xo_3)**2.+sigma_3**2.)
+        l4 = 2.*A_4/math.pi * sigma_4/(4.*(self.x-xo_4)**2.+sigma_4**2.)
+        return l1 + l2 + l3 + l4
+
+    def _lg11(self,xo_1,sigma_1,A_1,m_1):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+        return A_1 * lg1
+    
+    def _lg12(self,xo_1,sigma_1,A_1,m_1,
+                   xo_2,sigma_2,A_2,m_2):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+              
+        lg2 = m_2*2./math.pi * sigma_2/(4.*(self.x-xo_2)**2. + sigma_2**2.) + \
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
+        return A_1 * lg1 + A_2 * lg2
+
+    def _lg13(self,xo_1,sigma_1,A_1,m_1,
+                   xo_2,sigma_2,A_2,m_2,
+                   xo_3,sigma_3,A_3,m_3,):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+              
+        lg2 = m_2*2./math.pi * sigma_2/(4.*(self.x-xo_2)**2. + sigma_2**2.) + \
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
+
+        lg3 = m_3*2./math.pi * sigma_3/(4.*(self.x-xo_3)**2. + sigma_3**2.) + \
+              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_3**2.)*(self.x-xo_3)**2.)/sigma_3
+        return A_1 * lg1 + A_2 * lg2 + A_3 * lg3
+    
+    def _lg14(self,xo_1,sigma_1,A_1,m_1,
+                   xo_2,sigma_2,A_2,m_2,
+                   xo_3,sigma_3,A_3,m_3,
+                   xo_4,sigma_4,A_4,m_4,):
+        """single Lorenzian distribution"""
+        lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+              
+        lg2 = m_2*2./math.pi * sigma_2/(4.*(self.x-xo_2)**2. + sigma_2**2.) + \
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
+
+        lg3 = m_3*2./math.pi * sigma_3/(4.*(self.x-xo_3)**2. + sigma_3**2.) + \
+              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_3**2.)*(self.x-xo_3)**2.)/sigma_3
+              
+        lg4 = m_4*2./math.pi * sigma_4/(4.*(self.x-xo_4)**2. + sigma_4**2.) + \
+              (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_4**2.)*(self.x-xo_4)**2.)/sigma_4
+        return A_1 * lg1 + A_2 * lg2 + A_3 * lg3 + A_4 * lg4
+                                  
     # private
     def __set_param(self,param):
         args, init_list = self.__make_args(param)
