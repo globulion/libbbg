@@ -130,8 +130,10 @@ Notes:
         """calculate FWHM for peaks"""
         fwhm = []
         for i in xrange(self.n):
-            if (self.__func == 'g' or self.__func == 'l' or self.__func == 'lg1'):
+            if (self.__func == 'g' or self.__func == 'l'):
                fwhm.append(self.param[3*i+1])
+            elif self.__func == 'lg1':
+               fwhm.append(self.param[4*i+1])
             elif self.__func == 'lg2':
                mL    = self.param[5*i+4]
                mG    = 1. - mL
