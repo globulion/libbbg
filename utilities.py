@@ -428,24 +428,26 @@ Notes:
             self.args[opts[i][0]] = params[i]
 
     def __repr__(self):
-        """print the data"""
+        """print the data report"""
         log = "\n"
         log+= " ====================================================\n"
         log+= "                  SIGNAL DESCRIPTION\n"
         log+= " ====================================================\n"
-        d_name = {'g'  :'Pure Gaussian',
-                  'l'  :'Pure Lorentzian',
+        d_name = {'g'  :'Pure Gaussian'         ,
+                  'l'  :'Pure Lorentzian'       ,
                   'lg1':'Pseudo-Voigt 1 profile',
                   'lg2':'Pseudo-Voigt 2 profile',
-                  'v'  :'Exact Voigt profile',
-                  None :'Not assigned'}
+                  'v'  :'Exact Voigt profile'   ,
+                  None :'Not assigned'          }
         log+= '\n'
         log+= " - Profile: %s\n" % d_name[self.__func]
+        # peak generall overview
         if self.n is not None:
            log+= " - Peak No: %i\n" % self.n
         else:
            log+= " - Peak No: %s\n" % 'Not assigned'
         log+= '\n'
+        # peak parameters and analysis
         if self.param is not None:
            log+= "   PARAMETERS\n"
            log+= "\n"
@@ -477,7 +479,7 @@ Notes:
                                                    'Ampl'.rjust(8),
                                                    'mixL'.rjust(8))
                for i in range(self.n):
-                   log+= " %6i %8.2f %8.2f %8.4f %8.4f %8.4f\n" % (i+1,p[i*5+0],
+                   log+= " %6i %8.2f %8.2f %8.2f %8.4f %8.4f\n" % (i+1,p[i*5+0],
                                                                    p[i*5+1],p[i*5+2],
                                                                    p[i*5+3],p[i*5+4])
 
@@ -488,7 +490,7 @@ Notes:
                                                'sigG'.rjust(8),
                                                'Ampl'.rjust(8))
                for i in range(self.n):
-                   log+= " %6i %8.2f %8.2f %8.4f %8.4f\n" % (i+1,p[i*4+0],
+                   log+= " %6i %8.2f %8.2f %8.2f %8.4f\n" % (i+1,p[i*4+0],
                                                              p[i*4+1],p[i*4+2],
                                                              p[i*4+3])
            log+= "\n"
@@ -496,7 +498,9 @@ Notes:
            log+= (" R² = %10.6f" % self.get_r2()).center(52)
            log+= "\n"
         else:
-           log+= " No fitting was performed\n"
+           log+= " ----------------------------------------------------\n"
+           log+= " No fitting was performed".center(52)
+           log+= "\n"
         log+= " ----------------------------------------------------\n"
         return str(log)
             
