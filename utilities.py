@@ -14,7 +14,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange','Peak']
 
-import re, gentcf, orbloc, PyQuante, clemtp, scipy.optimize
+import re, gentcf, orbloc, PyQuante, clemtp, \
+       scipy.optimize, scipy.integrate
 from numpy import transpose, zeros, dot, \
                   float64, shape, array, \
                   sqrt, ceil, tensordot, \
@@ -74,7 +75,8 @@ Notes:
         self.out  = None
         self.status = -1
         self.param = None
-        self.__func = 'g'
+        self.__func = None
+        self.n     = None
 
     # public
     def set_peak(self,n=1,func_name='g'):
@@ -104,6 +106,10 @@ Notes:
            elif n==2: self.func = self._lg22
            elif n==3: self.func = self._lg23
            elif n==4: self.func = self._lg24
+
+        elif func_name=='v':
+           if   n==1: self.func = self._voigt1
+           elif n==2: self.func = self._voigt2
            
         self.n = n
     
@@ -144,6 +150,12 @@ Notes:
                A     = self.param[5*i+3]
                m     = self.param[5*i+4]
                peak  = self._lg21(x_0,sigmaL,sigmaG,A,m)
+            elif self.__func == 'v':
+               x_0   = self.param[4*i+0]
+               sigmaL= self.param[4*i+1]
+               sigmaG= self.param[4*i+2]
+               A     = self.param[4*i+3]
+               peak  = self._voigt1(x_0,sigmaL,sigmaG,A)
             peaks.append(peak)
         return array(peaks,dtype=float64)
 
@@ -372,7 +384,31 @@ Notes:
         lg4 = m_4*2./math.pi * sigmaL_4/(4.*(self.x-xo_4)**2. + sigmaL_4**2.) + \
               (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_4**2.)*(self.x-xo_4)**2.)/sigmaG_4
         return A_1 * lg1 + A_2 * lg2 + A_3 * lg3 + A_4 * lg4
-                                              
+
+    ### pure Voigt
+    
+    def __v(self,t,x,xc,wl,wg,a):
+        A = math.exp(-t**2.)
+        B = (math.sqrt(math.log(2.))*wl/wg)**2.
+        C = (math.sqrt(4.*math.log(2.)) * (x-xc)/wg - t)**2.
+        return a*2.*math.log(2.)/math.pi**(3./2.) * wl/wg**2 * A/(B+C)
+
+    def _voigt1(self,xo_1,sigmaL_1,sigmaG_1,A_1):
+        y = zeros(len(self.x),dtype=float64)
+        for i in xrange(len(self.x)):
+            y[i] = scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_1,sigmaL_1,sigmaG_1,A_1))[0]
+        return y
+    
+    def _voigt2(self,xo_1,sigmaL_1,sigmaG_1,A_1,
+                     xo_2,sigmaL_2,sigmaG_2,A_2):
+        y = zeros(len(self.x),dtype=float64)
+        for i in xrange(len(self.x)):
+            val = scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_1,sigmaL_1,sigmaG_1,A_1))[0]
+            val+= scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_2,sigmaL_2,sigmaG_2,A_2))[0]
+            y[i] = val
+        return y
+
+                                                  
     # private
     def __set_param(self,param):
         args, init_list = self.__make_args(param)
@@ -391,6 +427,79 @@ Notes:
         for i in range(len(opts)):
             self.args[opts[i][0]] = params[i]
 
+    def __repr__(self):
+        """print the data"""
+        log = "\n"
+        log+= " ====================================================\n"
+        log+= "                  SIGNAL DESCRIPTION\n"
+        log+= " ====================================================\n"
+        d_name = {'g'  :'Pure Gaussian',
+                  'l'  :'Pure Lorentzian',
+                  'lg1':'Pseudo-Voigt 1 profile',
+                  'lg2':'Pseudo-Voigt 2 profile',
+                  'v'  :'Exact Voigt profile',
+                  None :'Not assigned'}
+        log+= '\n'
+        log+= " - Profile: %s\n" % d_name[self.__func]
+        if self.n is not None:
+           log+= " - Peak No: %i\n" % self.n
+        else:
+           log+= " - Peak No: %s\n" % 'Not assigned'
+        log+= '\n'
+        if self.param is not None:
+           log+= "   PARAMETERS\n"
+           log+= "\n"
+           p = self.param
+           if (self.__func == 'g' or self.__func == 'l'):
+               log+= " %6s %8s %8s %8s\n"%('Peak'.rjust(6),
+                                               'Freq'.rjust(8),
+                                               'sigm'.rjust(8),
+                                               'Ampl'.rjust(8))
+               for i in range(self.n):
+                   log+= " %6i %8.2f %8.2f %8.4f\n" % (i+1,p[i*3+0],
+                                                       p[i*3+1],p[i*3+2])
+           elif self.__func == 'lg1':
+               log+= " %6s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
+                                               'Freq'.rjust(8),
+                                               'sigm'.rjust(8),
+                                               'Ampl'.rjust(8),
+                                               'mixL'.rjust(8))
+               for i in range(self.n):
+                   log+= " %6i %8.2f %8.2f %8.4f %8.4f\n" % (i+1,p[i*4+0],
+                                                             p[i*4+1],p[i*4+2],
+                                                             p[i*4+3])
+
+           elif self.__func == 'lg2':
+               log+= " %6s %8s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
+                                                   'Freq'.rjust(8),
+                                                   'sigL'.rjust(8),
+                                                   'sigG'.rjust(8),
+                                                   'Ampl'.rjust(8),
+                                                   'mixL'.rjust(8))
+               for i in range(self.n):
+                   log+= " %6i %8.2f %8.2f %8.4f %8.4f %8.4f\n" % (i+1,p[i*5+0],
+                                                                   p[i*5+1],p[i*5+2],
+                                                                   p[i*5+3],p[i*5+4])
+
+           elif self.__func == 'v':
+               log+= " %6s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
+                                               'Freq'.rjust(8),
+                                               'sigL'.rjust(8),
+                                               'sigG'.rjust(8),
+                                               'Ampl'.rjust(8))
+               for i in range(self.n):
+                   log+= " %6i %8.2f %8.2f %8.4f %8.4f\n" % (i+1,p[i*4+0],
+                                                             p[i*4+1],p[i*4+2],
+                                                             p[i*4+3])
+           log+= "\n"
+           log+= " ----------------------------------------------------\n"
+           log+= (" R² = %10.6f" % self.get_r2()).center(52)
+           log+= "\n"
+        else:
+           log+= " No fitting was performed\n"
+        log+= " ----------------------------------------------------\n"
+        return str(log)
+            
 def interchange(T,ind):
     """\
 interchange rows according to order list
