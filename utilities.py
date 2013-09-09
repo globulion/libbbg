@@ -38,16 +38,18 @@ Usage:
 
 a = Peak(x=<coordsx>,y=<coordsy>)
 a.set_peak(<n>=1,<func_name>='g')
-a.fit([options])
+a.fit(<parameters>,[method='slsqp',bounds=[],**kwargs])
 a.get_r2()
-a.get_param()
+a.get_parameters()
+a.get_fwhm()
+print peak
 
 Notes:
 
  1) <x> and <y> are lists or numpy arrays
  2) <n> is number of subpeaks subject to extract
  3) 'g' - Gaussian distributions (default)
- 4) [options] is the list of lists or tuples
+ 4) <parameters> is the list of lists or tuples
     of the form:
 
       [['par1',val1],
@@ -58,7 +60,7 @@ Notes:
     Parameter (par) have to be strings 
     whereas initial values (valn) floats.
 
-    [options] depend on a type of function
+    <parameters> depend on a type of function
     selected. Here I list {parn} names:
     a) Gaussian 1 peak:
        A, sigma, x_o
@@ -114,16 +116,36 @@ Notes:
         self.n = n
     
     def get_parameters(self):
-        print " No fitting performed - no parameters."
+        #print " No fitting performed - no parameters."
         return self.param
     
     def get_fit(self):
         if self.param is None: 
-           print " No fitting performed - no parameters."
+           #print " No fitting performed - no parameters."
            return None
         else:
            return self.func(**self.args)
 
+    def get_fwhm(self):
+        """calculate FWHM for peaks"""
+        fwhm = []
+        for i in xrange(self.n):
+            if (self.__func == 'g' or self.__func == 'l' or self.__func == 'lg1'):
+               fwhm.append(self.param[3*i+1])
+            elif self.__func == 'lg2':
+               mL    = self.param[5*i+4]
+               mG    = 1. - mL
+               sigmaL= self.param[5*i+1]
+               sigmaG= self.param[5*i+2]
+               value = mL * sigmaL + mG * sigmaG
+               fwhm.append(value)
+            elif self.__func == 'v':
+               sigmaL= self.param[4*i+1]
+               sigmaG= self.param[4*i+2]
+               value = 0.5346 * sigmaL + math.sqrt(0.2166 * sigmaL**2. + sigmaG**2.)
+               fwhm.append(value)
+        return array(fwhm,float64)
+               
     def get_peaks(self):
         peaks = []
         for i in xrange(self.n):
@@ -207,33 +229,40 @@ Notes:
         """square residual function for optimization"""
         self.__update_args(params,opts)
         return sum((self.y - self.func(**self.args))**2.)
+    
+    ### Normal distribution
 
-    ### pure Gaussian profiles
-        
-    def _gauss1(self,xo_1,sigma_1,A_1):
+    def _normal(self,xo_1,sigma_1,A_1):
         """single Gaussian distribution"""
         return (A_1/(sigma_1*math.sqrt(2*math.pi)))\
                * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
+               
+    ### pure Gaussian profiles
+                           
+    def _gauss1(self,xo_1,sigma_1,A_1):
+        """single Gaussian distribution"""
+        return A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
 
     def _gauss2(self,xo_1,sigma_1,A_1,
                      xo_2,sigma_2,A_2):
         """bimodal gaussian distribution"""
-        g1 = (1./(sigma_1*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
-        g2 = (1./(sigma_2*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_2)**2/(2*sigma_2**2))
+        g1 = A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
+        g2 = A_2/sigma_2 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
         return A_1*g1 + A_2*g2
 
     def _gauss3(self,xo_1,sigma_1,A_1,
                      xo_2,sigma_2,A_2,
                      xo_3,sigma_3,A_3):
         """trimodal gaussian distribution"""
-        g1 = (1./(sigma_1*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
-        g2 = (1./(sigma_2*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_2)**2/(2*sigma_2**2))
-        g3 = (1./(sigma_3*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_3)**2/(2*sigma_3**2))
+        g1 = A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
+        g2 = A_2/sigma_2 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
+        g3 = A_3/sigma_3 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_3**2.)*(self.x-xo_3)**2.)
         return A_1*g1 + A_2*g2 + A_3*g3
 
     def _gauss4(self,xo_1,sigma_1,A_1,
@@ -241,14 +270,14 @@ Notes:
                      xo_3,sigma_3,A_3,
                      xo_4,sigma_4,A_4):
         """trimodal gaussian distribution"""
-        g1 = (1./(sigma_1*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
-        g2 = (1./(sigma_2*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_2)**2/(2*sigma_2**2))
-        g3 = (1./(sigma_3*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_3)**2/(2*sigma_3**2))
-        g4 = (1./(sigma_4*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_4)**2/(2*sigma_4**2))
+        g1 = A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
+        g2 = A_2/sigma_2 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
+        g3 = A_3/sigma_3 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_3**2.)*(self.x-xo_3)**2.)
+        g4 = A_4/sigma_4 * math.sqrt(4.*math.log(2.)/math.pi) * \
+               exp(-4.*math.log(2.)/(sigma_4**2.)*(self.x-xo_4)**2.)
 
         return A_1*g1 + A_2*g2 + A_3*g3 + A_4*g4
 
@@ -385,7 +414,7 @@ Notes:
               (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_4**2.)*(self.x-xo_4)**2.)/sigmaG_4
         return A_1 * lg1 + A_2 * lg2 + A_3 * lg3 + A_4 * lg4
 
-    ### pure Voigt
+    ### pure Voigt profiles
     
     def __v(self,t,x,xc,wl,wg,a):
         A = math.exp(-t**2.)
@@ -452,47 +481,54 @@ Notes:
            log+= "   PARAMETERS\n"
            log+= "\n"
            p = self.param
+           f = self.get_fwhm()
            if (self.__func == 'g' or self.__func == 'l'):
-               log+= " %6s %8s %8s %8s\n"%('Peak'.rjust(6),
-                                               'Freq'.rjust(8),
-                                               'sigm'.rjust(8),
-                                               'Ampl'.rjust(8))
-               for i in range(self.n):
-                   log+= " %6i %8.2f %8.2f %8.4f\n" % (i+1,p[i*3+0],
-                                                       p[i*3+1],p[i*3+2])
-           elif self.__func == 'lg1':
                log+= " %6s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
                                                'Freq'.rjust(8),
                                                'sigm'.rjust(8),
-                                               'Ampl'.rjust(8),
-                                               'mixL'.rjust(8))
+                                               'Area'.rjust(8),
+                                               'FWHM'.rjust(8))
                for i in range(self.n):
-                   log+= " %6i %8.2f %8.2f %8.4f %8.4f\n" % (i+1,p[i*4+0],
-                                                             p[i*4+1],p[i*4+2],
-                                                             p[i*4+3])
+                   log+= " %6i %8.2f %8.2f %8.4f %8.2f\n" % (i+1,p[i*3+0],
+                                                             p[i*3+1],p[i*3+2],
+                                                             f[i])
+           elif self.__func == 'lg1':
+               log+= " %6s %8s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
+                                                   'Freq'.rjust(8),
+                                                   'sigm'.rjust(8),
+                                                   'Area'.rjust(8),
+                                                   'mixL'.rjust(8),
+                                                   'FWHM'.rjust(8))
+               for i in range(self.n):
+                   log+= " %6i %8.2f %8.2f %8.4f %8.4f %8.2f\n" % (i+1,p[i*4+0],
+                                                                   p[i*4+1],p[i*4+2],
+                                                                   p[i*4+3],f[i])
 
            elif self.__func == 'lg2':
+               log+= " %6s %8s %8s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
+                                                       'Freq'.rjust(8),
+                                                       'sigL'.rjust(8),
+                                                       'sigG'.rjust(8),
+                                                       'Area'.rjust(8),
+                                                       'mixL'.rjust(8),
+                                                       'FWHM'.rjust(8))
+               for i in range(self.n):
+                   log+= " %6i %8.2f %8.2f %8.2f %8.4f %8.4f %8.2f\n" % (i+1,p[i*5+0],
+                                                                         p[i*5+1],p[i*5+2],
+                                                                         p[i*5+3],p[i*5+4],
+                                                                         f[i])
+
+           elif self.__func == 'v':
                log+= " %6s %8s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
                                                    'Freq'.rjust(8),
                                                    'sigL'.rjust(8),
                                                    'sigG'.rjust(8),
-                                                   'Ampl'.rjust(8),
-                                                   'mixL'.rjust(8))
+                                                   'Area'.rjust(8),
+                                                   'FWHM'.rjust(8))
                for i in range(self.n):
-                   log+= " %6i %8.2f %8.2f %8.2f %8.4f %8.4f\n" % (i+1,p[i*5+0],
-                                                                   p[i*5+1],p[i*5+2],
-                                                                   p[i*5+3],p[i*5+4])
-
-           elif self.__func == 'v':
-               log+= " %6s %8s %8s %8s %8s\n"%('Peak'.rjust(6),
-                                               'Freq'.rjust(8),
-                                               'sigL'.rjust(8),
-                                               'sigG'.rjust(8),
-                                               'Ampl'.rjust(8))
-               for i in range(self.n):
-                   log+= " %6i %8.2f %8.2f %8.2f %8.4f\n" % (i+1,p[i*4+0],
-                                                             p[i*4+1],p[i*4+2],
-                                                             p[i*4+3])
+                   log+= " %6i %8.2f %8.2f %8.2f %8.4f %8.2f\n" % (i+1,p[i*4+0],
+                                                                   p[i*4+1],p[i*4+2],
+                                                                   p[i*4+3],f[i])
            log+= "\n"
            log+= " ----------------------------------------------------\n"
            log+= (" R² = %10.6f" % self.get_r2()).center(52)
