@@ -672,19 +672,19 @@ def order(R,P,start=0):
 
 class GROUPS:
       """ 
-grouping algorithm from numerical project: 
-------------------------------------------
-     Assignemt for the purpose of:
-==========================================
-ADVANCED PROGRAMMING AND NUMERICAL METHODS
-==========================================
-Teacher    : dr inż. Paweł Szarek
-Author     : inż.    Bartosz Błasiak
-Affiliation: 
-    - - - - - - - - - - - - - - - - -
-    Wrocław University of Technology
-   - - - - - - - - - - - - - - - - - 
-                CUBEFILER (c) 2012
+ Grouping algorithm from numerical project:
+ ------------------------------------------
+      Assignemt for the purpose of:        
+ ==========================================
+ ADVANCED PROGRAMMING AND NUMERICAL METHODS
+ ==========================================
+ Teacher    : dr inż. Paweł Szarek         
+ Author     : inż.    Bartosz Błasiak      
+ Affiliation:                              
+     - - - - - - - - - - - - - - - - -     
+     Wrocław University of Technology      
+    - - - - - - - - - - - - - - - - -      
+                 CUBEFILER (c) 2012        
 """
       def __init__(self,A):
           self.groups = self.__make_GROUPS(A)
@@ -1329,20 +1329,32 @@ Gamess reads Stone's DMA analysis
 
 def ParseVecFromFchk(file):
     """parse Ci\mu coeeficients from g09 fchk"""
-    querry = "Alpha MO coefficients"
     data = open(file)
     line = data.readline()
+    
+    ### look for basis set size
+    querry = "Number of basis functions"
     while querry not in line:
           line = data.readline()
-    NSQ = int(line.split()[-1])
-    N   = math.sqrt(NSQ)
+    M = int(line.split()[-1])
+    
+    ### look for MO size
+    querry = "Alpha Orbital Energies"
+    while querry not in line:
+          line = data.readline()
+    N = int(line.split()[-1])
+    
+    ### look for vectors
+    querry = "Alpha MO coefficients"
+    while querry not in line:
+          line = data.readline()
     line = data.readline()
     C = []
     g = lambda n: n/5+bool(n%5)
-    for i in range(g(NSQ)):
+    for i in range(g(N*M)):
         C+= line.split()
         line = data.readline()
-    C = array(C,dtype=float64).reshape(N,N)
+    C = array(C,dtype=float64).reshape(N,M)
     data.close()
     return C
 
