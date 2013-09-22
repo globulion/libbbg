@@ -12,7 +12,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
-         'ParseVecFromFchk','interchange','Peak','PUPA','VIB']
+         'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
+         'ParseFCFromFchk']
 
 import re, gentcf, orbloc, PyQuante, clemtp, \
        scipy.optimize, scipy.integrate
@@ -1123,7 +1124,7 @@ ar     - return also array with only coordinates
            atnos += line.split()
            line = file.readline()
            
-       atnos = array(atnos,dtype=float64)
+       atnos = array(atnos,dtype=int)
        
        # search for atomic coordinates       
        querry = "Current cartesian coordinates"
@@ -1521,6 +1522,40 @@ def ParseDmatFromFchk(file,basis_size):
             #I += 1
     data.close()
     return array(P)
+
+def ParseFCFromFchk(file):
+    """parses cartesian force constants from Gaussian fchk file"""
+        
+    data = open(file)
+    line = data.readline()
+    querry = "Number of atoms"
+    while 1:
+        if querry in line: break
+        line = data.readline()
+    N = int(line.split()[-1])
+    querry = "Cartesian Force Constants"
+    while 1:
+        if querry in line: break
+        line = data.readline()
+    M = int(line.split()[-1])
+    line = data.readline()
+    FC = []
+    g = lambda n: n/5+bool(n%5)
+    for i in range(g(M)):
+        FC+= line.split()
+        line = data.readline()
+    data.close()
+    
+    FC = array(FC,float64)
+    H = zeros((N,N),dtype=float64)
+    I = 0
+    for i in xrange(N):
+        for j in xrange(i+1):
+            H[i,j] = FC[I]
+            H[j,i] = H[i,j]
+            I+=1
+    
+    return H
 
 def Parse_EDS_InteractionEnergies(file):
     """parses EDS interaction energies from file"""
