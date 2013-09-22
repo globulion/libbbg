@@ -12,7 +12,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
-         'ParseVecFromFchk','interchange','Peak']
+         'ParseVecFromFchk','interchange','Peak','PUPA','VIB']
 
 import re, gentcf, orbloc, PyQuante, clemtp, \
        scipy.optimize, scipy.integrate
@@ -21,7 +21,7 @@ from numpy import transpose, zeros, dot, \
                   sqrt, ceil, tensordot, \
                   cross, sum, where    , \
                   concatenate, average , \
-                  exp
+                  exp, linalg
 from numpy.linalg import svd, det, norm
 from dma   import DMA
 from units import *
@@ -30,6 +30,141 @@ import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
 
+class VIB(UNITS):
+    """
+Represents vibrational analysis tool
+    """
+    def __init__(self,mol,hess):
+        self.hess = hess
+        self.mol = mol
+        self._prepare()
+
+    # public
+    
+    def eval(self):
+        """find normal modes doing tANDr-projection-out"""
+        self.__u = self._projout()
+        F = dot(transpose(self.__u),dot(self.hess,self.__u))
+        #F = dot(self.__u,dot(self.hess,transpose(self.__u)))
+        E = linalg.eigh(F)[0]
+        self.__freq = where(E>0.,
+            sqrt( E)*self.HartreePerHbarToCmRec,
+           -sqrt(-E)*self.HartreePerHbarToCmRec)
+        return
+    
+    def get(self):
+        """get frequencies and normal modes"""
+        return self.__freq, self.__u
+
+    def __repr__(self):
+        """print happy me!"""
+        log = '\n'
+        return str(log)
+        
+    # protected
+    
+    def _prepare(self):
+        """prepare coordinates and masses"""
+        coords = []; masses = []
+        for atom in self.mol.atoms:
+            coords.append(atom.pos())
+            masses.append(atom.mass())
+        self.masses = array(masses,dtype=float64)*self.AmuToElectronMass
+        self.coords = array(coords,dtype=float64)
+        return
+    def _rcom(self):
+        """calculate center of mass"""
+        return sum(self.coords*self.masses[:,newaxis],axis=0)/sum(self.masses)
+    def _r(self):
+        """translate all coordinates to R_COM"""
+        return self.coords - self._rcom()
+    def _I(self):
+        """moment of inertia tensor"""
+        I = zeros((3,3),float64)
+        r = self._r()
+        for i in xrange(len(self.coords)):
+            x,y,z = r[i]
+            m = self.masses[i]
+            I[0,0]+= m*(y**2+z**2)
+            I[1,1]+= m*(x**2+z**2)
+            I[2,2]+= m*(x**2+y**2)
+            I[0,1]-= m*x*y
+            I[0,2]-= m*x*z
+            I[1,2]-= m*y*z
+        I[1,0] = I[0,1]
+        I[2,0] = I[0,2]
+        I[2,1] = I[1,2]
+        return I
+    def _vec_t(self):
+        """translational vectors"""
+        D1 = []; D2 = []; D3 = []
+        for i in xrange(len(self.coords)):
+            m = sqrt(self.masses[i])
+            v1 = [m,0,0]
+            v2 = [0,m,0]
+            v3 = [0,0,m]
+            D1+=v1; D2+=v2; D3+=v3
+        D1 = self._norm(array(D1,float64))
+        D2 = self._norm(array(D2,float64))
+        D3 = self._norm(array(D3,float64))
+        return D1,D2,D3
+    def _vec_r(self):
+        """rotational vectors"""
+        D4 = []; D5 = []; D6 = []
+        X = linalg.eigh(self._I())[1]
+        X1,X2,X3 = X
+        r = self._r()
+        for i in xrange(len(self.coords)):
+            m = sqrt(self.masses[i])
+            ri = r[i]
+            P1 = dot(ri,X1)
+            P2 = dot(ri,X2)
+            P3 = dot(ri,X3)
+            d4 = [(P2*X[0,2]-P3*X[0,1])/m,
+                  (P2*X[1,2]-P3*X[1,1])/m,
+                  (P2*X[2,2]-P3*X[2,1])/m]
+            d5 = [(P3*X[0,0]-P1*X[0,2])/m,
+                  (P3*X[1,0]-P1*X[1,2])/m,
+                  (P3*X[2,0]-P1*X[2,2])/m]
+            d6 = [(P1*X[0,1]-P2*X[0,0])/m,
+                  (P1*X[1,1]-P2*X[1,0])/m,
+                  (P1*X[2,1]-P2*X[2,0])/m]
+            #P = array([P1,P2,P3],float64)
+            #d1 = (cross(P,X1)/m).tolist()
+            #d2 = (cross(P,X2)/m).tolist()
+            #d3 = (cross(P,X3)/m).tolist()
+            D4+=d4; D5+=d5; D6+=d6
+        D4 = self._norm(array(D4,float64))
+        D5 = self._norm(array(D5,float64))
+        D6 = self._norm(array(D6,float64))
+        return D4,D5,D6
+    def _norm(self,u):
+        """normalize vector u"""
+        return u/sqrt(dot(u,u))
+    def _gs(self,u,v):
+        """Gram-Schmidt ortogonalization of vector v wrt u"""
+        puv = dot(v,u)/dot(u,u)*u
+        return v-puv
+    def _pre_diag(self):
+        """diagonalize Hessian matrix"""
+        return linalg.eigh(self.hess)[1]
+    def _projout(self):
+        """project out translations and rotations"""
+        U = self._pre_diag()
+        u = U[:,6:]
+        #u = U[6:]
+        #t1,t2,t3,r1,r2,r3 = transpose(U[:,:6])
+        d1,d2,d3 = self._vec_t()
+        d4,d5,d6 = self._vec_r()
+        for i in xrange(u.shape[1]):
+            vec = u[:,i]
+            #vec = u[i]
+            for trvec in [d1,d2,d3,d4,d5,d6]:
+                vec = self._gs(trvec,vec)
+            u[:,i] = self._norm(vec)
+            #u[i] = self._norm(vec)
+        return u
+    
 class Peak:
     """
 Represent a peak in the spectrum of signals
@@ -2368,12 +2503,12 @@ def PRINTV(M,list1,list2,list3):
              print ': %4s' % t3.rjust(4)
            print
            
-def P(a):
+def PUPA(a):
     """ print helper 1 """
     log=""
     for i in range(len(a)):
         for j in range(len(a[0])):
-            log+= "%16.8e " % a[i][j]
+            log+= "%5.2f " % a[i][j]
             if j==len(a[0])-1: log+='\n'
     return log
 
