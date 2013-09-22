@@ -13,7 +13,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
-         'ParseFCFromFchk']
+         'ParseFCFromFchk','ParseDipoleDerivFromFchk']
 
 import re, gentcf, orbloc, PyQuante, clemtp, \
        scipy.optimize, scipy.integrate
@@ -35,27 +35,32 @@ class VIB(UNITS):
     """
 Represents vibrational analysis tool
     """
-    def __init__(self,mol,hess):
+    def __init__(self,mol,hess,weight=True):
         self.hess = hess
         self.mol = mol
         self._prepare()
+        if weight: self._weight()
 
     # public
     
     def eval(self):
         """find normal modes doing tANDr-projection-out"""
+        # transformation matrix
         self.__u = self._projout()
         F = dot(transpose(self.__u),dot(self.hess,self.__u))
         #F = dot(self.__u,dot(self.hess,transpose(self.__u)))
         E = linalg.eigh(F)[0]
+        # frequencies
         self.__freq = where(E>0.,
             sqrt( E)*self.HartreePerHbarToCmRec,
            -sqrt(-E)*self.HartreePerHbarToCmRec)
+        # reduced masses and cartesian l-matrix
+        self.__u_cart, self.__redmass = self._redmass()
         return
     
     def get(self):
-        """get frequencies and normal modes"""
-        return self.__freq, self.__u
+        """get frequencies, reduced masses and normal modes"""
+        return self.__freq, self.__redmass, self.__u
 
     def __repr__(self):
         """print happy me!"""
@@ -63,6 +68,34 @@ Represents vibrational analysis tool
         return str(log)
         
     # protected
+    
+    def _M(self):
+        """M matrix"""
+        N = len(self.mol.atoms)
+        M = zeros((N*3,N*3),dtype=float64)
+        for i in xrange(N):
+            m = 1./sqrt(self.masses[i])
+            M[3*i+0,3*i+0] = m
+            M[3*i+1,3*i+1] = m
+            M[3*i+2,3*i+2] = m
+        return M
+    def _M1(self):
+        """M^-1 matrix"""
+        N = len(self.mol.atoms)
+        M = zeros((N*3,N*3),dtype=float64)
+        for i in xrange(N):
+            m = sqrt(self.masses[i])
+            M[3*i+0,3*i+0] = m
+            M[3*i+1,3*i+1] = m
+            M[3*i+2,3*i+2] = m
+        return M        
+    def _redmass(self):
+        """calculate reduced masses and cartesian l matrix"""
+        u_cart = dot(self._M(),self.__u)
+        redmass = 1./sum(u_cart**2,axis=0)*self.ElectronMassToAmu
+        # normalize u_cart
+        u_cart = u_cart/sqrt(sum(u_cart**2,axis=0))
+        return u_cart, redmass
     
     def _prepare(self):
         """prepare coordinates and masses"""
@@ -72,6 +105,29 @@ Represents vibrational analysis tool
             masses.append(atom.mass())
         self.masses = array(masses,dtype=float64)*self.AmuToElectronMass
         self.coords = array(coords,dtype=float64)
+        return
+    def _weight(self):
+        """weight hessian"""
+        M = self._M()
+        self.hess = dot(M,dot(self.hess,M))
+        return
+    def _weight_old(self):
+        """weight Hessian"""
+        for i in xrange(len(self.mol.atoms)):
+            mi = 1./sqrt(self.masses[i])
+            for j in xrange(len(self.mol.atoms)):
+                mj = 1./sqrt(self.masses[j])
+                mij = mi*mj
+                self.hess[3*i+0,3*j+0] *= mij
+                self.hess[3*i+1,3*j+1] *= mij
+                self.hess[3*i+2,3*j+2] *= mij
+                
+                self.hess[3*i+0,3*j+1] *= mij
+                self.hess[3*i+1,3*j+0] *= mij
+                self.hess[3*i+0,3*j+2] *= mij
+                self.hess[3*i+2,3*j+0] *= mij
+                self.hess[3*i+1,3*j+2] *= mij
+                self.hess[3*i+2,3*j+1] *= mij
         return
     def _rcom(self):
         """calculate center of mass"""
@@ -162,9 +218,9 @@ Represents vibrational analysis tool
             #vec = u[i]
             for trvec in [d1,d2,d3,d4,d5,d6]:
                 vec = self._gs(trvec,vec)
-            u[:,i] = self._norm(vec)
+            #u[:,i] = self._norm(vec)
             #u[i] = self._norm(vec)
-        return u
+        return U
     
 class Peak:
     """
@@ -1547,15 +1603,36 @@ def ParseFCFromFchk(file):
     data.close()
     
     FC = array(FC,float64)
-    H = zeros((N,N),dtype=float64)
+    H = zeros((N*3,N*3),dtype=float64)
     I = 0
-    for i in xrange(N):
+    for i in xrange(N*3):
         for j in xrange(i+1):
             H[i,j] = FC[I]
             H[j,i] = H[i,j]
             I+=1
     
     return H
+
+def ParseDipoleDerivFromFchk(file):
+    """parses dipole derivatives from Gaussian fchk file"""
+        
+    data = open(file)
+    line = data.readline()
+    querry = "Dipole Derivatives"
+    while 1:
+        if querry in line: break
+        line = data.readline()
+    N = int(line.split()[-1])
+    line = data.readline()
+    fd = []
+    g = lambda n: n/5+bool(n%5)
+    for i in range(g(N)):
+        fd+= line.split()
+        line = data.readline()
+    data.close()
+    M = N/9
+    fd = array(fd,float64).reshape(M*3,3)
+    return fd
 
 def Parse_EDS_InteractionEnergies(file):
     """parses EDS interaction energies from file"""
