@@ -13,7 +13,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
-         'ParseFCFromFchk','ParseDipoleDerivFromFchk']
+         'ParseFCFromFchk','ParseDipoleDerivFromFchk',
+         'ParseFockFromGamessLog','lind','order',]
 
 import re, gentcf, orbloc, PyQuante, clemtp, \
        scipy.optimize, scipy.integrate
@@ -30,6 +31,31 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
+
+def lind(file,querry):
+    """
+Parses line indices containing the querry
+Usage:
+
+ind = lind(file,querry)
+
+Notes: returns list of integers. You can
+go the the line of this file by:
+for i in range(index_of_a_line): file_obj.readline()
+line = file_obj.readline() is the desired line!
+"""
+    ind = []
+    #if file.closed: data = open(file) # dopisz to potem zeby nie czytał pliku jescze raz od  nowa!!!!!
+    data = open(file)
+    line = data.readline()
+    n = 0
+    while line:
+       if querry in line:
+          ind.append(n)
+       n+=1
+       line = data.readline()
+    data.close()
+    return ind
 
 class VIB(UNITS):
     """
@@ -1549,6 +1575,49 @@ def ParseVecFromFchk(file):
     C = array(C,dtype=float64).reshape(N,M)
     data.close()
     return C
+
+def ParseFockFromGamessLog(file,interpol=False):
+    """parses Fock matrix from GAMESS log file"""
+    data = open(file)
+    line = data.readline()
+    querry = 'NUMBER OF CARTESIAN GAUSSIAN BASIS FUNCTIONS ='
+    while 1:
+       if querry in line: break
+       line = data.readline()
+    nbasis = int(line.split()[-1])
+    data.close()
+    data = open(file)
+    if interpol:
+          querry = 'DIIS INTERPOLATED ALPHA FOCK'
+    else: querry = 'TOTAL FOCK OPERATOR'
+    for i in range(lind(file,querry)[-1]):
+        data.readline()    
+    while 1:
+       if querry in line: break
+       line = data.readline()
+
+    g = lambda n: n/5+bool(n%5)
+    fock = []
+    fock = zeros((nbasis,nbasis),dtype=float64)
+    for i in xrange(g(nbasis)):
+        line = data.readline()
+        line = data.readline()
+        nxses= array(line.split(),int)-1
+        line = data.readline()
+
+        for j in xrange(nbasis-i*5):
+            line = data.readline()
+            line = re_dbl_fort_c.sub(r'\1E\2', line)
+            ny = int(line.split()[0])-1
+            values = line.split()[4:]
+            for k in xrange(len(values)):
+                nx = nxses[k]
+                v  = values[k]
+                fock[nx,ny] = v
+                fock[ny,nx] = v
+    data.close()
+    fock = array(fock,dtype=float64)
+    return fock
 
 def ParseDmatFromFchk(file,basis_size):
     """parses density matrix from Gaussian fchk file"""
