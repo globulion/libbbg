@@ -20,6 +20,8 @@ import re
 
 __all__ = ['re_real_e'  ,'re_real_e_c',
            're_dbl_fort','re_dbl_fort_c',]
+           
+__version__ = '1.1.2'
 
 # scientific notation with E/e
 re_real_e   = r'-?\d\.\d+[Ee][+\-]\d\d?'
