@@ -11,9 +11,27 @@ from utilities import *
 import copy
 
 class FREQ(UNITS):
-      """ represents gaussian log file for anharmonic frequency calculations 
-          The job has to have 'nosymm' option specified otherwise the normal
-          modes and L matrix will probably have incorrect ordering!!! """
+      """
+-------------------------------------------------------------------
+Represents gaussian log file for anharmonic frequency calculations 
+The job has to have 'nosymm' option specified otherwise the normal 
+modes and L matrix will probably have incorrect ordering!!!        
+-------------------------------------------------------------------
+
+Usage:
+
+anh = FREQ(file)      - create anh object from [g09 file]
+b   = anh.w()         - create mass-multiplied copy of the anh object
+
+Notes:
+
+L - eigenvector matrix (natoms*3,nmodes)
+
+Definition:               Unit:
+
+mu_i = reduced mass       AMU
+L_ij = dx_i/dQ_j          1/sqrt(electron mass)
+"""
       def __init__(self,file=None):
         if file: 
           self.dir    = '.'                        # working directory
