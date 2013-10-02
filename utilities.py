@@ -14,7 +14,9 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
          'ParseFCFromFchk','ParseDipoleDerivFromFchk',
-         'ParseFockFromGamessLog','lind','order',]
+         'ParseFockFromGamessLog','lind','order','check_sim',]
+         
+__version__ = '3.2.15'
 
 import re, gentcf, orbloc, PyQuante, clemtp, \
        scipy.optimize, scipy.integrate
@@ -32,6 +34,17 @@ import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
 
+def check_sim(l):
+    """check the sim list"""
+    for x,y in l:
+        i=0;j=0
+        for a,b in l:
+            if a==x: i+=1
+            if b==y: j+=1
+        if (i>1 or j>1): 
+            print " --- !ERROR! --- "
+            break
+        
 def lind(file,querry):
     """
 Parses line indices containing the querry
