@@ -2,11 +2,13 @@
 #       GAUSSIAN FILE WITH ANHARMONIC FREQUENCY ANALYSIS          #
 # --------------------------------------------------------------- #
 
-__all__=['FREQ']
+__all__=['FREQ',]
+__version__ = '2.2.1'
 
 from units     import *
 from numpy     import *
 from utilities import *
+import copy
 
 class FREQ(UNITS):
       """ represents gaussian log file for anharmonic frequency calculations 
@@ -35,7 +37,36 @@ class FREQ(UNITS):
           self.L_     = self.L_[:,::-1]
           self.dipole = self.Dipole(file)
 
-          self.K3 = self.K_34()           # helico [cm-1]
+          self.K3 = self.K_34()                    # helico [cm-1]
+          self._w = False                          # if self.w()
+
+      def copy(self):
+          """return deep copy of self"""
+          return copy.deepcopy(self)
+
+      def if_w(self):
+          """returns the answer whether the object was mass-multiplied"""
+          return self._w
+
+      def w(self):
+          """return the copy of the original object containing mass-multiplied gijk and L vectors"""
+          assert not self._w, 'already mass-multiplied!'
+          other = self.copy()
+          # L-vectors
+          temp = sqrt(self.redmass*self.AmuToElectronMass)[newaxis,:]
+          other.L = temp * self.L
+          # reduced masses
+          other.redmass = self.redmass*self.AmuToElectronMass
+          # cubic anharmonic constants
+          temp = sqrt(self.redmass)[:,newaxis,newaxis,]
+          gijj = temp * self.K3
+          temp = sqrt(self.redmass)[newaxis,:,newaxis,]
+          gijj = temp * gijj
+          temp = sqrt(self.redmass)[newaxis,newaxis,:,]
+          gijj = temp * gijj
+          other.K3 = gijj
+          other._w = True
+          return other
 
       def find_Natoms(self):
           """search for number of atoms"""
