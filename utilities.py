@@ -25,7 +25,7 @@ from numpy import transpose, zeros, dot, \
                   sqrt, ceil, tensordot, \
                   cross, sum, where    , \
                   concatenate, average , \
-                  exp, linalg
+                  exp, linalg, sign
 from numpy.linalg import svd, det, norm
 from dma   import DMA
 from units import *
@@ -899,6 +899,17 @@ def order(R,P,start=0):
         sim.append((i+1,J+1))
         new_P[i+start] = P[J+start]
         rad.append(rads)
+    for i in xrange(len(R)-start):
+        s = sum(sign(new_P[i])/sign(R[i]))
+        print "%10d %f" %(i+1,s)
+        r_ = sum(( R[i+start]-new_P[i+start])**2)
+        r__= sum((-R[i+start]-new_P[i+start])**2)
+        if s < -154: 
+            print "TUTAJ s < -154"
+            #new_P[i]*=-1.
+        if r__<r_:
+            print "TUTAJ r__<r_"
+            new_P[i]*=-1.
     return new_P, sim#, array(rad,dtype=float)
 
 class GROUPS:
@@ -1193,7 +1204,7 @@ ar     - return also array with only coordinates
                                                  coord[i][2],
                                                  coord[i][3]) )
                Coords.append(atom)
-           Mol = PyQuante.Molecule(name,Coords,units=units,
+           Mol = PyQuante.Molecule(name,Coords,units='Bohr',
                                    multiplicity=mult,charge=charge)
     
        if   mol : return Mol                 
