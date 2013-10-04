@@ -75,6 +75,8 @@ L_ij = dx_i/dQ_j          1/sqrt(electron mass)
           other.L = temp * self.L
           # reduced masses
           other.redmass = self.redmass*self.AmuToElectronMass
+          # frequencies
+          other.freq = self.freq * self.CmRecToHz * self.HzToAuAngFreq
           # cubic anharmonic constants
           temp = sqrt(self.redmass)[:,newaxis,newaxis,]
           gijj = temp * self.K3
