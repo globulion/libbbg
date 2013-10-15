@@ -608,6 +608,11 @@ The numbers are normal numbers (not in Python convention)."""
            contrlist = self.__contrListFromUaList(ua_list)
            self.contract(contrlist)
 
+    def translate(self,vector):
+        """translate origins and positions by a vector"""
+        self.origin += vector
+        self.pos    += vector
+        return
     
     def Rotate(self,rotmat):
         """rotates the ordinary full-formatted DMA_FULL
@@ -616,6 +621,11 @@ The numbers are normal numbers (not in Python convention)."""
 
         #self.MAKE_FULL()
         if self.full:
+           ### transform the origins and positions
+           for i in xrange(len(self.origin)):
+               self.origin[i] = dot(rotmat,self.origin[i])
+           for i in xrange(len(self.pos)):
+               self.pos[i] = dot(rotmat,self.pos[i])
            ### transform the dipoles
            #self.DMA[1] = dot(self.DMA[1],transpose(rotmat))
            self.DMA_FULL[2] = dot(self.DMA[1],rotmat)
