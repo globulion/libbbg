@@ -67,7 +67,9 @@ L_ij = dx_i/dQ_j          1/sqrt(electron mass)
           return self._w
 
       def w(self):
-          """return the copy of the original object containing mass-multiplied gijk and L vectors"""
+          """
+Return the copy of the original object containing mass-multiplied gijk and L vectors
+and changing to AU units (frequencies and reduced masses)"""
           assert not self._w, 'already mass-multiplied!'
           other = self.copy()
           # L-vectors
