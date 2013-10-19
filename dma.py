@@ -623,9 +623,9 @@ The numbers are normal numbers (not in Python convention)."""
         if self.full:
            ### transform the origins and positions
            for i in xrange(len(self.origin)):
-               self.origin[i] = dot(rotmat,self.origin[i])
+               self.origin[i] = dot(self.origin[i],rotmat)
            for i in xrange(len(self.pos)):
-               self.pos[i] = dot(rotmat,self.pos[i])
+               self.pos[i] = dot(self.pos[i],rotmat)
            ### transform the dipoles
            #self.DMA[1] = dot(self.DMA[1],transpose(rotmat))
            self.DMA_FULL[2] = dot(self.DMA[1],rotmat)
