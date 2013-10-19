@@ -1157,14 +1157,14 @@ class SVDSuperimposer(object):
 
 
 def Read_xyz_file(file,ar=False,mol=False,mult=1,charge=0,name='dummy',
-                  units='Angstrom'):
+                  units='Angstrom',method='RHF',basis='6-311++G**'):
     """\
 reads xyz or fchk file and returns coords and atoms. 
 Coordinates are returned in AU!
 
 Usage:
 get_mol(file,[ar=False,mol=False,mult=1,charge=0,name='dummy',
-              units='Angstrom'])
+              units='Angstrom',method='RHF',basis='6-311++G**'])
 
 Returns: 
 + list of coords plus ...
@@ -1205,7 +1205,8 @@ ar     - return also array with only coordinates
                                                  coord[i][3]) )
                Coords.append(atom)
            Mol = PyQuante.Molecule(name,Coords,units='Bohr',
-                                   multiplicity=mult,charge=charge)
+                                   multiplicity=mult,charge=charge,
+                                   basis=basis,method=method)
     
        if   mol : return Mol                 
        elif ar  : return coord, data
@@ -1256,7 +1257,8 @@ ar     - return also array with only coordinates
                                    coord[i][2]) )
                Coords.append(atom)
            Mol = PyQuante.Molecule(name,Coords,units='Bohr',
-                                   multiplicity=mult,charge=charge)
+                                   multiplicity=mult,charge=charge,
+                                   basis=basis,method=method)
     
            return Mol                        
        else: return None
