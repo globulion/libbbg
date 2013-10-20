@@ -14,7 +14,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
          'ParseFCFromFchk','ParseDipoleDerivFromFchk',
-         'ParseFockFromGamessLog','lind','order','check_sim',]
+         'ParseFockFromGamessLog','lind','order','check_sim','MakeMol',]
          
 __version__ = '3.2.15'
 
@@ -1155,6 +1155,20 @@ class SVDSuperimposer(object):
             self.rms=self._rms(transformed_coords, self.reference_coords)
         return self.rms
 
+
+def MakeMol(atno,coord,name='dummy',**opts):
+    """Make Molecule object from a a list of atomic numbers and coordinates.
+The default units are Bohrs.
+Usage: mol = MakeMol(atno,coord,name='dummy',**opts)
+Notes: atno is a list or array of atomic numbers, 
+       coord is an array of size (natoms,3) in Bohrs,
+       unless units='Angstroms' was also specified."""
+    coords = []
+    for i in xrange(len(atno)):
+        atom  = (atno[i], tuple(coord[i]))
+        coords.append(atom)
+    Mol = PyQuante.Molecule(name,coords,**opts)
+    return Mol
 
 def Read_xyz_file(file,ar=False,mol=False,mult=1,charge=0,name='dummy',
                   units='Angstrom',method='RHF',basis='6-311++G**'):
