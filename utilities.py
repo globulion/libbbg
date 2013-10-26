@@ -2210,23 +2210,23 @@ a.u. as well. """
              Eint = qq + qD + Dq + qQ + Qq + qO + Oq + DD + DQ + QD + DO + OD + QQ + QO + OQ + OO
              
              ### save the partitioning for current usage
-             Emtp.qq = qq;Emtp.qD = qD;Emtp.qQ = qQ;Emtp.qO = qO;Emtp.QO = QO;
-             Emtp.DD = DD;Emtp.DQ = DQ;Emtp.DO = DO;Emtp.QQ = QQ;Emtp.OO = OO;
+             get_elmtp.qq = qq;get_elmtp.qD = qD;get_elmtp.qQ = qQ;get_elmtp.qO = qO;get_elmtp.QO = QO;
+             get_elmtp.DD = DD;get_elmtp.DQ = DQ;get_elmtp.DO = DO;get_elmtp.QQ = QQ;get_elmtp.OO = OO;
     #
-    Emtp.A = (         qq )
-    Emtp.B = (Emtp.A + qD + Dq )
-    Emtp.C = (Emtp.B + DD + qQ + Qq )
-    Emtp.D = (Emtp.C + qO + Oq + DQ + QD)
-    Emtp.E = (Emtp.D + DO + OD + QQ + qH + Hq)
-    Emtp.F = (Emtp.A + Dq + qD + DD )
-    Emtp.G = (Emtp.F + Qq + qQ + QD + DQ + QQ)
-    Emtp.H = (Emtp.G + Oq + qO + OD + DO + OQ + QO + OO)
+    get_elmtp.A = (         qq )
+    get_elmtp.B = (get_elmtp.A + qD + Dq )
+    get_elmtp.C = (get_elmtp.B + DD + qQ + Qq )
+    get_elmtp.D = (get_elmtp.C + qO + Oq + DQ + QD)
+    get_elmtp.E = (get_elmtp.D + DO + OD + QQ + qH + Hq)
+    get_elmtp.F = (get_elmtp.A + Dq + qD + DD )
+    get_elmtp.G = (get_elmtp.F + Qq + qQ + QD + DQ + QQ)
+    get_elmtp.H = (get_elmtp.G + Oq + qO + OD + DO + OQ + QO + OO)
     #
-    Emtp.A *= converter
-    Emtp.B *= converter
-    Emtp.C *= converter
-    Emtp.D *= converter
-    Emtp.E *= converter
+    get_elmtp.A *= converter
+    get_elmtp.B *= converter
+    get_elmtp.C *= converter
+    get_elmtp.D *= converter
+    get_elmtp.E *= converter
     #
     log = "\n" 
     log+= " --------------------------------:--------------------------\n"
@@ -2234,11 +2234,11 @@ a.u. as well. """
     log+= " --------------------------------:--------------------------\n"
     log+= "%6s %20.2f      :\n" % ("Total".rjust(6),Eint*converter)
     log+= " "+"-"*32+":"+"-"*26+"\n"
-    log+= "%7s %19.2f      :  1        %10.2f\n" % ("q-q".rjust(6), qq    *converter,Emtp.A)
-    log+= "%7s %19.2f      :  1+2      %10.2f\n" % ("q-D".rjust(6),(qD+Dq)*converter,Emtp.B)
-    log+= "%7s %19.2f      :  1+2+3    %10.2f\n" % ("q-Q".rjust(6),(qQ+Qq)*converter,Emtp.C)
-    log+= "%7s %19.2f      :  1+2+3+4  %10.2f\n" % ("q-O".rjust(6),(qO+Oq)*converter,Emtp.D)
-    log+= "%7s %19.2f      :  1+2+3+4+5%10.2f\n" % ("D-D".rjust(6), DD    *converter,Emtp.E)
+    log+= "%7s %19.2f      :  1        %10.2f\n" % ("q-q".rjust(6), qq    *converter,get_elmtp.A)
+    log+= "%7s %19.2f      :  1+2      %10.2f\n" % ("q-D".rjust(6),(qD+Dq)*converter,get_elmtp.B)
+    log+= "%7s %19.2f      :  1+2+3    %10.2f\n" % ("q-Q".rjust(6),(qQ+Qq)*converter,get_elmtp.C)
+    log+= "%7s %19.2f      :  1+2+3+4  %10.2f\n" % ("q-O".rjust(6),(qO+Oq)*converter,get_elmtp.D)
+    log+= "%7s %19.2f      :  1+2+3+4+5%10.2f\n" % ("D-D".rjust(6), DD    *converter,get_elmtp.E)
     log+= "%7s %19.2f      :\n"                  % ("D-Q".rjust(6),(DQ+QD)*converter)
     log+= "%7s %19.2f      :\n"                  % ("D-O".rjust(6),(DO+OD)*converter)
     log+= "%7s %19.2f      :\n"                  % ("Q-Q".rjust(6), QQ    *converter)
@@ -2246,9 +2246,9 @@ a.u. as well. """
     log+= "%7s %19.2f      :\n"                  % ("O-O".rjust(6), OO    *converter)
     log+= " "+"-"*32+":"+"-"*26+"\n"
     log+= "\n"
-    Emtp.log = log
+    get_elmtp.log = log
     
-    return Emtp.A, Emtp.B, Emtp.C, Emtp.D, Emtp.E
+    return get_elmtp.A, get_elmtp.B, get_elmtp.C, get_elmtp.D, get_elmtp.E
 
 def Emtpc(DMA1,DMA2,threshold=1000,hash=True):
     """Compiled version of EMtp. calculates E(EL)MTP from two DMA distributions.
