@@ -1351,7 +1351,7 @@ if not is_full - the dma object is turned into traceless object
         
         t  =tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))
         field+= 5* t * R / Rab**7
-        field-= 2* tensordot(Da[i],R,(0,0)) / Rab**5
+        field-= 2* tensordot(Qa[i],R,(0,0)) / Rab**5
         
         c=tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0))
         g=tensordot(R,c,(0,0))
