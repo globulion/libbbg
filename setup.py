@@ -24,6 +24,10 @@ ORBLOC = Extension(name='orbloc',
                    sources=['pmloca.f'],)
 CLEMTP = Extension(name='clemtp',
                    sources=['clemtp.f'])
+CLPLTP = Extension(name='clpltp',
+                   sources=['clpltp.f'],
+                   library_dirs=['/usr/lib/lapack','/usr/lib/pyshared/python2.7/scipy/lib/lapack'],
+                   libraries=['flapack.so',])
 
 # --- Install libbbg!
 
@@ -37,5 +41,5 @@ setup(name='LIBBBG',
       py_modules=['dma','gaussfreq','units',
                   'utilities','utilities2',
                   'dipderiv','re_templates'],
-      ext_modules=[GENTCF,ORBLOC,CLEMTP],
+      ext_modules=[GENTCF,ORBLOC,CLEMTP,],
      )
