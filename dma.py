@@ -207,6 +207,10 @@ where n is rank of multipole moment"""
         if quadrupoles is not None: self.DMA[2] = quadrupoles.copy()
         if octupoles   is not None: self.DMA[3] = octupoles.copy()
         return
+    
+    def if_traceless(self):
+        """does the dma object is traceless?"""
+        return self.traceless
      
     def interchange(self,ind):
         """
