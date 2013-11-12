@@ -1,5 +1,93 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
+      SUBROUTINE MOLLST(RC,RM,IC,IP,NAT,CCUT,PCUT,NMOLS,NCOORD,NC)
+C
+C -----------------------------------------------------------------------------
+C
+C         DETERMINE THE MOLECULES LYING WITHIN COULOMB AND POLARIZATION RADII
+C         FROM CENTRAL MOLECULE
+C
+C              Bartosz Błasiak                       12 Nov 2013
+C
+C -----------------------------------------------------------------------------
+C
+C   Input variables:
+C
+C     ** Double precision
+C     RC         - coordinates of central molecule (dimension 3,NC)
+C     RM         - array of coordinates of other molecules (dimension 3,NCOORD)
+C     CCUT       - Coulomb cutoff distance
+C     PCUT       - Polarization cutoff distance
+C
+C     ** Integer
+C     IC         - array of condition numbers for Coulomb sphere
+C     IP         - array of condition numbers for Polarization sphere
+C     NMOLS      - number of other molecules (apart from central one)
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION RC(NC,3),RM(3*NCOORD),NAT(NMOLS),IC(NMOLS),IP(NMOLS)
+      PARAMETER (ZERO=0.0D+00)
+Cf2py INTENT(IN,OUT) IC,IP
+C
+C     CENTER OF GEOMETRY OF CENTRAL MOLECULE
+C
+      RCX = ZERO
+      RCY = ZERO
+      RCZ = ZERO
+      DNC = DFLOAT(NC)
+C
+      DO I=1,NC
+         RCX = RCX + RC(I,1)
+         RCY = RCY + RC(I,2)
+         RCZ = RCZ + RC(I,3)
+      ENDDO
+C
+      RCX = RCX / DNC
+      RCY = RCY / DNC
+      RCZ = RCZ / DNC
+C
+C     LOOP OVER ALL OTHER MOLECULES
+C
+      NATSUM = 0
+      DO 99 I=1,NMOLS
+         NATI = NAT(I)
+         DNA = DFLOAT(NATI)
+         NATSUM = NATSUM + NATI
+C
+C        CENTER OF MASS OF A MOLECULE
+C
+         RMX = ZERO
+         RMY = ZERO
+         RMZ = ZERO
+C
+         DO J=1,NATI
+            IX = 3*(NATSUM-NATI) + 3*(J-1) + 1
+            IY = IX + 1
+            IZ = IY + 1
+C
+            RMX = RMX + RM(IX)
+            RMY = RMY + RM(IY) 
+            RMZ = RMZ + RM(IZ)
+         ENDDO
+C
+         RMX = RMX / DNA
+         RMY = RMY / DNA
+         RMZ = RMZ / DNA
+C
+         DX = RCX - RMX
+         DY = RCY - RMY
+         DZ = RCZ - RMZ
+         RR = DSQRT(DX*DX+DY*DY+DZ*DZ)
+C
+         IF (RR.LT.CCUT) IC(I) = 1
+         IF (RR.LT.PCUT) IP(I) = 1
+C
+99    CONTINUE
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
       SUBROUTINE SOLPOL(RDMA,CHG,DIP,QAD,OCT,RPOL,POL,EPOL,
      *                  DMAT,FLDS,DIPIND,
      *                  NMOLS,NDMA,NPOL,NDIM,NDMAS,
