@@ -40,6 +40,7 @@ setup(name='LIBBBG',
       #packages=['libbbg'],
       py_modules=['dma','gaussfreq','units',
                   'utilities','utilities2',
-                  'dipderiv','re_templates'],
+                  'dipderiv','re_templates',
+                  'mpfit',],
       ext_modules=[GENTCF,ORBLOC,CLEMTP,],
      )
