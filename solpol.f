@@ -1,6 +1,7 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
-      SUBROUTINE MOLLST(RC,RM,IC,IP,NAT,CCUT,PCUT,NMOLS,NCOORD,NC)
+      SUBROUTINE MOLLST(RC,RM,IC,IP,ICM,IPM, 
+     &                  NAT,CCUT,PCUT,NMOLS,NCOORD,NC)
 C
 C -----------------------------------------------------------------------------
 C
@@ -25,9 +26,10 @@ C     IP         - array of condition numbers for Polarization sphere
 C     NMOLS      - number of other molecules (apart from central one)
 C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
-      DIMENSION RC(NC,3),RM(3*NCOORD),NAT(NMOLS),IC(NMOLS),IP(NMOLS)
+      DIMENSION RC(NC,3),RM(3*NCOORD),NAT(NMOLS)
+      LOGICAL IC(NCOORD),IP(NCOORD),ICM(NMOLS),IPM(NMOLS)
       PARAMETER (ZERO=0.0D+00)
-Cf2py INTENT(IN,OUT) IC,IP
+Cf2py INTENT(IN,OUT) IC,IP,ICM,IPM
 C
 C     CENTER OF GEOMETRY OF CENTRAL MOLECULE
 C
@@ -79,8 +81,21 @@ C
          DZ = RCZ - RMZ
          RR = DSQRT(DX*DX+DY*DY+DZ*DZ)
 C
-         IF (RR.LT.CCUT) IC(I) = 1
-         IF (RR.LT.PCUT) IP(I) = 1
+         IF (RR.LT.CCUT) THEN
+             ICM(I) = .TRUE.
+             DO J=1,NATI
+                IX = NATSUM-NATI + J
+                IC(IX) = .TRUE.
+             ENDDO
+         ENDIF
+C
+         IF (RR.LT.PCUT) THEN
+             IPM(I) = .TRUE.
+             DO J=1,NATI
+                IX = NATSUM-NATI + J
+                IP(IX) = .TRUE.
+             ENDDO
+         ENDIF
 C
 99    CONTINUE
 C
