@@ -14,7 +14,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca',
          'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
          'ParseFCFromFchk','ParseDipoleDerivFromFchk',
-         'ParseFockFromGamessLog','lind','order','check_sim','MakeMol',]
+         'ParseFockFromGamessLog','lind','order','check_sim','MakeMol',
+         'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',]
          
 __version__ = '3.2.15'
 
@@ -880,7 +881,15 @@ lprint - whether print no of iteration or not after finish
     #
     return tran, vecout
 
+def reorder(P,sim):
+    """reorders the tensor. <sim> is the list of pairs from 'order' function"""
+    P_new = zeros(P.shape,dtype=float64)
+    for i,j in sim:
+        P_new[i-1] = P[j-1]
+    return P_new
+
 def order(R,P,start=0):
+    """order list"""
     new_P = P.copy()
     sim   = []
     rad =  []
@@ -1584,6 +1593,42 @@ Gamess reads Stone's DMA analysis
          Result.DMA[0] = array(ZerothMoments)
          
          return Result#, array(Structure) * UNITS.AngstromToBohr
+
+def ParseDistributedPolarizabilitiesFromGamessEfpFile(f):
+    """parse distributed polarizabilities and their centers from GAMESS *.efp file"""
+    STR = []
+    A = []
+    d = open(f)
+    l = d.readline()
+    while not ("POLARIZABLE POINTS" in l): l = d.readline()
+    l = d.readline()
+    N=0
+    while not ("STOP" in l):
+      s = l.split()[1:]
+      STR.append(s)
+      #
+      l = d.readline()
+      a1 = l.split()
+      l = d.readline()
+      a2 = l.split()
+      l = d.readline()
+      a3 = l.split()
+      A.append(a1[0])    # XX
+      A.append(a1[3])    # XY
+      A.append(a2[0])    # XZ
+      A.append(a2[2])    # YX
+      A.append(a1[1])    # YY
+      A.append(a2[1])    # YZ
+      A.append(a2[3])    # ZX
+      A.append(a3[0])    # ZY
+      A.append(a1[2])    # ZZ
+      #  
+      l = d.readline()
+      N+=1
+
+    STR=array(STR,float64).reshape(N,3)
+    A = array(A,float64).reshape(N,3,3)
+    return STR,A
 
 def ParseVecFromFchk(file):
     """parse Ci\mu coeeficients from g09 fchk"""
