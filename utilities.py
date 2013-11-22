@@ -1630,6 +1630,22 @@ def ParseDistributedPolarizabilitiesFromGamessEfpFile(f):
     A = array(A,float64).reshape(N,3,3)
     return STR,A
 
+def ParsePolDerFromFchk(f):
+    """parse polarizability derivatives wrt nuclear coordinates from file"""
+    g = lambda n: n/5+bool(n%5)
+    A = []
+    d = open(f)
+    l = d.readline()
+    while not ("Polarizability Derivatives" in l): l = d.readline()
+    N = int(l.split()[-1])
+    l = d.readline()
+    for i in range(g(N)):
+      A+= = l.split()
+      l = d.readline()
+
+    A = array(A,float64).reshape(N,3,3)
+    return A
+
 def ParseVecFromFchk(file):
     """parse Ci\mu coeeficients from g09 fchk"""
     data = open(file)
