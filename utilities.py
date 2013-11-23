@@ -888,7 +888,7 @@ def reorder(P,sim):
         P_new[i-1] = P[j-1]
     return P_new
 
-def order(R,P,start=0):
+def order(R,P,start=0,lprint=1):
     """order list"""
     new_P = P.copy()
     sim   = []
@@ -910,13 +910,14 @@ def order(R,P,start=0):
         rad.append(rads)
     for i in xrange(len(R)-start):
         s = sum(sign(new_P[i])/sign(R[i]))
-        print "%10d %f" %(i+1,s)
+        if lprint: print "%10d %f" %(i+1,s)
         r_ = sum(( R[i+start]-new_P[i+start])**2)
         r__= sum((-R[i+start]-new_P[i+start])**2)
-        if s < -154: 
+        if lprint:
+         if s < -154: 
             print "TUTAJ s < -154"
             #new_P[i]*=-1.
-        if r__<r_:
+         if r__<r_:
             print "TUTAJ r__<r_"
             new_P[i]*=-1.
     return new_P, sim#, array(rad,dtype=float)
@@ -1640,7 +1641,7 @@ def ParsePolDerFromFchk(f):
     N = int(l.split()[-1])
     l = d.readline()
     for i in range(g(N)):
-      A+= = l.split()
+      A+= l.split()
       l = d.readline()
 
     A = array(A,float64).reshape(N,3,3)
