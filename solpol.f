@@ -103,6 +103,398 @@ C
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
+      SUBROUTINE SFTPOL(RDMA,CHG,DIP,QAD,OCT,RPOL,POL,EPOL,SHIFT,
+     *                  DMAT,FLDS,DIPIND,DIMAT,FIVEC,SDIPND,AVEC,VEC1,
+     *                  MAT1,REDMSS,FREQ,GIJJ,RPOL1,POL1,
+     *                  NMOLS,NDMA,NPOL,NDIM,NDMAS,MODE,NMODES,NPOLC,
+     *                  MDIP,MQAD,MOCT,MRPOL,MPOL,LWRITE)
+C
+C -----------------------------------------------------------------------------
+C
+C         ELECTROSTATIC POLARIZATION FREQUENCY SHIFT FROM MULTIPOLE EXPANSION
+C                  DISTRIBUTED DIPOLE POLARIZABILITY MODEL
+C 
+C              Bartosz Błasiak                        20 Nov 2013
+C
+C -----------------------------------------------------------------------------
+C
+C   Input variables:
+C
+C   Returns:
+C     EPOL    - polarization energy
+C     SHIFT   - frequency shift
+C
+C   External:
+C     ILAENV  - evaluate optimum block size (lapack)
+C     DGETRF  - LU decomposition (lapack) 
+C     DGETRI  - rectanqular real matrix inversion (lapack)
+C     DDOT    - dot product of two real vectors (lapack)
+C     DGEMM   - matrix-matrix multiplication
+C
+C   Notes:
+C     The reduced format of tensor storage is used
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION RDMA(MDIP),CHG(NDMAS),DIP(MDIP),QAD(MQAD),OCT(MOCT),
+     &          RPOL(MRPOL),POL(MPOL),DMAT(NDIM,NDIM),FLDS(NDIM),
+     &          DIMAT(NDIM,NDIM),FIVEC(NDIM),SDIPND(NDIM),AVEC(NDIM),
+     &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),
+     &          POL1(NMODES*NPOLC*9),
+     &          DIPIND(NDIM),NDMA(NMOLS),NPOL(NMOLS),
+     &          RPOL1(NMODES*NPOLC*3),
+     &          IPIV(10000),WORK(500000),FI(40),VEC1(NDIM)
+      PARAMETER (ZERO=0.0D+00,HALF=0.50D+00,ONE=1.00D+00)
+      DOUBLE PRECISION DDOT,MAT1(NDIM,NDIM)
+      LOGICAL LWRITE
+      EXTERNAL ILAENV,DGETRF,DGETRI,DDOT,DGEMM
+Cf2py INTENT(OUT) EPOL, SHIFT
+      EPOL = ZERO
+      SHIFT= ZERO
+      DATA IPIV/10000*0/
+      DATA WORK/500000*0.0D+00/
+      DATA FI/40*0.0D+00/
+C
+C     CALCULATE FIELDS AT POLARIZABLE CENTERS AND D-MATRIX
+C
+      CALL FIELDS(RDMA,CHG,DIP,QAD,OCT,RPOL,POL,DMAT,FLDS,
+     ^            NMOLS,NPOL,NDMA,NDIM,NDMAS,
+     ^            MDIP,MQAD,MOCT,MRPOL,MPOL)
+C
+C     COPY DMAT TO MAT1 TO FORM T-TENSOR. LEAVE THE DIAGONAL
+C     QUADRATIC 3x3 BLOCKS TO BE ZERO
+C
+      DO 10 I=1,NDIM
+      DO 10 J=1,(I-1)
+         DMIJ = DMAT(I,J)
+         MAT1(I,J) = DMIJ
+         MAT1(J,I) = DMIJ
+ 10   CONTINUE
+C
+C     THEN INVERT D-MATRIX
+C
+      NB = ILAENV(1,"DGETRI","NALIWKU",NDIM,-1,-1,-1)
+      LWORK = NDIM*NB
+      CALL DGETRF(NDIM,NDIM,DMAT,NDIM,IPIV,INFO)
+      IF (LWRITE) WRITE(*,*) " LWORK= ", LWORK, "INFO= ",INFO
+      CALL DGETRI(NDIM,DMAT,NDIM,IPIV,WORK,LWORK,INFO)
+      CALL CHECK(INFO)
+      IF (INFO.NE.0) GOTO 1123
+C
+C     CALCULATE INDUCED DIPOLES AND POLARIZATION ENERGY
+C
+      CALL DGMV(DMAT,FLDS,DIPIND,NDIM)
+      EPOL = - DDOT(NDIM,FLDS,1,DIPIND,1) * HALF
+C
+      IF (LWRITE) THEN
+          CALL MATWRT(DMAT,NDIM,NDIM,-1,"dmat.dat")
+          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+      ENDIF
+C
+C     CALCULATE DIMAT AND FIVEC AND ACCUMULATE THEM TO -AVEC-
+C
+      CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
+     *            MAT1,DIMAT,FIVEC,AVEC,VEC1,
+     *            GIJJ,REDMSS,FREQ,POL1,
+     *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
+     *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
+C
+      IF (LWRITE) THEN
+          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
+          CALL MATWRT(DIMAT,NDIM,NDIM,-1,"dimat.dat")
+      ENDIF
+C
+C     CALCULATE FREQUENCY SHIFTS
+C
+      SHIFT = - DDOT(NDIM,FLDS,1,AVEC,1) * HALF
+C
+C     EVALUATE [ 1 +  T D-1 ]-1 MATRIX
+C
+      CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
+     &                   MAT1,NDIM,DMAT,NDIM,
+     &                   ZERO,DIMAT,NDIM)
+C
+      DO I=1,NDIM
+         DIMAT(I,I) = DIMAT(I,I) + ONE
+      ENDDO
+C
+      DO IO=1,500000
+         WORK(IO)=ZERO
+      ENDDO
+      CALL DGETRF(NDIM,NDIM,DIMAT,NDIM,IPIV,INFO)
+      CALL DGETRI(NDIM,DIMAT,NDIM,IPIV,WORK,LWORK,INFO)
+      CALL CHECK(INFO)
+      IF (INFO.NE.0) GOTO 1123
+C
+C     CALCULATE SOLVATOCHROMIC INDUCED DIPOLE MOMENTS
+C
+      CALL DGMV(DIMAT,AVEC,SDIPND,NDIM)
+C
+      IF (LWRITE) THEN
+          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+          CALL VECWRT(FLDS,NDIM,-1,"fields.dat")
+      ENDIF
+C
+ 1123 CONTINUE
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
+      SUBROUTINE AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
+     *                  MAT1,DIMAT,FIVEC,AVEC,VEC1,
+     *                  GIJJ,REDMSS,FREQ,POL1,
+     *                  NMOLS,NPOL,NDMA,NDIM,NDMAS,
+     *                  MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
+C
+C     EVALUATE DIMAT AND FIVEC DUE TO EFP FRAGMENTS AND THEN CONSTRUCT -AVEC-
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION RDMA(MDIP),CHG(NDMAS),DIP(MDIP),
+     &          QAD(MQAD),OCT(MOCT),RPOL1(NMODES*NPOLC*3),
+     &          RPOL(MRPOL),POL(MPOL),DMAT(NDIM,NDIM),FLDS(NDIM),
+     &          DIMAT(NDIM,NDIM),FIVEC(NDIM),AVEC(NDIM),
+     &          GIJJ(NMODES),REDMSS(NMODES),FREQ(NMODES),
+     &          POL1(NMODES*NPOLC*9),
+     &          NPOL(NMOLS),NDMA(NMOLS),VEC1(NDIM),
+     &          WORKI(30),APOL(3,3),IPIVP(3),PM(3,3),PMT(3,3),GIVEC(40)
+      DOUBLE PRECISION MAT1(NDIM,NDIM),RNEW(NDIM,NDIM)
+      EXTERNAL DGETRI,DGETRF,DGEMM
+c      COMMON/SUMS  / VSUM1(3),VSUM2(3)
+      PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
+     &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,HALF=0.50D+00)
+      DATA WORKI/30*0.0D+00/
+      DATA APOL /9*0.0D+00/
+      DATA PM   /9*0.0D+00/
+      DATA PMT  /9*0.0D+00/
+      DATA IPIVP/3*0/
+      DATA GIVEC/40*0.0D+00/
+C
+C     AUXILIARY MODE VECTOR
+C
+      GJ = ONE / (REDMSS(MODE) * FREQ(MODE))
+      DO MM=1,NMODES
+         FREQM = FREQ(MM)
+         GIVEC(MM) = GJ * GIJJ(MM)/(REDMSS(MM)*FREQM*FREQM)
+      ENDDO
+C
+C     ITERATE OVER IR-OTHER MOLECULE PAIRS AND THEIR POLARIZABLE CENTERS
+C
+      NPOLI = 0 
+      DO 7878 IMOL=1,1
+      NIM  = NPOL(IMOL)
+      NPOLI = NPOLI + NIM
+      DO 6767 I=1,NIM
+         NIX0 =   (NPOLI-NIM) +    I
+         NIX3 = 3*(NPOLI-NIM) + 3*(I-1) + 1
+         NIX6 = 6*(NPOLI-NIM) + 6*(I-1) + 1
+         NIX9 = 9*(NPOLI-NIM) + 9*(I-1) + 1
+         NIX10=10*(NPOLI-NIM) +10*(I-1) + 1
+C 
+         NIY3 = NIX3 + 1
+         NIZ3 = NIY3 + 1
+C
+C        CALCULATE DIMAT DIAGONALS
+C
+         APOL(1,1) = POL(NIX9  )
+         APOL(1,2) = POL(NIX9+1)
+         APOL(1,3) = POL(NIX9+2)
+         APOL(2,1) = POL(NIX9+3)
+         APOL(2,2) = POL(NIX9+4)
+         APOL(2,3) = POL(NIX9+5)
+         APOL(3,1) = POL(NIX9+6)
+         APOL(3,2) = POL(NIX9+7)
+         APOL(3,3) = POL(NIX9+8)
+C
+C        INVERT DISTRIBUTED POLARIZABILITY
+C
+         CALL DGETRF(3,3,APOL,3,IPIVP,INFO)
+         CALL DGETRI(3,APOL,3,IPIVP,WORKI,20,INFO)
+C
+         CALL CHECK(INFO)
+         IF (INFO.NE.0) GOTO 19191
+C
+C        ITERATE OVER NORMAL COORDINATES
+C
+         DIXIX = ZERO 
+         DIYIY = ZERO
+         DIZIZ = ZERO
+C
+         DIXIY = ZERO
+         DIXIZ = ZERO
+         DIYIZ = ZERO
+C
+         DIYIX = ZERO
+         DIZIX = ZERO
+         DIZIY = ZERO
+C
+         DO MM=1,NMODES
+            MNIX9 = 9*NPOLC*(MM-1) + 9*(I-1) + 1
+            GRF = GIVEC(MM) / TWO
+C
+            PM(1,1) = -POL1(MNIX9  )
+            PM(1,2) = -POL1(MNIX9+1)
+            PM(1,3) = -POL1(MNIX9+2)
+            PM(2,1) = -POL1(MNIX9+3)
+            PM(2,2) = -POL1(MNIX9+4)
+            PM(2,3) = -POL1(MNIX9+5)
+            PM(3,1) = -POL1(MNIX9+6)
+            PM(3,2) = -POL1(MNIX9+7)
+            PM(3,3) = -POL1(MNIX9+8)
+C
+C           EVALUATE (a-1) da/dQ (a-1)
+C
+            CALL DGEMM('N','N',3,3,3,ONE,APOL,3,PM,3,ZERO,PMT,3)
+            CALL DGEMM('N','N',3,3,3,ONE,PMT,3,APOL,3,ZERO,PM,3)
+C
+            DIXIX = DIXIX + PM(1,1) * GRF
+            DIYIY = DIYIY + PM(2,2) * GRF
+            DIZIZ = DIZIZ + PM(3,3) * GRF
+C
+            DIXIY = DIXIY + PM(1,2) * GRF
+            DIXIZ = DIXIZ + PM(1,3) * GRF
+            DIYIZ = DIYIZ + PM(2,3) * GRF
+C 
+            DIYIX = DIYIX + PM(2,1) * GRF
+            DIZIX = DIZIX + PM(3,1) * GRF
+            DIZIY = DIZIY + PM(3,2) * GRF
+         ENDDO
+C
+C        SAVE THE DIAGONALS
+C
+         DIMAT(NIX3,NIX3) =  DIXIX 
+         DIMAT(NIY3,NIY3) =  DIYIY 
+         DIMAT(NIZ3,NIZ3) =  DIZIZ 
+C
+         DIMAT(NIX3,NIY3) =  DIXIY 
+         DIMAT(NIX3,NIZ3) =  DIXIZ 
+         DIMAT(NIY3,NIZ3) =  DIYIZ 
+C
+         DIMAT(NIY3,NIX3) =  DIYIX 
+         DIMAT(NIZ3,NIX3) =  DIZIX 
+         DIMAT(NIZ3,NIY3) =  DIZIY 
+C
+C        CALCULATE DIMAT OFFDIAGONALS
+C
+         NPOLJ = NPOL(1)
+         DO JMOL=2,NMOLS
+         NJM = NPOL(JMOL)
+         NPOLJ = NPOLJ + NJM
+c         IF (IMOL.EQ.JMOL) GOTO 921
+         DO J=1,NJM
+            NJX3 = 3*(NPOLJ-NJM) + 3*(J-1) + 1
+            NJY3 = NJX3 + 1
+            NJZ3 = NJY3 + 1
+C
+            RIJX = RPOL(NIX3) - RPOL(NJX3)
+            RIJY = RPOL(NIY3) - RPOL(NJY3)
+            RIJZ = RPOL(NIZ3) - RPOL(NJZ3)
+C
+            RIJ  = DSQRT(RIJX*RIJX+
+     &                   RIJY*RIJY+
+     &                   RIJZ*RIJZ)
+C
+            RIJ3 = ONE/(RIJ*RIJ*RIJ)
+            RIJ5 = RIJ3/(RIJ*RIJ)
+C
+            THR5 = THREE * RIJ5
+            FVR2 = FIVE / (RIJ * RIJ)
+C
+C           ITERATE OVER NORMAL COORDINATES
+C
+            DMXX = ZERO 
+            DMXY = ZERO
+            DMXZ = ZERO
+            DMYY = ZERO
+            DMYZ = ZERO
+            DMZZ = ZERO
+C
+            DO MM=1,NMODES
+               MNIX3 = 3*NPOLC*(MM-1) + 3*(I-1) + 1
+               GRF = GIVEC(MM)
+C
+C              UNPACK THE DERIVATIVES OF LMO CENTROIDS
+C
+               RIX1 = RPOL1(MNIX3  )
+               RIY1 = RPOL1(MNIX3+1)
+               RIZ1 = RPOL1(MNIX3+2)
+C
+               R1R  = RIJX * RIX1 + 
+     &                RIJY * RIY1 +
+     &                RIJZ * RIZ1
+C
+               DMXX = DMXX + THR5 * ( R1R * (1-FVR2*RIJX*RIJX) 
+     &                            + TWO*RIJX*RIX1)         * GRF
+               DMXY = DMXY + THR5 * (-R1R *    FVR2*RIJX*RIJY  
+     &                            + RIJX*RIY1 + RIX1*RIJY) * GRF
+               DMXZ = DMXZ + THR5 * (-R1R *    FVR2*RIJX*RIJZ  
+     &                            + RIJX*RIZ1 + RIX1*RIJZ) * GRF
+               DMYY = DMYY + THR5 * ( R1R * (1-FVR2*RIJY*RIJY) 
+     &                            + TWO*RIJY*RIY1)         * GRF
+               DMYZ = DMYZ + THR5 * (-R1R *    FVR2*RIJY*RIJZ
+     &                            + RIJY*RIZ1 + RIY1*RIJZ) * GRF
+               DMZZ = DMZZ + THR5 * ( R1R * (1-FVR2*RIJZ*RIJZ) 
+     &                            + TWO*RIJZ*RIZ1)         * GRF
+            ENDDO
+C
+            THR5 = THR5 / TWO
+C
+            DMXX = DMXX * THR5
+            DMXY = DMXY * THR5
+            DMYY = DMYY * THR5
+            DMXZ = DMXZ * THR5
+            DMYZ = DMYZ * THR5
+            DMZZ = DMZZ * THR5
+C                                                                  
+C           SAVE THE OFFDIAGONALS
+C
+            DIMAT(NIX3,NJX3) = DMXX
+            DIMAT(NIX3,NJY3) = DMXY
+            DIMAT(NIY3,NJX3) = DMXY
+            DIMAT(NIY3,NJY3) = DMYY
+            DIMAT(NIX3,NJZ3) = DMXZ
+            DIMAT(NIZ3,NJX3) = DMXZ
+            DIMAT(NIY3,NJZ3) = DMYZ
+            DIMAT(NIZ3,NJY3) = DMYZ
+            DIMAT(NIZ3,NJZ3) = DMZZ
+C
+            DIMAT(NJX3,NIX3) = DMXX
+            DIMAT(NJY3,NIX3) = DMXY
+            DIMAT(NJX3,NIY3) = DMXY
+            DIMAT(NJY3,NIY3) = DMYY
+            DIMAT(NJZ3,NIX3) = DMXZ
+            DIMAT(NJX3,NIZ3) = DMXZ
+            DIMAT(NJZ3,NIY3) = DMYZ
+            DIMAT(NJY3,NIZ3) = DMYZ
+            DIMAT(NJZ3,NIZ3) = DMZZ
+C
+         ENDDO
+c 921     CONTINUE
+         ENDDO
+C
+ 6767 CONTINUE
+ 7878 CONTINUE
+C
+C     ACCUMULATE -AVEC-
+C
+      CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
+     &                   DIMAT,NDIM,DMAT,NDIM,
+     &                   ZERO,RNEW,NDIM)
+      CALL DGMV(RNEW,FLDS,VEC1,NDIM)
+C 
+      DO IK=1,NDIM
+         VEC1(IK) = VEC1(IK) + FIVEC(IK)
+      ENDDO
+C
+      CALL DGMV(DMAT,VEC1,AVEC,NDIM)
+          CALL MATWRT(RNEW,NDIM,NDIM,-1,"rnew.dat")
+C
+C
+19191 CONTINUE
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
       SUBROUTINE SOLPOL(RDMA,CHG,DIP,QAD,OCT,RPOL,POL,EPOL,
      *                  DMAT,FLDS,DIPIND,
      *                  NMOLS,NDMA,NPOL,NDIM,NDMAS,
@@ -215,82 +607,6 @@ C
       ENDIF
 C
  1123 CONTINUE
-C
-      RETURN
-      END
-C-----|--|---------|---------|---------|---------|---------|---------|--|------|
-
-      SUBROUTINE MATWRT(A,M,N,L,PLIK)
-C
-C     WRITE THE MATRIX OF DIMENSION M,N ON SCREEN (L>0) OR TO FILE (<0)
-C
-      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
-      DIMENSION A(M,N)
-      CHARACTER(*) PLIK
-C
-      IF (L.GT.0) THEN
-         GOTO 112
-      ELSE
-          IF (PLIK.EQ." ") THEN
-             OPEN(8,FILE="mat.dat",ACCESS='sequential',FORM='formatted')
-          ELSE
-             OPEN(8,FILE=PLIK,ACCESS='sequential',FORM='formatted')
-          ENDIF
-          DO I=1,M
-             DO J=1,N
-                WRITE(8,*) A(I,J)
-             ENDDO
-          ENDDO
-      ENDIF
-C
- 112  CONTINUE
-C
-      RETURN
-      END
-C-----|--|---------|---------|---------|---------|---------|---------|--|------|
-
-      SUBROUTINE VECWRT(V,N,L,PLIK)
-C
-C     WRITE THE VECTOR V OF LENGTH N ON SCREEN (L>0) OR TO FILE (<0)
-C
-      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
-      DIMENSION V(N)
-      CHARACTER(*) PLIK
-C
-      IF (L.GT.0) THEN
-          DO I=1,N/3
-             K=3*(I-1)+1
-             WRITE(*,*) K, V(K), V(K+1), V(K+2)
-          ENDDO
-      ELSE
-          IF (PLIK.EQ." ") THEN
-             OPEN(8,FILE="vec.dat",ACCESS='sequential',FORM='formatted')
-          ELSE
-             OPEN(8,FILE=PLIK,ACCESS='sequential',FORM='formatted')
-          ENDIF
-          DO I=1,N
-             WRITE(8,*) V(I)
-          ENDDO
-      ENDIF
-C
-      RETURN
-      END
-C-----|--|---------|---------|---------|---------|---------|---------|--|------|
-
-      SUBROUTINE DGMV(VM,VIN,VOUT,N)
-C
-C     MATRIX-VECTOR MULTIPLICATION M*VIN = VOUT
-C
-      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
-      DIMENSION VM(N,N),VIN(N),VOUT(N)
-      PARAMETER (ZERO=0.0D+00)
-      DO 1111 I=1,N
-         VAL = ZERO
-         DO 2222 J=1,N
-            VAL = VAL + VM(I,J) * VIN(J)
- 2222    CONTINUE
-         VOUT(I) = VAL        
- 1111 CONTINUE
 C
       RETURN
       END
@@ -548,6 +864,99 @@ C
  9       CONTINUE
 19191 CONTINUE
 C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
+      SUBROUTINE MATWRT(A,M,N,L,PLIK)
+C
+C     WRITE THE SQUARE MATRIX OF DIMENSION M,N ON SCREEN (L>0) OR TO FILE (<0)
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION A(M,N)
+      CHARACTER(*) PLIK
+C
+      IF (L.GT.0) THEN
+         GOTO 112
+      ELSE
+          IF (PLIK.EQ." ") THEN
+             OPEN(8,FILE="mat.dat",ACCESS='sequential',FORM='formatted')
+          ELSE
+             OPEN(8,FILE=PLIK,ACCESS='sequential',FORM='formatted')
+          ENDIF
+          DO I=1,M
+             DO J=1,N
+                WRITE(8,*) A(I,J)
+             ENDDO
+          ENDDO
+      ENDIF
+C
+ 112  CONTINUE
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
+      SUBROUTINE VECWRT(V,N,L,PLIK)
+C
+C     WRITE THE VECTOR V OF LENGTH N ON SCREEN (L>0) OR TO FILE (<0)
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION V(N)
+      CHARACTER(*) PLIK
+C
+      IF (L.GT.0) THEN
+          DO I=1,N/3
+             K=3*(I-1)+1
+             WRITE(*,*) K, V(K), V(K+1), V(K+2)
+          ENDDO
+      ELSE
+          IF (PLIK.EQ." ") THEN
+             OPEN(8,FILE="vec.dat",ACCESS='sequential',FORM='formatted')
+          ELSE
+             OPEN(8,FILE=PLIK,ACCESS='sequential',FORM='formatted')
+          ENDIF
+          DO I=1,N/3
+             K=3*(I-1)+1
+             VX = V(K)
+             VY = V(K+1)
+             VZ = V(K+2)
+             VNORM = DSQRT(VX*VX+VY*VY+VZ*VZ)
+             WRITE(8,*) I, VX, VY, VZ, VNORM
+          ENDDO
+      ENDIF
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
+      SUBROUTINE DGMV(VM,VIN,VOUT,N)
+C
+C     MATRIX-VECTOR MULTIPLICATION M*VIN = VOUT
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION VM(N,N),VIN(N),VOUT(N)
+      PARAMETER (ZERO=0.0D+00)
+      DO 1111 I=1,N
+         VAL = ZERO
+         DO 2222 J=1,N
+            VAL = VAL + VM(I,J) * VIN(J)
+ 2222    CONTINUE
+         VOUT(I) = VAL        
+ 1111 CONTINUE
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
+      SUBROUTINE CHECK(INFO)
+C     CHECK THE MATRIX INVERSION
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      IF (INFO.GT.0) THEN
+         WRITE(*,*) "DMAT IS SINGULAR! QUITTING..."
+      ELSEIF (INFO.LT.0) THEN
+         WRITE(*,*) "INDICES WRONG! QUITTING..."
+      ENDIF
       RETURN
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
