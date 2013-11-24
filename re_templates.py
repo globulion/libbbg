@@ -18,10 +18,16 @@ re_real_e_c = re.compile(re_real_e)
 """
 import re
 
-__all__ = ['re_real_e'  ,'re_real_e_c',
+__all__ = ['re_real'    ,'re_real_c',
+           're_real_e'  ,'re_real_e_c',
            're_dbl_fort','re_dbl_fort_c',]
            
-__version__ = '1.1.2'
+__version__ = '1.1.3'
+
+# normal float number
+#re_real     = r'-?(\d+\.\d*|\d*\.\d+)'
+re_real     = r'-?\d*\.\d*'
+re_real_c   = re.compile(re_real)
 
 # scientific notation with E/e
 re_real_e   = r'-?\d\.\d+[Ee][+\-]\d\d?'
