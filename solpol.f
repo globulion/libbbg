@@ -182,24 +182,24 @@ C
 C
 C     CALCULATE INDUCED DIPOLES AND POLARIZATION ENERGY
 C
-      CALL DGMV(DMAT,FLDS,DIPIND,NDIM)
+      CALL DGMV('N',DMAT,FLDS,DIPIND,NDIM)
       EPOL = - DDOT(NDIM,FLDS,1,DIPIND,1) * HALF
 C
       IF (LWRITE) THEN
           CALL MATWRT(DMAT,NDIM,NDIM,-1,"dmat.dat")
-          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+c          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
       ENDIF
 C
 C     CALCULATE DIMAT AND FIVEC AND ACCUMULATE THEM TO -AVEC-
 C
       CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
-     *            MAT1,DIMAT,FIVEC,AVEC,VEC1,
+     *            MAT1,DIMAT,FIVEC,AVEC,VEC1,SDIPND,
      *            GIJJ,REDMSS,FREQ,POL1,
      *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
 C
       IF (LWRITE) THEN
-          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
+c          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
           CALL MATWRT(DIMAT,NDIM,NDIM,-1,"dimat.dat")
       ENDIF
 C
@@ -217,9 +217,6 @@ C
          DIMAT(I,I) = DIMAT(I,I) + ONE
       ENDDO
 C
-      DO IO=1,500000
-         WORK(IO)=ZERO
-      ENDDO
       CALL DGETRF(NDIM,NDIM,DIMAT,NDIM,IPIV,INFO)
       CALL DGETRI(NDIM,DIMAT,NDIM,IPIV,WORK,LWORK,INFO)
       CALL CHECK(INFO)
@@ -227,10 +224,10 @@ C
 C
 C     CALCULATE SOLVATOCHROMIC INDUCED DIPOLE MOMENTS
 C
-      CALL DGMV(DIMAT,AVEC,SDIPND,NDIM)
+      CALL DGMV('N',DIMAT,AVEC,SDIPND,NDIM)
 C
       IF (LWRITE) THEN
-          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+c          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
           CALL VECWRT(FLDS,NDIM,-1,"fields.dat")
       ENDIF
 C
@@ -241,7 +238,7 @@ C
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
       SUBROUTINE AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
-     *                  MAT1,DIMAT,FIVEC,AVEC,VEC1,
+     *                  MAT1,DIMAT,FIVEC,AVEC,VEC1,SDIPND,
      *                  GIJJ,REDMSS,FREQ,POL1,
      *                  NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *                  MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
@@ -255,7 +252,7 @@ C
      &          DIMAT(NDIM,NDIM),FIVEC(NDIM),AVEC(NDIM),
      &          GIJJ(NMODES),REDMSS(NMODES),FREQ(NMODES),
      &          POL1(NMODES*NPOLC*9),
-     &          NPOL(NMOLS),NDMA(NMOLS),VEC1(NDIM),
+     &          NPOL(NMOLS),NDMA(NMOLS),VEC1(NDIM),SDIPND(NDIM),
      &          WORKI(30),APOL(3,3),IPIVP(3),PM(3,3),PMT(3,3),GIVEC(40)
       DOUBLE PRECISION MAT1(NDIM,NDIM),RNEW(NDIM,NDIM)
       EXTERNAL DGETRI,DGETRF,DGEMM
@@ -284,14 +281,18 @@ C
       NIM  = NPOL(IMOL)
       NPOLI = NPOLI + NIM
       DO 6767 I=1,NIM
-         NIX0 =   (NPOLI-NIM) +    I
+c         NIX0 =   (NPOLI-NIM) +    I
          NIX3 = 3*(NPOLI-NIM) + 3*(I-1) + 1
-         NIX6 = 6*(NPOLI-NIM) + 6*(I-1) + 1
+c         NIX6 = 6*(NPOLI-NIM) + 6*(I-1) + 1
          NIX9 = 9*(NPOLI-NIM) + 9*(I-1) + 1
-         NIX10=10*(NPOLI-NIM) +10*(I-1) + 1
+c         NIX10=10*(NPOLI-NIM) +10*(I-1) + 1
 C 
          NIY3 = NIX3 + 1
          NIZ3 = NIY3 + 1
+C
+         RPOLIX = RPOL(NIX3)
+         RPOLIY = RPOL(NIY3)
+         RPOLIZ = RPOL(NIZ3)
 C
 C        CALCULATE DIMAT DIAGONALS
 C
@@ -327,36 +328,187 @@ C
          DIZIX = ZERO
          DIZIY = ZERO
 C
+         FLDX1 = ZERO
+         FLDY1 = ZERO
+         FLDZ1 = ZERO
+C
          DO MM=1,NMODES
             MNIX9 = 9*NPOLC*(MM-1) + 9*(I-1) + 1
+            MNIX3 = 3*NPOLC*(MM-1) + 3*(I-1) + 1
             GRF = GIVEC(MM) / TWO
 C
-            PM(1,1) = -POL1(MNIX9  )
-            PM(1,2) = -POL1(MNIX9+1)
-            PM(1,3) = -POL1(MNIX9+2)
-            PM(2,1) = -POL1(MNIX9+3)
-            PM(2,2) = -POL1(MNIX9+4)
-            PM(2,3) = -POL1(MNIX9+5)
-            PM(3,1) = -POL1(MNIX9+6)
-            PM(3,2) = -POL1(MNIX9+7)
-            PM(3,3) = -POL1(MNIX9+8)
+            PM(1,1) = POL1(MNIX9  )
+            PM(1,2) = POL1(MNIX9+1)
+            PM(1,3) = POL1(MNIX9+2)
+            PM(2,1) = POL1(MNIX9+3)
+            PM(2,2) = POL1(MNIX9+4)
+            PM(2,3) = POL1(MNIX9+5)
+            PM(3,1) = POL1(MNIX9+6)
+            PM(3,2) = POL1(MNIX9+7)
+            PM(3,3) = POL1(MNIX9+8)
 C
 C           EVALUATE (a-1) da/dQ (a-1)
 C
             CALL DGEMM('N','N',3,3,3,ONE,APOL,3,PM,3,ZERO,PMT,3)
             CALL DGEMM('N','N',3,3,3,ONE,PMT,3,APOL,3,ZERO,PM,3)
 C
-            DIXIX = DIXIX + PM(1,1) * GRF
-            DIYIY = DIYIY + PM(2,2) * GRF
-            DIZIZ = DIZIZ + PM(3,3) * GRF
+            DIXIX = DIXIX - PM(1,1) * GRF
+            DIYIY = DIYIY - PM(2,2) * GRF
+            DIZIZ = DIZIZ - PM(3,3) * GRF
 C
-            DIXIY = DIXIY + PM(1,2) * GRF
-            DIXIZ = DIXIZ + PM(1,3) * GRF
-            DIYIZ = DIYIZ + PM(2,3) * GRF
+            DIXIY = DIXIY - PM(1,2) * GRF
+            DIXIZ = DIXIZ - PM(1,3) * GRF
+            DIYIZ = DIYIZ - PM(2,3) * GRF
 C 
-            DIYIX = DIYIX + PM(2,1) * GRF
-            DIZIX = DIZIX + PM(3,1) * GRF
-            DIZIY = DIZIY + PM(3,2) * GRF
+            DIYIX = DIYIX - PM(2,1) * GRF
+            DIZIX = DIZIX - PM(3,1) * GRF
+            DIZIY = DIZIY - PM(3,2) * GRF
+C
+C           ACCUMULATE FIELD DERIVATIVES
+C
+            NDMAJ = NDMA(1)
+            DO JMOL=2,NMOLS
+               NJM  = NDMA(JMOL)
+               NDMAJ = NDMAJ + NJM
+               DO J=1,NJM
+                  NJX0 =    (NDMAJ-NJM) +    J
+                  NJX3 =  3*(NDMAJ-NJM) + 3*(J-1) + 1
+                  NJX6 =  6*(NDMAJ-NJM) + 6*(J-1) + 1
+C
+                  NJY3 = NJX3 + 1
+                  NJZ3 = NJY3 + 1
+C
+                  RIJX = RPOLIX - RDMA(NJX3) 
+                  RIJY = RPOLIY - RDMA(NJY3)
+                  RIJZ = RPOLIZ - RDMA(NJZ3)
+C
+                  RIJ  = DSQRT(RIJX*RIJX+
+     &                         RIJY*RIJY+
+     &                         RIJZ*RIJZ)
+C
+                  RIJ2 = ONE/(RIJ*RIJ)
+                  RIJ3 = RIJ2 / RIJ
+                  RIJ4 = RIJ2 * RIJ2
+                  RIJ5 = RIJ3 * RIJ2
+C
+C                 UNPACK THE TENSORS
+C
+                  RX1 = RPOL1(MNIX3  )
+                  RY1 = RPOL1(MNIX3+1)
+                  RZ1 = RPOL1(MNIX3+2)
+C
+                  DIPX = DIP(NJX3)
+                  DIPY = DIP(NJY3)
+                  DIPZ = DIP(NJZ3)
+C
+                  QXX= QAD(NJX6  )
+                  QYY= QAD(NJX6+1)
+                  QZZ= QAD(NJX6+2)
+                  QXY= QAD(NJX6+3)
+                  QXZ= QAD(NJX6+4)
+                  QYZ= QAD(NJX6+5)
+C
+                  OXXX=OCT(NJX10  )
+                  OYYY=OCT(NJX10+1)
+                  OZZZ=OCT(NJX10+2)
+C
+                  OXXY=OCT(NJX10+3)
+                  OXXZ=OCT(NJX10+4)
+                  OXYY=OCT(NJX10+5)
+C
+                  OYYZ=OCT(NJX10+6)
+                  OXZZ=OCT(NJX10+7)
+                  OYZZ=OCT(NJX10+8)
+                  OXYZ=OCT(NJX10+9)
+C
+C                 AUXILIARY DOT PRODUCTS
+C
+                  RIJRI = RIJX * RX1 + 
+     &                    RIJY * RY1 +
+     &                    RIJZ * RZ1
+C
+                  DJRIJ = DIPX * RIJX +
+     &                    DIPY * RIJY +
+     &                    DIPZ * RIJZ
+C
+                  DJRI  = DIPX * RX1 +
+     &                    DIPY * RY1 +
+     &                    DIPZ * RZ1
+C
+                  QJRIJ2 = QXX * RIJX * RIJX       +
+     &                     QXY * RIJX * RIJY * TWO +
+     &                     QXZ * RIJX * RIJZ * TWO +
+     &                     QYY * RIJY * RIJY       +
+     &                     QYZ * RIJY * RIJZ * TWO +
+     &                     QZZ * RIJZ * RIJZ
+C
+                  QJRIJI = QXX * RX1 * RIJX +
+     &                     QXY * RX1 * RIJY +
+     &                     QXY * RY1 * RIJX + 
+     &                     QXZ * RX1 * RIJZ +
+     &                     QXZ * RZ1 * RIJX +
+     &                     QYY * RY1 * RIJY +
+     &                     QYZ * RY1 * RIJZ +
+     &                     QYZ * RZ1 * RIJY +
+     &                     QZZ * RZ1 * RIJZ
+C
+                  VQX  = QXX * RIJX + QXY * RIJY + QXZ * RIJZ
+                  VQY  = QXY * RIJX + QYY * RIJY + QYZ * RIJZ
+                  VQZ  = QXZ * RIJX + QYZ * RIJY + QZZ * RIJZ
+C
+                  VQX1 = QXX * RX1 + QXY * RY1 + QXZ * RZ1
+                  VQY1 = QXY * RX1 + QYY * RY1 + QYZ * RZ1
+                  VQZ1 = QXZ * RX1 + QYZ * RY1 + QZZ * RZ1
+C
+                  RRR = THREE * RIJRI * RIJ2
+C
+C                 CHARGE CONTRIBUTION
+C
+                  CHGJ = CHG(NJX0) * RIJ3
+                  FX = CHGJ * ( RX1 - RRR * RIJX )
+                  FY = CHGJ * ( RY1 - RRR * RIJY )
+                  FZ = CHGJ * ( RZ1 - RRR * RIJZ )
+C
+C                 DIPOLE CONTRIBUTION
+C
+                  FRDI = FIVE * RIJ2 * DJRIJ * RIJRI
+C
+                  FX = FX + THREE * RIJ5 * ( DJRIJ * RX1 +
+     &                 DJRI * RIJX - FRDI * RIJX - DIPX * RIJRI )
+C
+                  FY = FY + THREE * RIJ5 * ( DJRIJ * RY1 +
+     &                 DJRI * RIJY - FRDI * RIJY - DIPY * RIJRI )
+C
+                  FZ = FZ + THREE * RIJ5 * ( DJRIJ * RZ1 +
+     &                 DJRI * RIJZ - FRDI * RIJZ - DIPZ * RIJRI )
+C
+C                 QUADRUPOLE CONTRIBUTION
+C
+                  FVV = FIVE * RIJ2
+                  
+                  FX = FX + RIJ5 * ( FVV * ( TWO   * RIJRI  * VQX + 
+     &                                       TWO   * QJRIJI * RIJX +
+     &                                      QJRIJ2 * RX1 ) - TWO * VQX1
+     &                      - 35.00D+00 * RIJRI * QJRIJ2 * RIJ4 * RIJX )
+C
+                  FY = FY + RIJ5 * ( FVV * ( TWO   * RIJRI  * VQY + 
+     &                                       TWO   * QJRIJI * RIJY +
+     &                                      QJRIJ2 * RY1 ) - TWO * VQY1
+     &                      - 35.00D+00 * RIJRI * QJRIJ2 * RIJ4 * RIJY )
+C
+                  FZ = FZ + RIJ5 * ( FVV * ( TWO   * RIJRI  * VQZ + 
+     &                                       TWO   * QJRIJI * RIJZ +
+     &                                      QJRIJ2 * RZ1 ) - TWO * VQZ1
+     &                      - 35.00D+00 * RIJRI * QJRIJ2 * RIJ4 * RIJZ )
+C
+C                 WEIGHT EACH CONTRIBUTION BY MODE COEFFICIENT GRF
+C
+                  FLDX1 = FLDX1 + FX * GRF
+                  FLDY1 = FLDY1 + FY * GRF
+                  FLDZ1 = FLDZ1 + FZ * GRF
+C
+               ENDDO
+            ENDDO
          ENDDO
 C
 C        SAVE THE DIAGONALS
@@ -371,13 +523,19 @@ C
 C
          DIMAT(NIY3,NIX3) =  DIYIX 
          DIMAT(NIZ3,NIX3) =  DIZIX 
-         DIMAT(NIZ3,NIY3) =  DIZIY 
+         DIMAT(NIZ3,NIY3) =  DIZIY
+C
+C        SAVE FIELD DERIVATIVES
+C
+         FIVEC(NIX3) = FLDX1
+         FIVEC(NIY3) = FLDY1
+         FIVEC(NIZ3) = FLDZ1
 C
 C        CALCULATE DIMAT OFFDIAGONALS
 C
          NPOLJ = NPOL(1)
          DO JMOL=2,NMOLS
-         NJM = NPOL(JMOL)
+         NJM   = NPOL(JMOL)
          NPOLJ = NPOLJ + NJM
 c         IF (IMOL.EQ.JMOL) GOTO 921
          DO J=1,NJM
@@ -385,9 +543,9 @@ c         IF (IMOL.EQ.JMOL) GOTO 921
             NJY3 = NJX3 + 1
             NJZ3 = NJY3 + 1
 C
-            RIJX = RPOL(NIX3) - RPOL(NJX3)
-            RIJY = RPOL(NIY3) - RPOL(NJY3)
-            RIJZ = RPOL(NIZ3) - RPOL(NJZ3)
+            RIJX = RPOLIX - RPOL(NJX3)
+            RIJY = RPOLIY - RPOL(NJY3)
+            RIJZ = RPOLIZ - RPOL(NJZ3)
 C
             RIJ  = DSQRT(RIJX*RIJX+
      &                   RIJY*RIJY+
@@ -422,17 +580,17 @@ C
      &                RIJY * RIY1 +
      &                RIJZ * RIZ1
 C
-               DMXX = DMXX + THR5 * ( R1R * (1-FVR2*RIJX*RIJX) 
+               DMXX = DMXX + ( R1R * (ONE-FVR2*RIJX*RIJX) 
      &                            + TWO*RIJX*RIX1)         * GRF
-               DMXY = DMXY + THR5 * (-R1R *    FVR2*RIJX*RIJY  
+               DMXY = DMXY + (-R1R *      FVR2*RIJX*RIJY  
      &                            + RIJX*RIY1 + RIX1*RIJY) * GRF
-               DMXZ = DMXZ + THR5 * (-R1R *    FVR2*RIJX*RIJZ  
+               DMXZ = DMXZ + (-R1R *      FVR2*RIJX*RIJZ  
      &                            + RIJX*RIZ1 + RIX1*RIJZ) * GRF
-               DMYY = DMYY + THR5 * ( R1R * (1-FVR2*RIJY*RIJY) 
+               DMYY = DMYY + ( R1R * (ONE-FVR2*RIJY*RIJY) 
      &                            + TWO*RIJY*RIY1)         * GRF
-               DMYZ = DMYZ + THR5 * (-R1R *    FVR2*RIJY*RIJZ
+               DMYZ = DMYZ + (-R1R *      FVR2*RIJY*RIJZ
      &                            + RIJY*RIZ1 + RIY1*RIJZ) * GRF
-               DMZZ = DMZZ + THR5 * ( R1R * (1-FVR2*RIJZ*RIJZ) 
+               DMZZ = DMZZ + ( R1R * (ONE-FVR2*RIJZ*RIJZ) 
      &                            + TWO*RIJZ*RIZ1)         * GRF
             ENDDO
 C
@@ -447,25 +605,25 @@ C
 C                                                                  
 C           SAVE THE OFFDIAGONALS
 C
-            DIMAT(NIX3,NJX3) = DMXX
-            DIMAT(NIX3,NJY3) = DMXY
-            DIMAT(NIY3,NJX3) = DMXY
-            DIMAT(NIY3,NJY3) = DMYY
-            DIMAT(NIX3,NJZ3) = DMXZ
-            DIMAT(NIZ3,NJX3) = DMXZ
-            DIMAT(NIY3,NJZ3) = DMYZ
-            DIMAT(NIZ3,NJY3) = DMYZ
-            DIMAT(NIZ3,NJZ3) = DMZZ
+            DIMAT(NIX3,NJX3) = -DMXX
+            DIMAT(NIX3,NJY3) = -DMXY
+            DIMAT(NIY3,NJX3) = -DMXY
+            DIMAT(NIY3,NJY3) = -DMYY
+            DIMAT(NIX3,NJZ3) = -DMXZ
+            DIMAT(NIZ3,NJX3) = -DMXZ
+            DIMAT(NIY3,NJZ3) = -DMYZ
+            DIMAT(NIZ3,NJY3) = -DMYZ
+            DIMAT(NIZ3,NJZ3) = -DMZZ
 C
-            DIMAT(NJX3,NIX3) = DMXX
-            DIMAT(NJY3,NIX3) = DMXY
-            DIMAT(NJX3,NIY3) = DMXY
-            DIMAT(NJY3,NIY3) = DMYY
-            DIMAT(NJZ3,NIX3) = DMXZ
-            DIMAT(NJX3,NIZ3) = DMXZ
-            DIMAT(NJZ3,NIY3) = DMYZ
-            DIMAT(NJY3,NIZ3) = DMYZ
-            DIMAT(NJZ3,NIZ3) = DMZZ
+            DIMAT(NJX3,NIX3) = -DMXX
+            DIMAT(NJY3,NIX3) = -DMXY
+            DIMAT(NJX3,NIY3) = -DMXY
+            DIMAT(NJY3,NIY3) = -DMYY
+            DIMAT(NJZ3,NIX3) = -DMXZ
+            DIMAT(NJX3,NIZ3) = -DMXZ
+            DIMAT(NJZ3,NIY3) = -DMYZ
+            DIMAT(NJY3,NIZ3) = -DMYZ
+            DIMAT(NJZ3,NIZ3) = -DMZZ
 C
          ENDDO
 c 921     CONTINUE
@@ -479,13 +637,30 @@ C
       CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
      &                   DIMAT,NDIM,DMAT,NDIM,
      &                   ZERO,RNEW,NDIM)
-      CALL DGMV(RNEW,FLDS,VEC1,NDIM)
+      CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
+     &                   DMAT,NDIM,RNEW,NDIM,
+     &                   ZERO,MAT1,NDIM)
+c      CALL DGMV('N',RNEW,FLDS,VEC1,NDIM)
+      CALL DGMV('N',MAT1,FLDS,AVEC,NDIM)
+c      CALL DGMV('T',MAT1,FLDS,AVEC,NDIM)
 C 
-      DO IK=1,NDIM
-         VEC1(IK) = VEC1(IK) + FIVEC(IK)
-      ENDDO
+c      DO IK=1,NDIM
+c         VEC1(IK) = VEC1(IK) + FIVEC(IK)
+c      ENDDO
 C
-      CALL DGMV(DMAT,VEC1,AVEC,NDIM)
+c       CALL DGMV('N',DMAT,VEC1,AVEC,NDIM)
+C
+       CALL DGMV('T',DMAT,FIVEC,VEC1,NDIM)
+       CALL DGMV('N',DMAT,FIVEC,SDIPND,NDIM)
+C
+       DO IK=1,NDIM
+          AVEC(IK) = AVEC(IK) - (VEC1(IK) + SDIPND(IK))
+       ENDDO
+C
+          CALL VECWRT(VEC1,NDIM,-1,"vec1.dat")
+          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+          CALL VECWRT(FIVEC,NDIM,-1,"fivec.dat")
+          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
           CALL MATWRT(RNEW,NDIM,NDIM,-1,"rnew.dat")
 C
 C
@@ -505,7 +680,7 @@ C
 C         ELECTROSTATIC POLARIZATION ENERGY FROM MULTIPOLE EXPANSION
 C                  DISTRIBUTED DIPOLE POLARIZABILITY MODEL
 C 
-C              Bartosz Blasiak                        05.11.2013
+C              Bartosz Błasiak                        05.11.2013
 C
 C -----------------------------------------------------------------------------
 C
@@ -597,7 +772,7 @@ C
             WRITE(*,*) "INDICES WRING! QUITTING..."
             GOTO 1123
          ENDIF
-      CALL DGMV(DMAT,FLDS,DIPIND,NDIM)
+      CALL DGMV('N',DMAT,FLDS,DIPIND,NDIM)
       EPOL = - DDOT(NDIM,FLDS,1,DIPIND,1) * HALF
 C
       IF (LWRITE) THEN
@@ -930,20 +1105,31 @@ C
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
-      SUBROUTINE DGMV(VM,VIN,VOUT,N)
+      SUBROUTINE DGMV(TRANS,VM,VIN,VOUT,N)
 C
 C     MATRIX-VECTOR MULTIPLICATION M*VIN = VOUT
 C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      CHARACTER*1 TRANS
       DIMENSION VM(N,N),VIN(N),VOUT(N)
       PARAMETER (ZERO=0.0D+00)
-      DO 1111 I=1,N
-         VAL = ZERO
-         DO 2222 J=1,N
-            VAL = VAL + VM(I,J) * VIN(J)
- 2222    CONTINUE
-         VOUT(I) = VAL        
- 1111 CONTINUE
+      IF (TRANS.EQ.'N') THEN
+         DO I=1,N
+            VAL = ZERO
+            DO J=1,N
+               VAL = VAL + VM(I,J) * VIN(J)
+            ENDDO
+            VOUT(I) = VAL        
+         ENDDO
+      ELSE
+         DO I=1,N
+            VAL = ZERO
+            DO J=1,N
+               VAL = VAL + VM(J,I) * VIN(J)
+            ENDDO
+            VOUT(I) = VAL        
+         ENDDO
+      ENDIF
 C
       RETURN
       END
