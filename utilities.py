@@ -15,7 +15,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
          'ParseFCFromFchk','ParseDipoleDerivFromFchk',
          'ParseFockFromGamessLog','lind','order','check_sim','MakeMol',
-         'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',]
+         'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
+         'ParseEFPInteractionEnergies',]
          
 __version__ = '3.2.15'
 
@@ -1806,7 +1807,7 @@ def ParseDipoleDerivFromFchk(file):
     return fd
 
 def Parse_EDS_InteractionEnergies(file):
-    """parses EDS interaction energies from file"""
+    """parses EDS interaction energies from GAMESS log file"""
     
     data = open(file).read()
     #line = data.readline()
@@ -1820,6 +1821,25 @@ def Parse_EDS_InteractionEnergies(file):
     querry = re.compile(querry,re.DOTALL)
     match = re.search(querry,data)
     energies = array(match.groups(),dtype=float64)    
+    
+    return energies
+
+def ParseEFPInteractionEnergies(file):
+    """parses EFP interaction energies from GAMESS log file"""
+    
+    dat  = open(file)
+    data = dat.read()
+    dat.close()
+    
+    querry = r'.*FRAGMENT-FRAGMENT INTERACTION ENERGIES.*'
+    E = ['ELECTROSTATIC ENERGY','REPULSION ENERGY','POLARIZATION ENERGY',
+         'DISPERSION ENERGY','CHARGE TRANSFER ENRGY','FINAL EFP ENERGY',]
+         
+    for term in E:
+        querry+= '\s*%s\s+=\s+(%s).*\n' % (term,re_real)
+    querry = re.compile(querry,re.DOTALL)
+    match = re.search(querry,data)
+    energies = array(match.groups(),dtype=float64)
     
     return energies
 
