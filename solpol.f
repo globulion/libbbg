@@ -142,7 +142,7 @@ C
      &          POL1(NMODES*NPOLC*9),
      &          DIPIND(NDIM),NDMA(NMOLS),NPOL(NMOLS),
      &          RPOL1(NMODES*NPOLC*3),
-     &          IPIV(10000),WORK(500000),FI(40),VEC1(NDIM)
+     &          IPIV(10000),WORK(5000000),FI(40),VEC1(NDIM)
       PARAMETER (ZERO=0.0D+00,HALF=0.50D+00,ONE=1.00D+00)
       DOUBLE PRECISION DDOT,MAT1(NDIM,NDIM)
       LOGICAL LWRITE
@@ -151,7 +151,7 @@ Cf2py INTENT(OUT) EPOL, SHIFT
       EPOL = ZERO
       SHIFT= ZERO
       DATA IPIV/10000*0/
-      DATA WORK/500000*0.0D+00/
+      DATA WORK/5000000*0.0D+00/
       DATA FI/40*0.0D+00/
 C
 C     CALCULATE FIELDS AT POLARIZABLE CENTERS AND D-MATRIX
@@ -185,23 +185,23 @@ C
       CALL DGMV('N',DMAT,FLDS,DIPIND,NDIM)
       EPOL = - DDOT(NDIM,FLDS,1,DIPIND,1) * HALF
 C
-      IF (LWRITE) THEN
-          CALL MATWRT(DMAT,NDIM,NDIM,-1,"dmat.dat")
+c      IF (LWRITE) THEN
+c          CALL MATWRT(DMAT,NDIM,NDIM,-1,"dmat.dat")
 c          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
-      ENDIF
+c      ENDIF
 C
 C     CALCULATE DIMAT AND FIVEC AND ACCUMULATE THEM TO -AVEC-
 C
       CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
-     *            MAT1,DIMAT,FIVEC,AVEC,VEC1,SDIPND,
+     *            DIMAT,FIVEC,AVEC,VEC1,SDIPND,
      *            GIJJ,REDMSS,FREQ,POL1,
      *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
 C
-      IF (LWRITE) THEN
+c      IF (LWRITE) THEN
 c          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
-          CALL MATWRT(DIMAT,NDIM,NDIM,-1,"dimat.dat")
-      ENDIF
+c          CALL MATWRT(DIMAT,NDIM,NDIM,-1,"dimat.dat")
+c      ENDIF
 C
 C     CALCULATE FREQUENCY SHIFTS
 C
@@ -227,8 +227,8 @@ C
       CALL DGMV('N',DIMAT,AVEC,SDIPND,NDIM)
 C
       IF (LWRITE) THEN
-c          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
-          CALL VECWRT(FLDS,NDIM,-1,"fields.dat")
+          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+c          CALL VECWRT(FLDS,NDIM,-1,"fields.dat")
       ENDIF
 C
  1123 CONTINUE
@@ -238,7 +238,7 @@ C
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
       SUBROUTINE AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
-     *                  MAT1,DIMAT,FIVEC,AVEC,VEC1,SDIPND,
+     *                  DIMAT,FIVEC,AVEC,VEC1,SDIPND,
      *                  GIJJ,REDMSS,FREQ,POL1,
      *                  NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *                  MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
@@ -253,8 +253,8 @@ C
      &          GIJJ(NMODES),REDMSS(NMODES),FREQ(NMODES),
      &          POL1(NMODES*NPOLC*9),
      &          NPOL(NMOLS),NDMA(NMOLS),VEC1(NDIM),SDIPND(NDIM),
-     &          WORKI(30),APOL(3,3),IPIVP(3),PM(3,3),PMT(3,3),GIVEC(40)
-      DOUBLE PRECISION MAT1(NDIM,NDIM),RNEW(NDIM,NDIM)
+     &          WORKI(30),APOL(3,3),IPIVP(3),PM(3,3),PMT(3,3),GIVEC(30)
+      DOUBLE PRECISION MAT2(NDIM,NDIM),MAT3(NDIM,NDIM)
       EXTERNAL DGETRI,DGETRF,DGEMM
 c      COMMON/SUMS  / VSUM1(3),VSUM2(3)
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
@@ -264,7 +264,7 @@ c      COMMON/SUMS  / VSUM1(3),VSUM2(3)
       DATA PM   /9*0.0D+00/
       DATA PMT  /9*0.0D+00/
       DATA IPIVP/3*0/
-      DATA GIVEC/40*0.0D+00/
+      DATA GIVEC/30*0.0D+00/
 C
 C     AUXILIARY MODE VECTOR
 C
@@ -281,11 +281,8 @@ C
       NIM  = NPOL(IMOL)
       NPOLI = NPOLI + NIM
       DO 6767 I=1,NIM
-c         NIX0 =   (NPOLI-NIM) +    I
          NIX3 = 3*(NPOLI-NIM) + 3*(I-1) + 1
-c         NIX6 = 6*(NPOLI-NIM) + 6*(I-1) + 1
          NIX9 = 9*(NPOLI-NIM) + 9*(I-1) + 1
-c         NIX10=10*(NPOLI-NIM) +10*(I-1) + 1
 C 
          NIY3 = NIX3 + 1
          NIZ3 = NIY3 + 1
@@ -511,7 +508,7 @@ C
             ENDDO
          ENDDO
 C
-C        SAVE THE DIAGONALS
+C        SAVE THE DIMAT DIAGONALS
 C
          DIMAT(NIX3,NIX3) =  DIXIX 
          DIMAT(NIY3,NIY3) =  DIYIY 
@@ -636,12 +633,12 @@ C     ACCUMULATE -AVEC-
 C
       CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
      &                   DIMAT,NDIM,DMAT,NDIM,
-     &                   ZERO,RNEW,NDIM)
+     &                   ZERO,MAT2,NDIM)
       CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
-     &                   DMAT,NDIM,RNEW,NDIM,
-     &                   ZERO,MAT1,NDIM)
+     &                   DMAT,NDIM,MAT2,NDIM,
+     &                   ZERO,MAT3,NDIM)
 c      CALL DGMV('N',RNEW,FLDS,VEC1,NDIM)
-      CALL DGMV('N',MAT1,FLDS,AVEC,NDIM)
+      CALL DGMV('N',MAT3,FLDS,AVEC,NDIM)
 c      CALL DGMV('T',MAT1,FLDS,AVEC,NDIM)
 C 
 c      DO IK=1,NDIM
@@ -657,11 +654,11 @@ C
           AVEC(IK) = AVEC(IK) - (VEC1(IK) + SDIPND(IK))
        ENDDO
 C
-          CALL VECWRT(VEC1,NDIM,-1,"vec1.dat")
-          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
-          CALL VECWRT(FIVEC,NDIM,-1,"fivec.dat")
-          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
-          CALL MATWRT(RNEW,NDIM,NDIM,-1,"rnew.dat")
+c          CALL VECWRT(VEC1,NDIM,-1,"vec1.dat")
+c          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+c          CALL VECWRT(FIVEC,NDIM,-1,"fivec.dat")
+c          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
+c          CALL MATWRT(MAT1,NDIM,NDIM,-1,"rnew.dat")
 C
 C
 19191 CONTINUE
@@ -739,7 +736,7 @@ C
       DIMENSION RDMA(MDIP),CHG(NDMAS),DIP(MDIP),QAD(MQAD),OCT(MOCT),
      &          RPOL(MRPOL),POL(MPOL),DMAT(NDIM,NDIM),FLDS(NDIM),
      &          DIPIND(NDIM),NDMA(NMOLS),NPOL(NMOLS),
-     &          IPIV(10000),WORK(500000)
+     &          IPIV(10000),WORK(5000000)
       PARAMETER (ZERO=0.0D+00,HALF=0.50D+00)
       DOUBLE PRECISION DDOT
       LOGICAL LWRITE
@@ -748,7 +745,7 @@ Cf2py INTENT(OUT) EPOL
 C     INTENT(IN,OUT) DMAT
       EPOL = ZERO
       DATA IPIV/10000*0/
-      DATA WORK/500000*0.0D+00/
+      DATA WORK/5000000*0.0D+00/
 C
 C     CALCULATE FIELDS AT POLARIZABLE CENTERS AND D-MATRIX
 C
@@ -814,11 +811,8 @@ C
       NIM  = NPOL(IMOL)
       NPOLI = NPOLI + NIM
       DO 8 I=1,NIM
-         NIX0 =   (NPOLI-NIM) +    I
          NIX3 = 3*(NPOLI-NIM) + 3*(I-1) + 1
-         NIX6 = 6*(NPOLI-NIM) + 6*(I-1) + 1
          NIX9 = 9*(NPOLI-NIM) + 9*(I-1) + 1
-         NIX10=10*(NPOLI-NIM) +10*(I-1) + 1
 C
          NIY3 = NIX3 + 1
          NIZ3 = NIY3 + 1
