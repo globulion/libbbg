@@ -105,7 +105,7 @@ C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
       SUBROUTINE SFTPOL(RDMA,CHG,DIP,QAD,OCT,RPOL,POL,EPOL,SHIFT,
      *                  DMAT,FLDS,DIPIND,DIMAT,FIVEC,SDIPND,AVEC,VEC1,
-     *                  MAT1,REDMSS,FREQ,GIJJ,RPOL1,POL1,
+     *                  MAT1,REDMSS,FREQ,GIJJ,RPOL1,POL1,LVEC,
      *                  NMOLS,NDMA,NPOL,NDIM,NDMAS,MODE,NMODES,NPOLC,
      *                  MDIP,MQAD,MOCT,MRPOL,MPOL,LWRITE)
 C
@@ -145,6 +145,7 @@ C
      &          IPIV(10000),WORK(5000000),FI(40),VEC1(NDIM)
       PARAMETER (ZERO=0.0D+00,HALF=0.50D+00,ONE=1.00D+00)
       DOUBLE PRECISION DDOT,MAT1(NDIM,NDIM)
+      DOUBLE PRECISION LVEC((NMODES+6)*NMODES)
       LOGICAL LWRITE
       EXTERNAL ILAENV,DGETRF,DGETRI,DDOT,DGEMM
 Cf2py INTENT(OUT) EPOL, SHIFT
@@ -194,7 +195,7 @@ C     CALCULATE DIMAT AND FIVEC AND ACCUMULATE THEM TO -AVEC-
 C
       CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
      *            DIMAT,FIVEC,AVEC,VEC1,SDIPND,
-     *            GIJJ,REDMSS,FREQ,POL1,
+     *            GIJJ,REDMSS,FREQ,POL1,LVEC,
      *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
 C
@@ -230,6 +231,7 @@ C
           CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
 c          CALL VECWRT(FLDS,NDIM,-1,"fields.dat")
       ENDIF
+      CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
 C
  1123 CONTINUE
 C
@@ -239,7 +241,7 @@ C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
       SUBROUTINE AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
      *                  DIMAT,FIVEC,AVEC,VEC1,SDIPND,
-     *                  GIJJ,REDMSS,FREQ,POL1,
+     *                  GIJJ,REDMSS,FREQ,POL1,LVEC,
      *                  NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *                  MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
 C
@@ -255,6 +257,7 @@ C
      &          NPOL(NMOLS),NDMA(NMOLS),VEC1(NDIM),SDIPND(NDIM),
      &          WORKI(30),APOL(3,3),IPIVP(3),PM(3,3),PMT(3,3),GIVEC(30)
       DOUBLE PRECISION MAT2(NDIM,NDIM),MAT3(NDIM,NDIM)
+      DOUBLE PRECISION LVEC((NMODES+6)*NMODES)
       EXTERNAL DGETRI,DGETRF,DGEMM
 c      COMMON/SUMS  / VSUM1(3),VSUM2(3)
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
@@ -361,7 +364,7 @@ C
             DIZIX = DIZIX - PM(3,1) * GRF
             DIZIY = DIZIY - PM(3,2) * GRF
 C
-C           ACCUMULATE FIELD DERIVATIVES
+C           ACCUMULATE FIELD DERIVATIVES ON SOLUTE CENTERS
 C
             NDMAJ = NDMA(1)
             DO JMOL=2,NMOLS
@@ -457,7 +460,7 @@ C
                   VQY1 = QXY * RX1 + QYY * RY1 + QYZ * RZ1
                   VQZ1 = QXZ * RX1 + QYZ * RY1 + QZZ * RZ1
 C
-                  RRR = THREE * RIJRI * RIJ2
+                  RRR  = THREE * RIJRI * RIJ2
 C
 C                 CHARGE CONTRIBUTION
 C
@@ -482,7 +485,7 @@ C
 C                 QUADRUPOLE CONTRIBUTION
 C
                   FVV = FIVE * RIJ2
-                  
+C
                   FX = FX + RIJ5 * ( FVV * ( TWO   * RIJRI  * VQX + 
      &                                       TWO   * QJRIJI * RIJX +
      &                                      QJRIJ2 * RX1 ) - TWO * VQX1
@@ -518,8 +521,8 @@ C
          DIMAT(NIX3,NIZ3) =  DIXIZ 
          DIMAT(NIY3,NIZ3) =  DIYIZ 
 C
-         DIMAT(NIY3,NIX3) =  DIYIX 
-         DIMAT(NIZ3,NIX3) =  DIZIX 
+         DIMAT(NIY3,NIX3) =  DIYIX
+         DIMAT(NIZ3,NIX3) =  DIZIX
          DIMAT(NIZ3,NIY3) =  DIZIY
 C
 C        SAVE FIELD DERIVATIVES
@@ -534,6 +537,7 @@ C
          DO JMOL=2,NMOLS
          NJM   = NPOL(JMOL)
          NPOLJ = NPOLJ + NJM
+
 c         IF (IMOL.EQ.JMOL) GOTO 921
          DO J=1,NJM
             NJX3 = 3*(NPOLJ-NJM) + 3*(J-1) + 1
@@ -629,6 +633,195 @@ C
  6767 CONTINUE
  7878 CONTINUE
 C
+C     --- EVALUATE FIELD DERIVATIVES ON SOLVENT CENTERS ---
+C
+      NNN   = NMODES+6
+      NDMAC = NDMA(1)
+      NPOLJ = NPOL(1)
+C
+      DO JMOL=2,NMOLS
+         NJM   = NPOL(JMOL)
+         NPOLJ = NPOLJ + NJM
+C
+         DO J=1,NJM
+            NJX3 = 3*(NPOLJ-NJM) + 3*(J-1) + 1
+            NJY3 = NJX3 + 1
+            NJZ3 = NJY3 + 1
+C
+            RPOLJX = RPOL(NJX3)
+            RPOLJY = RPOL(NJY3)
+            RPOLJZ = RPOL(NJZ3)
+C
+            FLDX1 = ZERO
+            FLDY1 = ZERO
+            FLDZ1 = ZERO 
+C
+C           ITERATE OVER DMA POINTS OF CENTER MOLECULE
+C
+            DO I=1,NDMAC
+               NIX3 = 3*(I-1) + 1
+               NIX6 = 6*(I-1) + 1
+               NIX10=10*(I-1) + 1
+C
+               NIY3 = NIX3 + 1
+               NIZ3 = NIY3 + 1
+C
+               RDMAIX = RDMA(NIX3)
+               RDMAIY = RDMA(NIY3)
+               RDMAIZ = RDMA(NIZ3)
+C
+               RJIX = RPOLJX - RDMAIX
+               RJIY = RPOLJY - RDMAIY
+               RJIZ = RPOLJZ - RDMAIZ
+C
+               RJI  = DSQRT(RJIX*RJIX+
+     &                      RJIY*RJIY+
+     &                      RJIZ*RJIZ)
+C
+               RJI2 = ONE/(RJI*RJI)
+               RJI3 = RJI2 / RJI
+               RJI4 = RJI2 * RJI2
+               RJI5 = RJI3 * RJI2
+C
+C              UNPACK THE DMA TENSORS
+C
+               CHGI = CHG(I)
+               DIPX = DIP(NIX3)
+               DIPY = DIP(NIY3)
+               DIPZ = DIP(NIZ3)
+C
+               QXX= QAD(NIX6  )
+               QYY= QAD(NIX6+1)
+               QZZ= QAD(NIX6+2)
+               QXY= QAD(NIX6+3)
+               QXZ= QAD(NIX6+4)
+               QYZ= QAD(NIX6+5)
+C
+               OXXX=OCT(NIX10  )
+               OYYY=OCT(NIX10+1)
+               OZZZ=OCT(NIX10+2)
+C
+               OXXY=OCT(NIX10+3)
+               OXXZ=OCT(NIX10+4)
+               OXYY=OCT(NIX10+5)
+C
+               OYYZ=OCT(NIX10+6)
+               OXZZ=OCT(NIX10+7)
+               OYZZ=OCT(NIX10+8)
+               OXYZ=OCT(NIX10+9)
+C
+C              AUXILIARY DOT PRODUCTS
+C
+               DJRJI = DIPX * RJIX +
+     &                 DIPY * RJIY +
+     &                 DIPZ * RJIZ
+C
+               QJRJI2 = QXX * RJIX * RJIX       +
+     &                  QXY * RJIX * RJIY * TWO +
+     &                  QXZ * RJIX * RJIZ * TWO +
+     &                  QYY * RJIY * RJIY       +
+     &                  QYZ * RJIY * RJIZ * TWO +
+     &                  QZZ * RJIZ * RJIZ
+C
+               VQX  = QXX * RJIX + QXY * RJIY + QXZ * RJIZ
+               VQY  = QXY * RJIX + QYY * RJIY + QYZ * RJIZ
+               VQZ  = QXZ * RJIX + QYZ * RJIY + QZZ * RJIZ
+C
+C              ITERATE OVER NORMAL MODES
+C
+               DO M=1,NMODES
+                  NMLX  = NNN*(M-1) + 3*(I-1) + 1
+                  GRF = GIVEC(M) / TWO
+C
+C                 UNPACK THE MASS-WEIGHTED EIGENVECTORS
+C
+                  RLMX = LVEC(NMLX  )
+                  RLMY = LVEC(NMLX+1)
+                  RLMZ = LVEC(NMLX+2)
+C
+C                 AUXILIARY MODE-DEPENDENT DOT PRODUCTS
+C
+                  RJIRI = RJIX * RLMX + 
+     &                    RJIY * RLMY +
+     &                    RJIZ * RLMZ
+C
+                  DJRI  = DIPX * RLMX +
+     &                    DIPY * RLMY +
+     &                    DIPZ * RLMZ
+C
+                  QJRJII = QXX * RLMX * RJIX +
+     &                     QXY * RLMX * RJIY +
+     &                     QXY * RLMY * RJIX + 
+     &                     QXZ * RLMX * RJIZ +
+     &                     QXZ * RLMZ * RJIX +
+     &                     QYY * RLMY * RJIY +
+     &                     QYZ * RLMY * RJIZ +
+     &                     QYZ * RLMZ * RJIY +
+     &                     QZZ * RLMZ * RJIZ
+C
+                  VQX1 = QXX * RLMX + QXY * RLMY + QXZ * RLMZ
+                  VQY1 = QXY * RLMX + QYY * RLMY + QYZ * RLMZ
+                  VQZ1 = QXZ * RLMX + QYZ * RLMY + QZZ * RLMZ
+C
+                  RRR  = THREE * RJIRI * RJI2
+C
+C                 CHARGE CONTRIBUTION
+C
+                  CHGMI = CHGI * RJI3
+                  FX = CHGMI * ( RLMX - RRR * RJIX )
+                  FY = CHGMI * ( RLMY - RRR * RJIY )
+                  FZ = CHGMI * ( RLMZ - RRR * RJIZ )
+C
+C                 DIPOLE CONTRIBUTION
+C
+                  FRDI = FIVE * RJI2 * DJRJI * RJIRI
+C
+                  FX = FX + THREE * RJI5 * ( DJRJI * RLMX +
+     &                 DJRI * RJIX - FRDI * RJIX - DIPX * RJIRI )
+C
+                  FY = FY + THREE * RJI5 * ( DJRJI * RLMY +
+     &                 DJRI * RJIY - FRDI * RJIY - DIPY * RJIRI )
+
+                  FZ = FZ + THREE * RJI5 * ( DJRJI * RLMZ +
+     &                 DJRI * RJIZ - FRDI * RJIZ - DIPZ * RJIRI )
+C
+C                 QUADRUPOLE CONTRIBUTION
+C
+                  FVV = FIVE * RJI2
+C
+                  FX = FX + RJI5 * ( FVV * ( TWO   * RJIRI  * VQX + 
+     &                                       TWO   * QJRJII * RJIX +
+     &                                      QJRJI2 * RLMX ) - TWO * VQX1
+     &                      - 35.00D+00 * RJIRI * QJRJI2 * RJI4 * RJIX )
+C
+                  FY = FY + RJI5 * ( FVV * ( TWO   * RJIRI  * VQY + 
+     &                                       TWO   * QJRJII * RJIY +
+     &                                      QJRJI2 * RLMY ) - TWO * VQY1
+     &                      - 35.00D+00 * RJIRI * QJRJI2 * RJI4 * RJIY )
+C
+                  FZ = FZ + RJI5 * ( FVV * ( TWO   * RJIRI  * VQZ + 
+     &                                       TWO   * QJRJII * RJIZ +
+     &                                      QJRJI2 * RLMZ ) - TWO * VQZ1
+     &                      - 35.00D+00 * RJIRI * QJRJI2 * RJI4 * RJIZ )
+C
+C                 WEIGHT EACH CONTRIBUTION BY MODE COEFFICIENT GRF
+C
+                  FLDX1 = FLDX1 - FX * GRF
+                  FLDY1 = FLDY1 - FY * GRF
+                  FLDZ1 = FLDZ1 - FZ * GRF
+C
+               ENDDO
+            ENDDO
+C
+C           SAVE FIELD DERIVATIVES
+C
+            FIVEC(NJX3) = FLDX1
+            FIVEC(NJY3) = FLDY1
+            FIVEC(NJZ3) = FLDZ1
+C
+         ENDDO 
+      ENDDO
+C
 C     ACCUMULATE -AVEC-
 C
       CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
@@ -656,7 +849,7 @@ C
 C
 c          CALL VECWRT(VEC1,NDIM,-1,"vec1.dat")
 c          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
-c          CALL VECWRT(FIVEC,NDIM,-1,"fivec.dat")
+          CALL VECWRT(FIVEC,NDIM,-1,"fivec.dat")
 c          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
 c          CALL MATWRT(MAT1,NDIM,NDIM,-1,"rnew.dat")
 C
