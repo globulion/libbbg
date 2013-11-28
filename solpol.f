@@ -103,11 +103,12 @@ C
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
-      SUBROUTINE SFTPOL(RDMA,CHG,DIP,QAD,OCT,RPOL,POL,EPOL,SHIFT,
+      SUBROUTINE SFTPOL(RDMA,CHG,DIP,QAD,OCT,CHG1,DIP1,QAD1,OCT1,RPOL,
+     *                  POL,EPOL,SHIFT,
      *                  DMAT,FLDS,DIPIND,DIMAT,FIVEC,SDIPND,AVEC,VEC1,
      *                  MAT1,REDMSS,FREQ,GIJJ,RPOL1,POL1,LVEC,
-     *                  NMOLS,NDMA,NPOL,NDIM,NDMAS,MODE,NMODES,NPOLC,
-     *                  MDIP,MQAD,MOCT,MRPOL,MPOL,LWRITE)
+     *                  NMOLS,NDMA,NPOL,NDIM,NDMAS,MODE,NMODES,NDMAC,
+     *                  NPOLC,MDIP,MQAD,MOCT,MRPOL,MPOL,LWRITE)
 C
 C -----------------------------------------------------------------------------
 C
@@ -137,6 +138,8 @@ C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION RDMA(MDIP),CHG(NDMAS),DIP(MDIP),QAD(MQAD),OCT(MOCT),
      &          RPOL(MRPOL),POL(MPOL),DMAT(NDIM,NDIM),FLDS(NDIM),
+     &          DIP1(NMODES*NDMAC*3),QAD1(NMODES*NDMAC*6),
+     &          OCT1(NMODES*NDMAC*10),CHG1(NMODES*NDMAC),
      &          DIMAT(NDIM,NDIM),FIVEC(NDIM),SDIPND(NDIM),AVEC(NDIM),
      &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),
      &          POL1(NMODES*NPOLC*9),
@@ -193,11 +196,18 @@ c      ENDIF
 C
 C     CALCULATE DIMAT AND FIVEC AND ACCUMULATE THEM TO -AVEC-
 C
-      CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
+      CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,CHG1,DIP1,QAD1,OCT1,
+     *            RPOL,RPOL1,POL,DMAT,FLDS,
      *            DIMAT,FIVEC,AVEC,VEC1,SDIPND,
      *            GIJJ,REDMSS,FREQ,POL1,LVEC,
      *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
-     *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
+     *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,
+     *            NDMAC,NPOLC)
+c      CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
+c     *            DIMAT,FIVEC,AVEC,VEC1,SDIPND,
+c     *            GIJJ,REDMSS,FREQ,POL1,LVEC,
+c     *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
+c     *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
 C
 c      IF (LWRITE) THEN
 c          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
@@ -239,17 +249,22 @@ C
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
-      SUBROUTINE AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
+      SUBROUTINE AVECEV(RDMA,CHG,DIP,QAD,OCT,CHG1,DIP1,QAD1,OCT1,
+     *                  RPOL,RPOL1,POL,DMAT,FLDS,
      *                  DIMAT,FIVEC,AVEC,VEC1,SDIPND,
      *                  GIJJ,REDMSS,FREQ,POL1,LVEC,
      *                  NMOLS,NPOL,NDMA,NDIM,NDMAS,
-     *                  MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
+     *                  MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,
+     *                  NDMAC,NPOLC)
 C
 C     EVALUATE DIMAT AND FIVEC DUE TO EFP FRAGMENTS AND THEN CONSTRUCT -AVEC-
 C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION RDMA(MDIP),CHG(NDMAS),DIP(MDIP),
-     &          QAD(MQAD),OCT(MOCT),RPOL1(NMODES*NPOLC*3),
+     &          QAD(MQAD),OCT(MOCT),CHG1(NMODES*NDMAC),
+     &          DIP1(NMODES*NDMAC*3),QAD1(NMODES*NDMAC*6),
+     &          OCT1(NMODES*NDMAC*10),
+     &          RPOL1(NMODES*NPOLC*3),
      &          RPOL(MRPOL),POL(MPOL),DMAT(NDIM,NDIM),FLDS(NDIM),
      &          DIMAT(NDIM,NDIM),FIVEC(NDIM),AVEC(NDIM),
      &          GIJJ(NMODES),REDMSS(NMODES),FREQ(NMODES),
@@ -259,7 +274,6 @@ C
       DOUBLE PRECISION MAT2(NDIM,NDIM),MAT3(NDIM,NDIM)
       DOUBLE PRECISION LVEC((NMODES+6)*NMODES)
       EXTERNAL DGETRI,DGETRF,DGEMM
-c      COMMON/SUMS  / VSUM1(3),VSUM2(3)
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
      &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,HALF=0.50D+00)
       DATA WORKI/30*0.0D+00/
@@ -636,7 +650,10 @@ C
 C     --- EVALUATE FIELD DERIVATIVES ON SOLVENT CENTERS ---
 C
       NNN   = NMODES+6
-      NDMAC = NDMA(1)
+      NNNH3 = NNN/3
+      NNN6  = NNN*2
+      NNN10 = NNNH3*10
+c      NDMAC = NDMA(1)
       NPOLJ = NPOL(1)
 C
       DO JMOL=2,NMOLS
@@ -730,14 +747,45 @@ C
 C              ITERATE OVER NORMAL MODES
 C
                DO M=1,NMODES
-                  NMLX  = NNN*(M-1) + 3*(I-1) + 1
-                  GRF = GIVEC(M) / TWO
+                  NM0  = NNNH3*(M-1) + 1
+                  NMX3 = NNN  *(M-1) + 3*(I-1) + 1
+                  NMX6 = NNN3 *(M-1) + 6*(I-1) + 1
+                  NMX10= NNN10*(M-1) +10*(I-1) + 1
+                  GRF  = GIVEC(M) / TWO
 C
 C                 UNPACK THE MASS-WEIGHTED EIGENVECTORS
 C
-                  RLMX = LVEC(NMLX  )
-                  RLMY = LVEC(NMLX+1)
-                  RLMZ = LVEC(NMLX+2)
+                  RLMX = LVEC(NMX3  )
+                  RLMY = LVEC(NMX3+1)
+                  RLMZ = LVEC(NMX3+2)
+C
+C                 UNPACK THE DERIVATIVES OF DMTP
+C
+                  CHG1I = CHG1(NM0)
+                  DIPX1 = DIP1(NMX3  )
+                  DIPY1 = DIP1(NMX3+1)
+                  DIPZ1 = DIP1(NMX3+2)
+C              
+                  Q1XX= QAD1(NMX6  )
+                  Q1YY= QAD1(NMX6+1)
+                  Q1ZZ= QAD1(NMX6+2)
+                  Q1XY= QAD1(NMX6+3)
+                  Q1XZ= QAD1(NMX6+4)
+                  Q1YZ= QAD1(NMX6+5)
+C              
+                  O1XXX=OCT1(NMX10  )
+                  O1YYY=OCT1(NMX10+1)
+                  O1ZZZ=OCT1(NMX10+2)
+C              
+                  O1XXY=OCT1(NMX10+3)
+                  O1XXZ=OCT1(NMX10+4)
+                  O1XYY=OCT1(NMX10+5)
+C              
+                  O1YYZ=OCT1(NMX10+6)
+                  O1XZZ=OCT1(NMX10+7)
+                  O1YZZ=OCT1(NMX10+8)
+                  O1XYZ=OCT1(NMX10+9)
+                 
 C
 C                 AUXILIARY MODE-DEPENDENT DOT PRODUCTS
 C
@@ -768,9 +816,10 @@ C
 C                 CHARGE CONTRIBUTION
 C
                   CHGMI = CHGI * RJI3
-                  FX = CHGMI * ( RLMX - RRR * RJIX )
-                  FY = CHGMI * ( RLMY - RRR * RJIY )
-                  FZ = CHGMI * ( RLMZ - RRR * RJIZ )
+                  CHGM1 = CHG1I* RJI3 
+                  FX = CHGMI * ( RLMX - RRR * RJIX ) - CHGM1 * RJIX
+                  FY = CHGMI * ( RLMY - RRR * RJIY ) - CHGM1 * RJIY
+                  FZ = CHGMI * ( RLMZ - RRR * RJIZ ) - CHGM1 * RJIZ
 C
 C                 DIPOLE CONTRIBUTION
 C
