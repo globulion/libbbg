@@ -164,11 +164,11 @@ C
      ^            NMOLS,NPOL,NDMA,NDIM,NDMAS,
      ^            MDIP,MQAD,MOCT,MRPOL,MPOL)
 C
-C     COPY DMAT TO MAT1 TO FORM T-TENSOR. LEAVE THE DIAGONAL
-C     QUADRATIC 3x3 BLOCKS TO BE ZERO
+C     COPY OFFDIAGONAL BLOCKS OF DMAT TO MAT1 TO FORM T-TENSOR. 
+C     LEAVE THE DIAGONAL QUADRATIC 3x3 BLOCKS TO BE ZERO
 C
       DO 10 I=1,NDIM
-      DO 10 J=1,(I-1)
+      DO 10 J=1,(I-3)
          DMIJ = DMAT(I,J)
          MAT1(I,J) = DMIJ
          MAT1(J,I) = DMIJ
@@ -488,13 +488,13 @@ C
                   FRDI = FIVE * RIJ2 * DJRIJ * RIJRI
 C
                   FX = FX + THREE * RIJ5 * ( DJRIJ * RX1 +
-     &                 DJRI * RIJX - FRDI * RIJX - DIPX * RIJRI )
+     &                 DJRI * RIJX - FRDI * RIJX + DIPX * RIJRI )
 C
                   FY = FY + THREE * RIJ5 * ( DJRIJ * RY1 +
-     &                 DJRI * RIJY - FRDI * RIJY - DIPY * RIJRI )
+     &                 DJRI * RIJY - FRDI * RIJY + DIPY * RIJRI )
 C
                   FZ = FZ + THREE * RIJ5 * ( DJRIJ * RZ1 +
-     &                 DJRI * RIJZ - FRDI * RIJZ - DIPZ * RIJRI )
+     &                 DJRI * RIJZ - FRDI * RIJZ + DIPZ * RIJRI )
 C
 C                 QUADRUPOLE CONTRIBUTION
 C
@@ -545,7 +545,7 @@ C
          FIVEC(NIY3) = FLDY1
          FIVEC(NIZ3) = FLDZ1
 C
-C        CALCULATE DIMAT OFFDIAGONALS
+C        --- CALCULATE DIMAT OFFDIAGONALS ---
 C
          NPOLJ = NPOL(1)
          DO JMOL=2,NMOLS
@@ -703,6 +703,7 @@ C
 C              UNPACK THE DMA TENSORS
 C
                CHGI = CHG(I)
+C
                DIPX = DIP(NIX3)
                DIPY = DIP(NIY3)
                DIPZ = DIP(NIZ3)
@@ -749,7 +750,7 @@ C
                DO M=1,NMODES
                   NM0  = NNNH3*(M-1) + 1
                   NMX3 = NNN  *(M-1) + 3*(I-1) + 1
-                  NMX6 = NNN3 *(M-1) + 6*(I-1) + 1
+                  NMX6 = NNN6 *(M-1) + 6*(I-1) + 1
                   NMX10= NNN10*(M-1) +10*(I-1) + 1
                   GRF  = GIVEC(M) / TWO
 C
@@ -762,6 +763,7 @@ C
 C                 UNPACK THE DERIVATIVES OF DMTP
 C
                   CHG1I = CHG1(NM0)
+C
                   DIPX1 = DIP1(NMX3  )
                   DIPY1 = DIP1(NMX3+1)
                   DIPZ1 = DIP1(NMX3+2)
@@ -793,6 +795,10 @@ C
      &                    RJIY * RLMY +
      &                    RJIZ * RLMZ
 C
+                  RJID1 = RJIX * DIPX1 +
+     &                    RJIY * DIPY1 +
+     &                    RJIZ * DIPZ1
+C
                   DJRI  = DIPX * RLMX +
      &                    DIPY * RLMY +
      &                    DIPZ * RLMZ
@@ -807,9 +813,21 @@ C
      &                     QYZ * RLMZ * RJIY +
      &                     QZZ * RLMZ * RJIZ
 C
+                  Q1RJI2 = Q1XX * RJIX * RJIX       +
+     &                     Q1XY * RJIX * RJIY * TWO +
+     &                     Q1XZ * RJIX * RJIZ * TWO +
+     &                     Q1YY * RJIY * RJIY       +
+     &                     Q1YZ * RJIY * RJIZ * TWO +
+     &                     Q1ZZ * RJIZ * RJIZ
+C
                   VQX1 = QXX * RLMX + QXY * RLMY + QXZ * RLMZ
                   VQY1 = QXY * RLMX + QYY * RLMY + QYZ * RLMZ
                   VQZ1 = QXZ * RLMX + QYZ * RLMY + QZZ * RLMZ
+C
+                  Q1RJIX = Q1XX * RJIX + Q1XY * RJIY + Q1XZ * RJIZ
+                  Q1RJIY = Q1XY * RJIX + Q1YY * RJIY + Q1YZ * RJIZ
+                  Q1RJIZ = Q1XZ * RJIX + Q1YZ * RJIY + Q1ZZ * RJIZ
+
 C
                   RRR  = THREE * RJIRI * RJI2
 C
@@ -826,13 +844,17 @@ C
                   FRDI = FIVE * RJI2 * DJRJI * RJIRI
 C
                   FX = FX + THREE * RJI5 * ( DJRJI * RLMX +
-     &                 DJRI * RJIX - FRDI * RJIX - DIPX * RJIRI )
+     &                 DJRI * RJIX - FRDI * RJIX + DIPX * RJIRI )
 C
                   FY = FY + THREE * RJI5 * ( DJRJI * RLMY +
-     &                 DJRI * RJIY - FRDI * RJIY - DIPY * RJIRI )
+     &                 DJRI * RJIY - FRDI * RJIY + DIPY * RJIRI )
 
                   FZ = FZ + THREE * RJI5 * ( DJRJI * RLMZ +
-     &                 DJRI * RJIZ - FRDI * RJIZ - DIPZ * RJIRI )
+     &                 DJRI * RJIZ - FRDI * RJIZ + DIPZ * RJIRI )
+C
+                  FX = FX - THREE * RJI5 * RJID1 * RJIX + RJI3 * DIPX1
+                  FY = FY - THREE * RJI5 * RJID1 * RJIY + RJI3 * DIPY1
+                  FZ = FZ - THREE * RJI5 * RJID1 * RJIZ + RJI3 * DIPZ1
 C
 C                 QUADRUPOLE CONTRIBUTION
 C
@@ -852,6 +874,10 @@ C
      &                                       TWO   * QJRJII * RJIZ +
      &                                      QJRJI2 * RLMZ ) - TWO * VQZ1
      &                      - 35.00D+00 * RJIRI * QJRJI2 * RJI4 * RJIZ )
+C
+              FX = FX + TWO * RJI5 * Q1RJIX - FVV * RJI5 * Q1RJI2 * RJIX
+              FY = FY + TWO * RJI5 * Q1RJIY - FVV * RJI5 * Q1RJI2 * RJIY
+              FZ = FZ + TWO * RJI5 * Q1RJIZ - FVV * RJI5 * Q1RJI2 * RJIZ
 C
 C                 WEIGHT EACH CONTRIBUTION BY MODE COEFFICIENT GRF
 C
@@ -879,18 +905,10 @@ C
       CALL DGEMM('N','N',NDIM,NDIM,NDIM,ONE,
      &                   DMAT,NDIM,MAT2,NDIM,
      &                   ZERO,MAT3,NDIM)
-c      CALL DGMV('N',RNEW,FLDS,VEC1,NDIM)
-      CALL DGMV('N',MAT3,FLDS,AVEC,NDIM)
-c      CALL DGMV('T',MAT1,FLDS,AVEC,NDIM)
-C 
-c      DO IK=1,NDIM
-c         VEC1(IK) = VEC1(IK) + FIVEC(IK)
-c      ENDDO
+      CALL DGMV('T',MAT3,FLDS,AVEC,NDIM)
 C
-c       CALL DGMV('N',DMAT,VEC1,AVEC,NDIM)
-C
-       CALL DGMV('T',DMAT,FIVEC,VEC1,NDIM)
-       CALL DGMV('N',DMAT,FIVEC,SDIPND,NDIM)
+      CALL DGMV('T',DMAT,FIVEC,VEC1,NDIM)
+      CALL DGMV('N',DMAT,FIVEC,SDIPND,NDIM)
 C
        DO IK=1,NDIM
           AVEC(IK) = AVEC(IK) - (VEC1(IK) + SDIPND(IK))
