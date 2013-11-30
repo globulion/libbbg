@@ -805,6 +805,8 @@ C
                RJI3 = RJI2 / RJI
                RJI4 = RJI2 * RJI2
                RJI5 = RJI3 * RJI2
+               RJI7 = RJI5 * RJI2
+               RJI9 = RJI7 * RJI2
 C
 C              UNPACK THE DMA TENSORS
 C
@@ -847,6 +849,38 @@ C
      &                  QYZ * RJIY * RJIZ * TWO +
      &                  QZZ * RJIZ * RJIZ
 C
+               SUM1 = OXXX * RJIX * RJIX * RJIX         +
+     &                OXXY * RJIX * RJIX * RJIY * THREE +
+     &                OXYY * RJIX * RJIY * RJIY * THREE +
+     &                OYYY * RJIY * RJIY * RJIY         +
+     &                OYYZ * RJIY * RJIY * RJIZ * THREE +
+     &                OYZZ * RJIY * RJIZ * RJIZ * THREE +
+     &                OZZZ * RJIZ * RJIZ * RJIZ         +
+     &                OXYZ * RJIX * RJIY * RJIZ * SIX   +
+     &                OXXZ * RJIX * RJIX * RJIZ * THREE +
+     &                OXZZ * RJIX * RJIZ * RJIZ * THREE
+C
+                  VOX  = OXXX * RJIX * RJIX       + 
+     &                   OXXY * RJIX * RJIY * TWO +
+     &                   OXXZ * RJIX * RJIZ * TWO +
+     &                   OXYY * RJIY * RJIY       +
+     &                   OXYZ * RJIY * RJIZ * TWO +
+     &                   OXZZ * RJIZ * RJIZ
+C                                         
+                  VOY  = OXXY * RJIX * RJIX       + 
+     &                   OXYY * RJIX * RJIY * TWO +
+     &                   OXYZ * RJIX * RJIZ * TWO +
+     &                   OYYY * RJIY * RJIY       +
+     &                   OYYZ * RJIY * RJIZ * TWO +
+     &                   OYZZ * RJIZ * RJIZ
+C                                         
+                  VOZ  = OXXZ * RJIX * RJIX       + 
+     &                   OXYZ * RJIX * RJIY * TWO +
+     &                   OXZZ * RJIX * RJIZ * TWO +
+     &                   OYYZ * RJIY * RJIY       +
+     &                   OYZZ * RJIY * RJIZ * TWO +
+     &                   OZZZ * RJIZ * RJIZ
+C                                  
                VQX  = QXX * RJIX + QXY * RJIY + QXZ * RJIZ
                VQY  = QXY * RJIX + QYY * RJIY + QYZ * RJIZ
                VQZ  = QXZ * RJIX + QYZ * RJIY + QZZ * RJIZ
@@ -893,7 +927,6 @@ C
                   O1XZZ=OCT1(NMX10+7)
                   O1YZZ=OCT1(NMX10+8)
                   O1XYZ=OCT1(NMX10+9)
-                 
 C
 C                 AUXILIARY MODE-DEPENDENT DOT PRODUCTS
 C
@@ -933,7 +966,87 @@ C
                   Q1RJIX = Q1XX * RJIX + Q1XY * RJIY + Q1XZ * RJIZ
                   Q1RJIY = Q1XY * RJIX + Q1YY * RJIY + Q1YZ * RJIZ
                   Q1RJIZ = Q1XZ * RJIX + Q1YZ * RJIY + Q1ZZ * RJIZ
-
+C
+               SUM2 = OXXX * RLMX * RJIX * RJIX         +
+     &                OXXY * RLMX * RJIX * RJIY * TWO   +
+     &                OXXY * RLMY * RJIX * RJIX         +
+     &                OXYY * RLMX * RJIY * RJIY         +
+     &                OXYY * RLMY * RJIX * RJIY * TWO   +
+     &                OYYY * RLMY * RJIY * RJIY         +
+     &                OYYZ * RLMY * RJIY * RJIZ * TWO   +
+     &                OYYZ * RLMZ * RJIY * RJIY         +
+     &                OYZZ * RLMY * RJIZ * RJIZ         +
+     &                OYZZ * RLMZ * RJIY * RJIZ * TWO   +
+     &                OZZZ * RLMZ * RJIZ * RJIZ         +
+     &                OXYZ * RLMX * RJIY * RJIZ * TWO   +
+     &                OXYZ * RLMY * RJIX * RJIZ * TWO   +
+     &                OXYZ * RLMZ * RJIX * RJIY * TWO   +
+     &                OXXZ * RLMX * RJIX * RJIZ * TWO   +
+     &                OXXZ * RLMZ * RJIX * RJIX         +
+     &                OXZZ * RLMX * RJIZ * RJIZ         +
+     &                OXZZ * RLMZ * RJIX * RJIZ
+C
+               SUM3 = O1XXX * RJIX * RJIX * RJIX         +
+     &                O1XXY * RJIX * RJIX * RJIY * THREE +
+     &                O1XYY * RJIX * RJIY * RJIY * THREE +
+     &                O1YYY * RJIY * RJIY * RJIY         +
+     &                O1YYZ * RJIY * RJIY * RJIZ * THREE +
+     &                O1YZZ * RJIY * RJIZ * RJIZ * THREE +
+     &                O1ZZZ * RJIZ * RJIZ * RJIZ         +
+     &                O1XYZ * RJIX * RJIY * RJIZ * SIX   +
+     &                O1XXZ * RJIX * RJIX * RJIZ * THREE +
+     &                O1XZZ * RJIX * RJIZ * RJIZ * THREE
+C
+                  VOX1 = OXXX * RJIX * RLMX       + 
+     &                   OXXY * RJIX * RLMY       +
+     &                   OXXY * RJIY * RLMX       +
+     &                   OXXZ * RJIX * RLMZ       +
+     &                   OXXZ * RJIZ * RLMX       +
+     &                   OXYY * RJIY * RLMY       +
+     &                   OXYZ * RJIY * RLMZ       +
+     &                   OXYZ * RJIZ * RLMY       +
+     &                   OXZZ * RJIZ * RLMZ
+C                                  
+                  VOY1 = OXXY * RJIX * RLMX       + 
+     &                   OXYY * RJIX * RLMY       +
+     &                   OXYY * RJIY * RLMX       +
+     &                   OXYZ * RJIX * RLMZ       +
+     &                   OXYZ * RJIZ * RLMX       +
+     &                   OYYY * RJIY * RLMY       +
+     &                   OYYZ * RJIY * RLMZ       +
+     &                   OYYZ * RJIZ * RLMY       +
+     &                   OYZZ * RJIZ * RLMZ
+C                                  
+                  VOZ1 = OXXZ * RJIX * RLMX       + 
+     &                   OXYZ * RJIX * RLMY       +
+     &                   OXYZ * RJIY * RLMX       +
+     &                   OXZZ * RJIX * RLMZ       +
+     &                   OXZZ * RJIZ * RLMX       +
+     &                   OYYZ * RJIY * RLMY       +
+     &                   OYZZ * RJIY * RLMZ       +
+     &                   OYZZ * RJIZ * RLMY       +
+     &                   OZZZ * RJIZ * RLMZ
+C
+                  V1OX  =O1XXX * RJIX * RJIX       + 
+     &                   O1XXY * RJIX * RJIY * TWO +
+     &                   O1XXZ * RJIX * RJIZ * TWO +
+     &                   O1XYY * RJIY * RJIY       +
+     &                   O1XYZ * RJIY * RJIZ * TWO +
+     &                   O1XZZ * RJIZ * RJIZ
+C                                         
+                  V1OY  =O1XXY * RJIX * RJIX       + 
+     &                   O1XYY * RJIX * RJIY * TWO +
+     &                   O1XYZ * RJIX * RJIZ * TWO +
+     &                   O1YYY * RJIY * RJIY       +
+     &                   O1YYZ * RJIY * RJIZ * TWO +
+     &                   O1YZZ * RJIZ * RJIZ
+C                                         
+                  V1OZ  =O1XXZ * RJIX * RJIX       + 
+     &                   O1XYZ * RJIX * RJIY * TWO +
+     &                   O1XZZ * RJIX * RJIZ * TWO +
+     &                   O1YYZ * RJIY * RJIY       +
+     &                   O1YZZ * RJIY * RJIZ * TWO +
+     &                   O1ZZZ * RJIZ * RJIZ
 C
                   RRR  = THREE * RJIRI * RJI2
 C
@@ -987,7 +1100,26 @@ C
 C
 C                 OCTUPOLE CONTRIBUTION
 C
-
+                  FX = FX + SEVEN*RJI9 * (SUM1*RLMX - 
+     &                      NINE*RJI2*SUM1*RJIRI*RJIX + 
+     &                      THREE*RJI2*SUM1*RJIX +
+     &                      THREE*RJI2*RJIRI*VOX -
+     &                      SUM3*RJIX ) -
+     &                 SIX*RJI7*VOX1 + THREE*RJI7*V1OX
+C
+                  FY = FY + SEVEN*RJI9 * (SUM1*RLMY - 
+     &                      NINE*RJI2*SUM1*RJIRI*RJIY + 
+     &                      THREE*RJI2*SUM1*RJIY +
+     &                      THREE*RJI2*RJIRI*VOY -
+     &                      SUM3*RJIY ) -
+     &                 SIX*RJI7*VOY1 + THREE*RJI7*V1OY
+C
+                  FZ = FZ + SEVEN*RJI9 * (SUM1*RLMZ - 
+     &                      NINE*RJI2*SUM1*RJIRI*RJIZ + 
+     &                      THREE*RJI2*SUM1*RJIZ +
+     &                      THREE*RJI2*RJIRI*VOZ -
+     &                      SUM3*RJIZ ) -
+     &                 SIX*RJI7*VOZ1 + THREE*RJI7*V1OZ
 C
 C                 WEIGHT EACH CONTRIBUTION BY MODE COEFFICIENT GRF
 C
