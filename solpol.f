@@ -203,11 +203,6 @@ C
      *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,
      *            NDMAC,NPOLC)
-c      CALL AVECEV(RDMA,CHG,DIP,QAD,OCT,RPOL,RPOL1,POL,DMAT,FLDS,
-c     *            DIMAT,FIVEC,AVEC,VEC1,SDIPND,
-c     *            GIJJ,REDMSS,FREQ,POL1,LVEC,
-c     *            NMOLS,NPOL,NDMA,NDIM,NDMAS,
-c     *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,NPOLC)
 C
 c      IF (LWRITE) THEN
 c          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
@@ -257,9 +252,10 @@ C-----|--|---------|---------|---------|---------|---------|---------|--|------|
      *                  NMOLS,NPOL,NDMA,NDIM,NDMAS,
      *                  MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,
      *                  NDMAC,NPOLC)
-C
+C     -----------------------------------------------------------------------
 C     EVALUATE DIMAT AND FIVEC DUE TO EFP FRAGMENTS AND THEN CONSTRUCT -AVEC-
-C
+C     
+C     -----------------------------------------------------------------------
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION RDMA(MDIP),CHG(NDMAS),DIP(MDIP),
      &          QAD(MQAD),OCT(MOCT),CHG1(NMODES*NDMAC),
@@ -380,7 +376,7 @@ C
             DIZIX = DIZIX - PM(3,1) * GRF
             DIZIY = DIZIY - PM(3,2) * GRF
 C
-C           ACCUMULATE FIELD DERIVATIVES ON SOLUTE CENTERS
+C           --- CALCULATE FIELD DERIVATIVES ON SOLUTE CENTERS ---
 C
             NDMAJ = NDMA(1)
             DO JMOL=2,NMOLS
@@ -657,7 +653,6 @@ C
          DO JMOL=2,NMOLS
          NJM   = NPOL(JMOL)
          NPOLJ = NPOLJ + NJM
-
 c         IF (IMOL.EQ.JMOL) GOTO 921
          DO J=1,NJM
             NJX3 = 3*(NPOLJ-NJM) + 3*(J-1) + 1
@@ -767,6 +762,7 @@ C
          NPOLJ = NPOLJ + NJM
 C
          DO J=1,NJM
+            NJX00= (NPOLJ-NJM) + J
             NJX3 = 3*(NPOLJ-NJM) + 3*(J-1) + 1
             NJY3 = NJX3 + 1
             NJZ3 = NJY3 + 1
@@ -810,7 +806,7 @@ C
 C
 C              UNPACK THE DMA TENSORS
 C
-               CHGI = CHG(I)
+               CHGI = CHG(NJX00)
 C
                DIPX = DIP(NIX3)
                DIPY = DIP(NIY3)
@@ -888,7 +884,7 @@ C
 C              ITERATE OVER NORMAL MODES
 C
                DO M=1,NMODES
-                  NM0  = NNNH3*(M-1) + 1
+                  NM0  = NNNH3*(M-1) +    I
                   NMX3 = NNN  *(M-1) + 3*(I-1) + 1
                   NMX6 = NNN6 *(M-1) + 6*(I-1) + 1
                   NMX10= NNN10*(M-1) +10*(I-1) + 1
