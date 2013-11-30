@@ -217,6 +217,7 @@ C
 C     CALCULATE FREQUENCY SHIFTS
 C
       SHIFT = - DDOT(NDIM,FLDS,1,AVEC,1) * HALF
+      CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
 C
 C     EVALUATE [ 1 +  T D-1 ]-1 MATRIX
 C
@@ -272,10 +273,11 @@ C
      &          NPOL(NMOLS),NDMA(NMOLS),VEC1(NDIM),SDIPND(NDIM),
      &          WORKI(30),APOL(3,3),IPIVP(3),PM(3,3),PMT(3,3),GIVEC(30)
       DOUBLE PRECISION MAT2(NDIM,NDIM),MAT3(NDIM,NDIM)
-      DOUBLE PRECISION LVEC((NMODES+6)*NMODES)
+      DOUBLE PRECISION LVEC((NMODES+6)*NMODES), NINE
       EXTERNAL DGETRI,DGETRF,DGEMM
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
-     &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,HALF=0.50D+00)
+     &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,SEVEN=7.0D+00,
+     &           NINE=9.0D+00,HALF=0.50D+00)
       DATA WORKI/30*0.0D+00/
       DATA APOL /9*0.0D+00/
       DATA PM   /9*0.0D+00/
@@ -308,7 +310,7 @@ C
          RPOLIY = RPOL(NIY3)
          RPOLIZ = RPOL(NIZ3)
 C
-C        CALCULATE DIMAT DIAGONALS
+C        --- CALCULATE DIMAT DIAGONALS ---
 C
          APOL(1,1) = POL(NIX9  )
          APOL(1,2) = POL(NIX9+1)
@@ -388,6 +390,7 @@ C
                   NJX0 =    (NDMAJ-NJM) +    J
                   NJX3 =  3*(NDMAJ-NJM) + 3*(J-1) + 1
                   NJX6 =  6*(NDMAJ-NJM) + 6*(J-1) + 1
+                  NJX10= 10*(NDMAJ-NJM) +10*(J-1) + 1
 C
                   NJY3 = NJX3 + 1
                   NJZ3 = NJY3 + 1
@@ -404,6 +407,8 @@ C
                   RIJ3 = RIJ2 / RIJ
                   RIJ4 = RIJ2 * RIJ2
                   RIJ5 = RIJ3 * RIJ2
+                  RIJ7 = RIJ5 * RIJ2
+                  RIJ9 = RIJ7 * RIJ2
 C
 C                 UNPACK THE TENSORS
 C
@@ -466,6 +471,87 @@ C
      &                     QYZ * RZ1 * RIJY +
      &                     QZZ * RZ1 * RIJZ
 C
+               SUM1 = OXXX * RIJX * RIJX * RIJX         +
+     &                OXXY * RIJX * RIJX * RIJY * THREE +
+     &                OXYY * RIJX * RIJY * RIJY * THREE +
+     &                OYYY * RIJY * RIJY * RIJY         +
+     &                OYYZ * RIJY * RIJY * RIJZ * THREE +
+     &                OYZZ * RIJY * RIJZ * RIJZ * THREE +
+     &                OZZZ * RIJZ * RIJZ * RIJZ         +
+     &                OXYZ * RIJX * RIJY * RIJZ * SIX   +
+     &                OXXZ * RIJX * RIJX * RIJZ * THREE +
+     &                OXZZ * RIJX * RIJZ * RIJZ * THREE
+C
+               SUM2 = OXXX * RX1 * RIJX * RIJX         +
+     &                OXXY * RX1 * RIJX * RIJY * TWO   +
+     &                OXXY * RY1 * RIJX * RIJX         +
+     &                OXYY * RX1 * RIJY * RIJY         +
+     &                OXYY * RY1 * RIJX * RIJY * TWO   +
+     &                OYYY * RY1 * RIJY * RIJY         +
+     &                OYYZ * RY1 * RIJY * RIJZ * TWO   +
+     &                OYYZ * RZ1 * RIJY * RIJY         +
+     &                OYZZ * RY1 * RIJZ * RIJZ         +
+     &                OYZZ * RZ1 * RIJY * RIJZ * TWO   +
+     &                OZZZ * RZ1 * RIJZ * RIJZ         +
+     &                OXYZ * RX1 * RIJY * RIJZ * TWO   +
+     &                OXYZ * RY1 * RIJX * RIJZ * TWO   +
+     &                OXYZ * RZ1 * RIJX * RIJY * TWO   +
+     &                OXXZ * RX1 * RIJX * RIJZ * TWO   +
+     &                OXXZ * RZ1 * RIJX * RIJX         +
+     &                OXZZ * RX1 * RIJZ * RIJZ         +
+     &                OXZZ * RZ1 * RIJX * RIJZ
+C
+                  VOX  = OXXX * RIJX * RIJX       + 
+     &                   OXXY * RIJX * RIJY * TWO +
+     &                   OXXZ * RIJX * RIJZ * TWO +
+     &                   OXYY * RIJY * RIJY       +
+     &                   OXYZ * RIJY * RIJZ * TWO +
+     &                   OXZZ * RIJZ * RIJZ
+C
+                  VOY  = OXXY * RIJX * RIJX       + 
+     &                   OXYY * RIJX * RIJY * TWO +
+     &                   OXYZ * RIJX * RIJZ * TWO +
+     &                   OYYY * RIJY * RIJY       +
+     &                   OYYZ * RIJY * RIJZ * TWO +
+     &                   OYZZ * RIJZ * RIJZ
+C
+                  VOZ  = OXXZ * RIJX * RIJX       + 
+     &                   OXYZ * RIJX * RIJY * TWO +
+     &                   OXZZ * RIJX * RIJZ * TWO +
+     &                   OYYZ * RIJY * RIJY       +
+     &                   OYZZ * RIJY * RIJZ * TWO +
+     &                   OZZZ * RIJZ * RIJZ
+C
+                  VOX1 = OXXX * RIJX * RX1       + 
+     &                   OXXY * RIJX * RY1       +
+     &                   OXXY * RIJY * RX1       +
+     &                   OXXZ * RIJX * RZ1       +
+     &                   OXXZ * RIJZ * RX1       +
+     &                   OXYY * RIJY * RY1       +
+     &                   OXYZ * RIJY * RZ1       +
+     &                   OXYZ * RIJZ * RY1       +
+     &                   OXZZ * RIJZ * RZ1
+C
+                  VOY1 = OXXY * RIJX * RX1       + 
+     &                   OXYY * RIJX * RY1       +
+     &                   OXYY * RIJY * RX1       +
+     &                   OXYZ * RIJX * RZ1       +
+     &                   OXYZ * RIJZ * RX1       +
+     &                   OYYY * RIJY * RY1       +
+     &                   OYYZ * RIJY * RZ1       +
+     &                   OYYZ * RIJZ * RY1       +
+     &                   OYZZ * RIJZ * RZ1
+C
+                  VOZ1 = OXXZ * RIJX * RX1       + 
+     &                   OXYZ * RIJX * RY1       +
+     &                   OXYZ * RIJY * RX1       +
+     &                   OXZZ * RIJX * RZ1       +
+     &                   OXZZ * RIJZ * RX1       +
+     &                   OYYZ * RIJY * RY1       +
+     &                   OYZZ * RIJY * RZ1       +
+     &                   OYZZ * RIJZ * RY1       +
+     &                   OZZZ * RIJZ * RZ1
+C
                   VQX  = QXX * RIJX + QXY * RIJY + QXZ * RIJZ
                   VQY  = QXY * RIJX + QYY * RIJY + QYZ * RIJZ
                   VQZ  = QXZ * RIJX + QYZ * RIJY + QZZ * RIJZ
@@ -514,6 +600,26 @@ C
      &                                       TWO   * QJRIJI * RIJZ +
      &                                      QJRIJ2 * RZ1 ) - TWO * VQZ1
      &                      - 35.00D+00 * RIJRI * QJRIJ2 * RIJ4 * RIJZ )
+C
+C                 OCTUPOLE CONTRIBUTION
+C
+                  FX = FX + SEVEN*RIJ9 * (SUM1*RX1 - 
+     &                      NINE*RIJ2*SUM1*RIJRI*RIJX + 
+     &                      THREE*RIJ2*SUM1*RIJX +
+     &                      THREE*RIJ2*RIJRI*VOX) -
+     &                 SIX*RIJ7*VOX1
+C
+                  FY = FY + SEVEN*RIJ9 * (SUM1*RY1 - 
+     &                      NINE*RIJ2*SUM1*RIJRI*RIJY + 
+     &                      THREE*RIJ2*SUM1*RIJY +
+     &                      THREE*RIJ2*RIJRI*VOY) -
+     &                 SIX*RIJ7*VOY1
+C
+                  FZ = FZ + SEVEN*RIJ9 * (SUM1*RZ1 - 
+     &                      NINE*RIJ2*SUM1*RIJRI*RIJZ + 
+     &                      THREE*RIJ2*SUM1*RIJZ +
+     &                      THREE*RIJ2*RIJRI*VOZ) -
+     &                 SIX*RIJ7*VOZ1
 C
 C                 WEIGHT EACH CONTRIBUTION BY MODE COEFFICIENT GRF
 C
@@ -878,6 +984,10 @@ C
               FX = FX + TWO * RJI5 * Q1RJIX - FVV * RJI5 * Q1RJI2 * RJIX
               FY = FY + TWO * RJI5 * Q1RJIY - FVV * RJI5 * Q1RJI2 * RJIY
               FZ = FZ + TWO * RJI5 * Q1RJIZ - FVV * RJI5 * Q1RJI2 * RJIZ
+C
+C                 OCTUPOLE CONTRIBUTION
+C
+
 C
 C                 WEIGHT EACH CONTRIBUTION BY MODE COEFFICIENT GRF
 C
