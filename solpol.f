@@ -189,10 +189,10 @@ C
       CALL DGMV('N',DMAT,FLDS,DIPIND,NDIM)
       EPOL = - DDOT(NDIM,FLDS,1,DIPIND,1) * HALF
 C
-c      IF (LWRITE) THEN
-c          CALL MATWRT(DMAT,NDIM,NDIM,-1,"dmat.dat")
-c          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
-c      ENDIF
+      IF (LWRITE) THEN
+          CALL MATWRT(DMAT,NDIM,NDIM,-1,"dmat.dat")
+          CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
+      ENDIF
 C
 C     CALCULATE DIMAT AND FIVEC AND ACCUMULATE THEM TO -AVEC-
 C
@@ -204,10 +204,10 @@ C
      *            MDIP,MQAD,MOCT,MRPOL,MPOL,MODE,NMODES,
      *            NDMAC,NPOLC)
 C
-c      IF (LWRITE) THEN
-c          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
-c          CALL MATWRT(DIMAT,NDIM,NDIM,-1,"dimat.dat")
-c      ENDIF
+      IF (LWRITE) THEN
+          CALL VECWRT(AVEC,NDIM,-1,"avec.dat")
+          CALL MATWRT(DIMAT,NDIM,NDIM,-1,"dimat.dat")
+      ENDIF
 C
 C     CALCULATE FREQUENCY SHIFTS
 C
@@ -235,7 +235,7 @@ C
 C
       IF (LWRITE) THEN
           CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
-c          CALL VECWRT(FLDS,NDIM,-1,"fields.dat")
+          CALL VECWRT(FLDS,NDIM,-1,"fields.dat")
       ENDIF
       CALL VECWRT(SDIPND,NDIM,-1,"sdipnd.dat")
 C
@@ -269,11 +269,11 @@ C     -----------------------------------------------------------------------
      &          NPOL(NMOLS),NDMA(NMOLS),VEC1(NDIM),SDIPND(NDIM),
      &          WORKI(30),APOL(3,3),IPIVP(3),PM(3,3),PMT(3,3),GIVEC(30)
       DOUBLE PRECISION MAT2(NDIM,NDIM),MAT3(NDIM,NDIM)
-      DOUBLE PRECISION LVEC((NMODES+6)*NMODES), NINE
+      DOUBLE PRECISION LVEC((NMODES+6)*NMODES)
       EXTERNAL DGETRI,DGETRF,DGEMM
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
      &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,SEVEN=7.0D+00,
-     &           NINE=9.0D+00,HALF=0.50D+00)
+     &           QNINE=9.0D+00,HALF=0.50D+00)
       DATA WORKI/30*0.0D+00/
       DATA APOL /9*0.0D+00/
       DATA PM   /9*0.0D+00/
@@ -600,19 +600,19 @@ C
 C                 OCTUPOLE CONTRIBUTION
 C
                   FX = FX + SEVEN*RIJ9 * (SUM1*RX1 - 
-     &                      NINE*RIJ2*SUM1*RIJRI*RIJX + 
+     &                      QNINE*RIJ2*SUM1*RIJRI*RIJX + 
      &                      THREE*RIJ2*SUM1*RIJX +
      &                      THREE*RIJ2*RIJRI*VOX) -
      &                 SIX*RIJ7*VOX1
 C
                   FY = FY + SEVEN*RIJ9 * (SUM1*RY1 - 
-     &                      NINE*RIJ2*SUM1*RIJRI*RIJY + 
+     &                      QNINE*RIJ2*SUM1*RIJRI*RIJY + 
      &                      THREE*RIJ2*SUM1*RIJY +
      &                      THREE*RIJ2*RIJRI*VOY) -
      &                 SIX*RIJ7*VOY1
 C
                   FZ = FZ + SEVEN*RIJ9 * (SUM1*RZ1 - 
-     &                      NINE*RIJ2*SUM1*RIJRI*RIJZ + 
+     &                      QNINE*RIJ2*SUM1*RIJRI*RIJZ + 
      &                      THREE*RIJ2*SUM1*RIJZ +
      &                      THREE*RIJ2*RIJRI*VOZ) -
      &                 SIX*RIJ7*VOZ1
@@ -762,7 +762,7 @@ C
          NPOLJ = NPOLJ + NJM
 C
          DO J=1,NJM
-            NJX00= (NPOLJ-NJM) + J
+            NJX0 =   (NPOLJ-NJM) +    J
             NJX3 = 3*(NPOLJ-NJM) + 3*(J-1) + 1
             NJY3 = NJX3 + 1
             NJZ3 = NJY3 + 1
@@ -806,7 +806,7 @@ C
 C
 C              UNPACK THE DMA TENSORS
 C
-               CHGI = CHG(NJX00)
+               CHGI = CHG(I)
 C
                DIPX = DIP(NIX3)
                DIPY = DIP(NIY3)
@@ -1063,7 +1063,7 @@ C
 C
                   FY = FY + THREE * RJI5 * ( DJRJI * RLMY +
      &                 DJRI * RJIY - FRDI * RJIY + DIPY * RJIRI )
-
+C
                   FZ = FZ + THREE * RJI5 * ( DJRJI * RLMZ +
      &                 DJRI * RJIZ - FRDI * RJIZ + DIPZ * RJIRI )
 C
@@ -1097,21 +1097,21 @@ C
 C                 OCTUPOLE CONTRIBUTION
 C
                   FX = FX + SEVEN*RJI9 * (SUM1*RLMX - 
-     &                      NINE*RJI2*SUM1*RJIRI*RJIX + 
+     &                      QNINE*RJI2*SUM1*RJIRI*RJIX + 
      &                      THREE*RJI2*SUM1*RJIX +
      &                      THREE*RJI2*RJIRI*VOX -
      &                      SUM3*RJIX ) -
      &                 SIX*RJI7*VOX1 + THREE*RJI7*V1OX
 C
                   FY = FY + SEVEN*RJI9 * (SUM1*RLMY - 
-     &                      NINE*RJI2*SUM1*RJIRI*RJIY + 
+     &                      QNINE*RJI2*SUM1*RJIRI*RJIY + 
      &                      THREE*RJI2*SUM1*RJIY +
      &                      THREE*RJI2*RJIRI*VOY -
      &                      SUM3*RJIY ) -
      &                 SIX*RJI7*VOY1 + THREE*RJI7*V1OY
 C
                   FZ = FZ + SEVEN*RJI9 * (SUM1*RLMZ - 
-     &                      NINE*RJI2*SUM1*RJIRI*RJIZ + 
+     &                      QNINE*RJI2*SUM1*RJIRI*RJIZ + 
      &                      THREE*RJI2*SUM1*RJIZ +
      &                      THREE*RJI2*RJIRI*VOZ -
      &                      SUM3*RJIZ ) -
