@@ -1,7 +1,7 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
-      SUBROUTINE MOLLST(RC,RM,IC,IP,ICM,IPM, 
-     &                  NAT,CCUT,PCUT,NMOLS,NCOORD,NC)
+      SUBROUTINE MOLLST(RC,RM,IC,IP,IE,ICM,IPM,IEM, 
+     &                  NAT,CCUT,PCUT,ECUT,NMOLS,NCOORD,NC)
 C
 C -----------------------------------------------------------------------------
 C
@@ -19,6 +19,7 @@ C     RC         - coordinates of central molecule (dimension 3,NC)
 C     RM         - array of coordinates of other molecules (dimension 3,NCOORD)
 C     CCUT       - Coulomb cutoff distance
 C     PCUT       - Polarization cutoff distance
+C     ECUT       - Exchange-repulsion cutoff
 C
 C     ** Integer
 C     IC         - array of condition numbers for Coulomb sphere
@@ -27,9 +28,10 @@ C     NMOLS      - number of other molecules (apart from central one)
 C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION RC(NC,3),RM(3*NCOORD),NAT(NMOLS)
-      LOGICAL IC(NCOORD),IP(NCOORD),ICM(NMOLS),IPM(NMOLS)
+      LOGICAL IC(NCOORD),IP(NCOORD),IE(NCOORD),
+     &        ICM(NMOLS),IPM(NMOLS),IEM(NMOLS)
       PARAMETER (ZERO=0.0D+00)
-Cf2py INTENT(IN,OUT) IC,IP,ICM,IPM
+Cf2py INTENT(IN,OUT) IC,IP,IE,ICM,IPM,IEM
 C
 C     CENTER OF GEOMETRY OF CENTRAL MOLECULE
 C
@@ -94,6 +96,14 @@ C
              DO J=1,NATI
                 IX = NATSUM-NATI + J
                 IP(IX) = .TRUE.
+             ENDDO
+         ENDIF
+C
+         IF (RR.LT.ECUT) THEN
+             IEM(I) = .TRUE.
+             DO J=1,NATI
+                IX = NATSUM-NATI + J
+                IE(IX) = .TRUE.
              ENDDO
          ENDIF
 C
