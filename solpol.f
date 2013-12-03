@@ -1,12 +1,13 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
       SUBROUTINE MOLLST(RC,RM,IC,IP,IE,ICM,IPM,IEM, 
-     &                  NAT,CCUT,PCUT,ECUT,NMOLS,NCOORD,NC)
+     &                  NAT,CCUT,PCUT,ECUT,
+     &                  NMOLS,NCOORD,NC)
 C
 C -----------------------------------------------------------------------------
 C
-C         DETERMINE THE MOLECULES LYING WITHIN COULOMB AND POLARIZATION RADII
-C         FROM CENTRAL MOLECULE
+C         DETERMINE THE MOLECULES LYING WITHIN COULOMB, POLARIZATION 
+C            AND EXCHANGE-REPULSION RADII FROM CENTRAL MOLECULE
 C
 C              Bartosz Błasiak                       12 Nov 2013
 C
@@ -24,6 +25,7 @@ C
 C     ** Integer
 C     IC         - array of condition numbers for Coulomb sphere
 C     IP         - array of condition numbers for Polarization sphere
+C     IE         - array of condition numbers for Short-Range sphere
 C     NMOLS      - number of other molecules (apart from central one)
 C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
@@ -1650,10 +1652,6 @@ C     CHECK THE MATRIX INVERSION
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
       BLOCK DATA
-C
-C     MAX MOL - 100
-C     MAX POL SITES PER MOL - 10
-C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       COMMON/SUMS  / VSUM1(3),VSUM2(3)
       DATA  VSUM1/3*0.0D+00/
