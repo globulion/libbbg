@@ -16,7 +16,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseFCFromFchk','ParseDipoleDerivFromFchk',
          'ParseFockFromGamessLog','lind','order','check_sim','MakeMol',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
-         'ParseEFPInteractionEnergies',]
+         'ParseEFPInteractionEnergies','secant','RungeKutta',]
          
 __version__ = '3.2.15'
 
@@ -35,6 +35,69 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
+
+def secant(f,x,delta=1.e-6,max_iter=1000,**args):
+    """Calculate the root of function f(x [,args]) wrt x"""
+    x_old = x
+    fx = f(x_old,**args)
+    x_new = x_old - delta * fx / (fx-f(x-delta,**args))
+    n_iter = 1
+    while fabs(x_new-x_old)>delta:
+          x_old = x_new
+          fx = f(x_old,**args)
+          x_new = x_old - delta * fx / (fx-f(x_old-delta,**args))
+          n_iter += 1
+          if n_iter > max_iter: break
+    return x_new
+
+class RungeKutta:
+   """Runge-Kutta method"""
+   def __init__(self):
+       self.__gfc    = None
+       self.__ndim   = None
+       self.__result = None
+       pass
+
+   def __call__(self):
+       return self.get()
+
+   def set(self,func,tau,init=None):
+       """set an array of g-functions!"""
+       self.__gfc = func
+       self.__tau = tau
+       self.set_init(init)
+       return
+
+   def set_init(self,init):
+       """set the initial variables"""
+       self.__init = array(init,float64)
+       self.__ndim = len(init)
+       return
+
+   def get(self):
+       return self.__result
+
+   def eval(self,n_pass,**kwargs):
+       """evaluate the dynamic properties as time goes"""
+       y = zeros((n_pass,self.__ndim),float64)
+       # initial conditions
+       y[0] = self.__init
+       # initialize RK coefficient vectors
+       c1= zeros(self.__ndim,float64)
+       c2= zeros(self.__ndim,float64)
+       c3= zeros(self.__ndim,float64)
+       c4= zeros(self.__ndim,float64)
+       #
+       for i in xrange(1,n_pass):
+           ti = self.__tau*i
+           a = y[i-1]
+           c1 = self.__gfc( a      , tau=ti               ,**kwargs) * self.__tau
+           c2 = self.__gfc( a+c1/2., tau=ti+self.__tau/2. ,**kwargs) * self.__tau
+           c3 = self.__gfc( a+c2/2., tau=ti+self.__tau/2. ,**kwargs) * self.__tau
+           c4 = self.__gfc( a+c3   , tau=ti+self.__tau    ,**kwargs) * self.__tau
+           y[i] = y[i-1] + 1./6. * (c1+2.*(c2+c3)+c4)
+       self.__result = y
+       return
 
 def check_sim(l):
     """check the sim list"""
