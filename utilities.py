@@ -82,11 +82,6 @@ class RungeKutta:
        y = zeros((n_pass,self.__ndim),float64)
        # initial conditions
        y[0] = self.__init
-       # initialize RK coefficient vectors
-       c1= zeros(self.__ndim,float64)
-       c2= zeros(self.__ndim,float64)
-       c3= zeros(self.__ndim,float64)
-       c4= zeros(self.__ndim,float64)
        #
        for i in xrange(1,n_pass):
            ti = self.__tau*i
