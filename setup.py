@@ -28,6 +28,8 @@ CLPLTP = Extension(name='clpltp',
                    sources=['clpltp.f'],
                    library_dirs=['/usr/lib/lapack','/usr/lib/pyshared/python2.7/scipy/lib/lapack'],
                    libraries=['flapack.so',])
+#SOLPOL = Extension(name='solpol',
+#                   sources=['solpol.f'])
 
 # --- Install libbbg!
 
@@ -37,10 +39,10 @@ setup(name='LIBBBG',
       author='Bartosz Błasiak',
       author_email='globula@o2.pl',
       url='http://www.ex.no/pymod/m1',
-      #packages=['libbbg'],
+      #packages=['solpol'],
       py_modules=['dma','gaussfreq','units',
                   'utilities','utilities2',
                   'dipderiv','re_templates',
-                  'mpfit',],
-      ext_modules=[GENTCF,ORBLOC,CLEMTP,],
+                  'mpfit','solpol',],
+      ext_modules=[GENTCF,ORBLOC,CLEMTP],
      )

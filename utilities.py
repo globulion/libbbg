@@ -16,7 +16,9 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseFCFromFchk','ParseDipoleDerivFromFchk',
          'ParseFockFromGamessLog','lind','order','check_sim','MakeMol',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
-         'ParseEFPInteractionEnergies','secant','RungeKutta',]
+         'ParseEFPInteractionEnergies','secant','RungeKutta',
+         'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
+         'QMOscillator',]
          
 __version__ = '3.2.15'
 
@@ -36,6 +38,96 @@ import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
 
+def numerov1(q,s,x0,y0,y1,npoints,step,qarg={},sarg={}):
+    """
+Integrates the equation of the form:
+
+        y''(x) + q(x)u(x) = s(x)
+
+using Numerov algorithm. Here it is assumed that 
+user provides explicitly the values of the two first
+poitns of the solution which is equivalent to giving
+y(0) and y'(0).
+
+Usage:
+q    - function object for q(x) or a float64 number
+qarg - dictionary of optional arguments (other than x) for q
+s    - function object for s(x) or a float64 number
+sarg - dictionary of optional arguments (other than x) for s 
+x0   - starting point of integration
+y0,y1- first and second quess points for the solution
+npoints - numper of points for the numerical solution
+          (including the first two points)
+step - delta x for numerical integration
+"""
+    # initialize outputs
+    x = float64(linspace(x0,x0+(npoints-1)*step,npoints))
+    y = zeros(npoints,float64)
+    y[0] = y0; y[1] = y1
+    #
+    H = step*step/12.0
+    if   isinstance(q,float64): Q = q*ones(npoints,float64)
+    elif isinstance(q,ndarray): Q = q
+    else:                       Q = q(x,**qarg)
+    #
+    if   isinstance(s,float64): S = s*ones(npoints,float64)
+    elif isinstance(s,ndarray): S = s
+    else:                       S = s(x,**sarg)
+    # calculate all the coefficients
+    ci1 = 1.0 +      H * Q
+    ci  = 2.0 - 10.0*H * Q
+    d   = H * (S[2:] + 10.0*S[1:-1] + S[:-2])
+    # proceed the integration
+    for i in xrange(2,npoints):
+        y[i] = (d[i-1] + y[i-1]*ci[i-1] - y[i-2]*ci1[i-2]) / ci1[i]
+    return x,y
+
+def numerov2(q,x0,y0,y1,npoints,step,**qarg):
+    """
+Integrates the equation of the form:
+
+        y''(x) + q(x)u(x) = 0
+
+using Numerov algorithm. Here it is assumed that 
+user provides explicitly the values of the two first
+poitns of the solution which is equivalent to giving
+y(0) and y'(0).
+
+Usage:
+q    - function object for q(x) or a float64 number
+qarg - optional arguments passed to q (other than x)
+x0   - starting point of integration
+y0,y1- first and second quess points for the solution
+npoints - numper of points for the numerical solution
+          (including the first two points)
+step - delta x for numerical integration
+"""
+    # initialize outputs
+    x = float64(linspace(x0,x0+(npoints-1)*step,npoints))
+    y = zeros(npoints,float64)
+    y[0] = y0; y[1] = y1
+    #
+    H = step*step/12.0
+    if   isinstance(q,float64): Q = q*ones(npoints,float64)
+    elif isinstance(q,ndarray): Q = q
+    else:                       Q = q(x,**qarg)
+    # calculate all the coefficients
+    ci1 = 1.0 +      H * Q
+    ci  = 2.0 - 10.0*H * Q
+    # proceed the integration
+    for i in xrange(2,npoints):
+        y[i] = (y[i-1]*ci[i-1] - y[i-2]*ci1[i-2]) / ci1[i]
+    return x,y
+
+def fder5pt(data,step):
+    """Calculate first derivatives of f(x) wrt x using 5-point central Stencil method.
+Uses numpy.slice objects to increase the speed instead of using slow 'for' python loop.
+Note: The i-th derivative in <deriv> refers to i+2-th data point in <data>"""
+    u = len(data) - 2
+    deriv = (data[0:u-2]-data[4:u+2]) - 8.*(data[1:u-1]-data[3:u+1])
+    deriv/= 12.*step
+    return deriv
+
 def secant(f,x,delta=1.e-6,max_iter=1000,**args):
     """Calculate the root of function f(x [,args]) wrt x"""
     x_old = x
@@ -49,6 +141,46 @@ def secant(f,x,delta=1.e-6,max_iter=1000,**args):
           n_iter += 1
           if n_iter > max_iter: break
     return x_new
+
+def simpson(data,step):
+    """Integrate f(x) from a to b using Simpson rule. <data> is a ndarray of function values
+evaluated from x=a to x=b every dx where dx is assumed to be constant. Use numpy.slice
+objects to increase the speed instead of using slow 'for' python loop"""
+    u = len(data) - 2
+    S = (data[0:u-2] + 4.*data[1:u-1] + data[2:u])*step/3.
+    s = S[::2].sum()
+    # in the case of even number of points
+    if (u+1)%2: s+= (-data[-3] + 8.*data[-2] + 5.*data[-1])*step/12.
+    return s
+
+def simpson_nonuniform(data,args):
+    """Integrate f(x) from a to b using Simpson rule. <data> is a ndarray of function values
+evaluated from x=a to x=b every dx where dx is allowed to be not constant. Use numpy.slice
+objects to increase the speed instead of using slow 'for' python loop"""
+    aerror = 'The lengths of arguments and function values are not equal! (%d,%d)' % (len(args),len(data))
+    assert len(args)==len(data), aerror
+    u = len(args) - 1
+    H = args[1:u+1] - args[:u]
+    u-= 1
+    hi  = H[1:u+1]
+    him1= H[:u]
+    hi6 = 6.*hi
+    #
+    a = (2.*hi*hi + hi*him1 - him1*him1)/hi6
+    b = (hi+him1)**3 / (hi6*him1)
+    c = (-hi*hi + hi*him1 + 2*him1*him1)/hi6
+    #
+    S = data[2:u+2] * a + data[1:u+1] * b + data[0:u  ] * c
+    s = S[::2].sum()
+    # in the case of even number of points
+    if (u+1)%2:
+        hnm1 = H[-1]; hnm2 = H[-2]
+        d1   = data[-1]; d2 = data[-2]; d3 = data[-3]
+        a = hnm1/6. * (3. - hnm1/(hnm1+hnm2))
+        b = hnm1/6. * (3. - hnm1/hnm2)
+        c =-hnm1/6. * hnm1*hnm1/(hnm2*(hnm1+hnm2))
+        s+= d1 * a + d2 * b + d3 * c
+    return s
 
 class RungeKutta:
    """Runge-Kutta method"""
@@ -93,6 +225,111 @@ class RungeKutta:
            y[i] = y[i-1] + 1./6. * (c1+2.*(c2+c3)+c4)
        self.__result = y
        return
+
+class QMOscillator:
+    """Solver for 1D QM oscillator confined to a given potential.
+
+Usage:
+
+wfn = QMOscillator()
+wfn.set(self,V,x0,xn,np=500,y1=0.01,match_center=False,**kwargs)
+e,x,y = wfn.eval(<your guess for eigenvalue>)
+
+Notes:
+
+Inputs to set():
+-----------------------------------------------------------------------
+V   - function object for the potential 
+kwargs - optional arguments for V
+x0  - starting point
+xn  - ending point
+y1  - arbitrary second small value needed to start Numerov integrations
+np  - number of intervals between x0 and xn
+match_center - if True - the matching will be done in the center 
+               of the argument range; else: in the xr point being
+               the argument for V(xr) = guess
+
+Returned by eval():
+-----------------------------------------------------------------------
+e   - eigenvalue for the solution
+x,y - argument and wave-function values for these arguments
+"""
+    def __init__(self,**kwargs):
+        if kwargs: self.set(**kwargs)
+        return
+
+    # public
+
+    def set(self,V,x0,xn,np=500,y1=0.01,match_center=False,**kwargs):
+        "set the potential function and other parameters"
+        self.__V = V
+        self.__Vxr = lambda xr,guess: self.__V(xr,**kwargs) - guess
+        self.__x0 = x0
+        self.__xn = xn
+        self.__y0 = 0.000
+        self.__y1 = y1
+        self.__np = np
+        self.__step = (xn-x0)/np
+        self.__x = linspace(x0,xn,np+1)
+        self.__v = V(self.__x,**kwargs)
+        self.__match_center = match_center
+        return
+
+    def eval(self,guess):
+        "calculate eigenvalue and eigenfunction"
+        xr = self._find_xr(guess)
+        eps = secant(self._eigen,guess,xr=xr)
+        wfn = concatenate([self.__yl[:-2],self.__yr[1:]])
+        # normalize the wavefunction
+        prob = wfn*wfn
+        Nsq  = simpson(prob,self.__step)
+        wfn /= math.sqrt(Nsq)
+        return eps, self.__x, wfn
+
+    # protected
+
+    def _eigen(self,guess,xr):
+        "calculate eigenvalue"
+        # find matching point
+        if self.__match_center:
+           ixl = self.__np/2+6
+        else:
+            for i in range(self.__np):
+               if self.__x[i] > xr:
+                  break
+            ixl = i
+        ixr = self.__np-ixl
+        # left pre-solution
+        q  = 2.0 * (guess - self.__v[:ixl+2])
+        x,yl = numerov2(q,self.__x0,self.__y0,self.__y1,
+                        ixl+2,self.__step)
+
+        f2 = yl[ixl]
+        # right pre-solution 
+        q  = 2.0 * (guess - self.__v[ixl-1:])
+        q  = q[::-1]
+        x,yr = numerov2(q,self.__xn,self.__y0,self.__y1,
+                        ixr+2,self.__step)
+        k1 = yr[ixr-1] # r+h
+        k2 = yr[ixr  ] # r
+        k3 = yr[ixr+1] # r-h
+        # rescale the left pre-solution
+        yl *= k2/f2
+        f1 = yl[ixl+1]   # l+h
+        f2 = yl[ixl  ]   # l
+        f3 = yl[ixl-1]   # l-h
+        #
+        yr = yr[::-1]
+        f = ((f1-f3)-(k1-k3))/(2.0*self.__step*k2)
+        # store the wave functions
+        self.__yl = yl
+        self.__yr = yr
+        return f
+
+    def _find_xr(self,guess):
+        "find the matching point"
+        xr = secant(self.__Vxr, 1.0 , guess=guess)
+        return xr
 
 def check_sim(l):
     """check the sim list"""
