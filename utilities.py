@@ -37,6 +37,8 @@ from re_templates import *
 import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
 from scitools.all import *
+from matplotlib.font_manager import FontProperties as FP
+from pylab import plt, Line2D, subplots, rcParams
 
 def numerov1(q,s,x0,y0,y1,npoints,step,qarg={},sarg={}):
     """
@@ -226,7 +228,16 @@ class RungeKutta:
        self.__result = y
        return
 
-class QMOscillator:
+class Graph:
+    "graph environment"
+    fs = 20
+    font0 = FP()
+    font1 = font0.copy()
+    font1.set_family('sans-serif')
+    font1.set_weight('bold')
+    marker = 'o'
+    
+class QMOscillator(Graph):
     """Solver for 1D QM oscillator confined to a given potential.
 
 Usage:
@@ -234,6 +245,8 @@ Usage:
 wfn = QMOscillator()
 wfn.set(self,V,x0,xn,np=500,y1=0.01,match_center=False,**kwargs)
 e,x,y = wfn.eval(<your guess for eigenvalue>)
+e,x,y = wfn.get()
+wfn.plot(name='fig.eps')
 
 Notes:
 
@@ -254,6 +267,7 @@ Returned by eval():
 e   - eigenvalue for the solution
 x,y - argument and wave-function values for these arguments
 """
+    
     def __init__(self,**kwargs):
         if kwargs: self.set(**kwargs)
         return
@@ -264,28 +278,60 @@ x,y - argument and wave-function values for these arguments
         "set the potential function and other parameters"
         self.__V = V
         self.__Vxr = lambda xr,guess: self.__V(xr,**kwargs) - guess
-        self.__x0 = x0
-        self.__xn = xn
+        self.__x0 = float64(x0)
+        self.__xn = float64(xn)
         self.__y0 = 0.000
-        self.__y1 = y1
+        self.__y1 = float64(y1)
         self.__np = np
         self.__step = (xn-x0)/np
         self.__x = linspace(x0,xn,np+1)
         self.__v = V(self.__x,**kwargs)
         self.__match_center = match_center
+        self.__fig1 = None
         return
 
     def eval(self,guess):
         "calculate eigenvalue and eigenfunction"
         xr = self._find_xr(guess)
-        eps = secant(self._eigen,guess,xr=xr)
-        wfn = concatenate([self.__yl[:-2],self.__yr[1:]])
+        self.__eps = secant(self._eigen,guess,xr=xr)
         # normalize the wavefunction
-        prob = wfn*wfn
+        prob = self.__wfn*self.__wfn
         Nsq  = simpson(prob,self.__step)
-        wfn /= math.sqrt(Nsq)
-        return eps, self.__x, wfn
+        self.__wfn /= math.sqrt(Nsq)
+        return self.__eps, self.__x, self.__wfn
+    
+    def get(self):
+        "return the final quantities"
+        return self.__eps, self.__x, self.__wfn
 
+    def plot(self,name='fig.eps'):
+        "plot the wavefunction"
+        #if self.__fig1 is None:
+        self.__fig1 = pylab.figure(figsize=(12,9))
+        axes11 = self.__fig1.add_subplot(111)
+        axes12 = axes11.twinx()
+        
+        axes11.set_xlabel('$x$',fontsize=self.fs)
+        axes11.set_ylabel('$V(x)$',fontsize=self.fs)
+        axes12.set_ylabel('$\\psi(x)$',fontsize=self.fs)
+        
+        axes11.plot(self.__x,self.__v,'-',color='gray',
+                    label='$V(x)$',lw=1)
+        axes11.legend(loc=1,numpoints=1,
+                      prop={'size':20}).draw_frame(False)
+                      
+        axes12.plot(self.__x,self.__wfn,'-',color='green',
+                    label='$\\epsilon=%4.5f$'%self.__eps,lw=2)
+        axes12.legend(loc=2,numpoints=1,
+                      prop={'size':20}).draw_frame(False)
+                      
+        plt.xticks(fontsize=10, fontproperties=self.font1)
+        plt.yticks(fontsize=10, fontproperties=self.font1)
+        plt.draw()
+        plt.show()
+        plt.savefig(name)
+        return
+    
     # protected
 
     def _eigen(self,guess,xr):
@@ -324,12 +370,14 @@ x,y - argument and wave-function values for these arguments
         # store the wave functions
         self.__yl = yl
         self.__yr = yr
+        self.__wfn = concatenate([yl[:-2],yr[1:]])
         return f
 
     def _find_xr(self,guess):
         "find the matching point"
         xr = secant(self.__Vxr, 1.0 , guess=guess)
         return xr
+    
 
 def check_sim(l):
     """check the sim list"""
