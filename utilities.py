@@ -81,7 +81,7 @@ step - delta x for numerical integration
     d   = H * (S[2:] + 10.0*S[1:-1] + S[:-2])
     # proceed the integration
     for i in xrange(2,npoints):
-        y[i] = (d[i-1] + y[i-1]*ci[i-1] - y[i-2]*ci1[i-2]) / ci1[i]
+        y[i] = (d[i-2] + y[i-1]*ci[i-1] - y[i-2]*ci1[i-2]) / ci1[i]
     return x,y
 
 def numerov2(q,x0,y0,y1,npoints,step,**qarg):
