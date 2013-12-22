@@ -1,6 +1,6 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
-      SUBROUTINE SDMTPM(RDMA,CHG,DIP,QAD,OCT,
+      SUBROUTINE SDMTPM(RDMA,NDMA,CHG,DIP,QAD,OCT,
      *                  CHGM,DIPM,QADM,OCTM,
      *                  REDMSS,FREQ,GIJJ,
      *                  SHIFT,A,B,C,D,E,
@@ -64,7 +64,7 @@ C
          GIVEC(MM) = GIJJ(MM) / (REDMSS(MM) * FMM * FMM )
       ENDDO
 C
-      TMW = TWO * REDMSS(MODE) * FREQ(MODE)
+      TMW = - TWO * REDMSS(MODE) * FREQ(MODE)
 C
 C     --- LOOP OVER SURROUNDING MOLECULE ---
 C
