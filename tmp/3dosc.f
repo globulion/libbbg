@@ -228,7 +228,7 @@ C
       IF (IBLOCK.LE.NEQUIL) THEN
           ET = HALF*(ET+EG)
       ELSE
-          ET = ET + HALF*(EG-ET)/NBDONE
+          ET = ET + HALF*(EBLOCK-ET)/NBDONE
       ENDIF
       IF (IBLOCK.GT.NEQUIL) THEN
           EAVE = EAVE + EBLOCK

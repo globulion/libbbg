@@ -1,5 +1,299 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
+      SUBROUTINE SDMTPM(RDMA,CHG,DIP,QAD,OCT,
+     *                  CHGM,DIPM,QADM,OCTM,
+     *                  REDMSS,FREQ,GIJJ,
+     *                  SHIFT,A,B,C,D,E,
+     *                  NMOLS,NDMAS,NDMAC,NMODES,MODE,LWRITE)
+C
+C -----------------------------------------------------------------------------
+C
+C           ELECTROSTATIC FREQUENCY SHIFT FROM DISTRIBUTED MULTIPOLE
+C                   EXPANSION MODEL - CENTRAL MOLECULE MODEL
+C                           MECHANICAL ANHARMONICITY
+C                           WITHOUT CORRECTION TERMS
+C
+C              Bartosz Błasiak                         22 Dec 2013
+C
+C -----------------------------------------------------------------------------
+C
+C   Notes:
+C     The reduced format of tensor storage is used:
+C
+C     CHG(i) .
+C            1
+C     DIP(i) X   Y   Z
+C            1   2   3
+C     QAD(i) XX  YY  ZZ  XY  XZ  YZ
+C            1   2   3   4   5   6
+C     OCT(i) XXX YYY ZZZ XXY XXZ XYY YYZ XZZ YZZ XYZ
+C            1   2   3   4   5   6   7   8   9
+C -----------------------------------------------------------------------------
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION RDMA(NDMAS*3),CHG(NDMAS),DIP(NDMAS*3),QAD(NDMAS*6),
+     &          OCT(NDMAS*10),NDMA(NMOLS),
+     &          CHGM(NMODES*NDMAC),DIPM(NMODES*NDMAC*3),
+     &          QADM(NMODES*NDMAC*6),OCTM(NMODES*NDMAC*10),
+     &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),GIVEC(NMODES)
+      PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
+     &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00)
+      LOGICAL LWRITE
+Cf2py INTENT(OUT) SHIFT,A,B,C,D,E
+C
+      CC = ZERO
+      CD = ZERO
+      DC = ZERO
+      DD = ZERO
+      CQ = ZERO
+      QC = ZERO 
+      CT = ZERO
+      TC = ZERO
+      DQ = ZERO
+      QD = ZERO
+C     
+C     EXTRACT THE FIRST MOLECULE
+C
+      NI = NDMA(1)
+      NI3= NI*3
+      NI6= NI*6
+      NI10=NI*10
+C
+      DO MM=1,NMODES
+         FMM = FREQ(MM)
+         GIVEC(MM) = GIJJ(MM) / (REDMSS(MM) * FMM * FMM )
+      ENDDO
+C
+      TMW = TWO * REDMSS(MODE) * FREQ(MODE)
+C
+C     --- LOOP OVER SURROUNDING MOLECULE ---
+C
+      NMOLJ = NI
+      DO 190 J=2,NMOLS
+         NJ = NDMA(J)
+         NMOLJ = NMOLJ + NJ
+         DO N=1,NJ
+            NJX0 =   (NMOLJ-NJ) +    N       
+            NJX3 = 3*(NMOLJ-NJ) + 3*(N-1) + 1
+            NJX6 = 6*(NMOLJ-NJ) + 6*(N-1) + 1
+            NJX10=10*(NMOLJ-NJ) +10*(N-1) + 1
+C                                                     
+            NJY3 = NJX3 + 1
+            NJZ3 = NJY3 + 1
+C                                                     
+C           UNPACK FOR MOLECULE J
+C                                                     
+            CJ = CHG(NJX0)
+            DJX= DIP(NJX3)
+            DJY= DIP(NJY3)
+            DJZ= DIP(NJZ3)
+            QJXX = QAD(NJX6  )
+            QJYY = QAD(NJX6+1)
+            QJZZ = QAD(NJX6+2)
+            QJXY = QAD(NJX6+3)
+            QJXZ = QAD(NJX6+4)
+            QJYZ = QAD(NJX6+5)
+            OJXXX = OCT(NJX10  )
+            OJYYY = OCT(NJX10+1)
+            OJZZZ = OCT(NJX10+2)
+            OJXXY = OCT(NJX10+3)
+            OJXXZ = OCT(NJX10+4)
+            OJXYY = OCT(NJX10+5)
+            OJYYZ = OCT(NJX10+6)
+            OJXZZ = OCT(NJX10+7)
+            OJYZZ = OCT(NJX10+8)
+            OJXYZ = OCT(NJX10+9)
+C
+C           --- ITERATE OVER CENTRAL MOLECULE I
+C
+            DO M=1,NI             
+               NIX3 = 3*(M-1) + 1
+               NIY3 = NIX3 + 1
+               NIZ3 = NIY3 + 1
+C                                    
+C              UNPACK DISTANCES FOR MOLECULE I
+C                                    
+               RIX = RDMA(NIX3)
+               RIY = RDMA(NIY3)
+               RIZ = RDMA(NIZ3)
+C
+               RX = RDMA(NJX3) - RIX
+               RY = RDMA(NJY3) - RIY
+               RZ = RDMA(NJZ3) - RIZ
+C                                                     
+               RMN= DSQRT(RX*RX+RY*RY+RZ*RZ)
+               RMN3 = ONE/(RMN*RMN*RMN)
+               RMN5 = RMN3/(RMN*RMN)
+               RMN7 = RMN5/(RMN*RMN)
+C
+C              --- ITERATE OVER NORMAL COORDINATES OF MOLECULE I ---
+C
+               DO MM=1,NMODES
+                  NIXM0 = NI  *(MM-1) +    M
+                  NIXM3 = NI3 *(MM-1) + 3*(M-1) + 1
+                  NIXM6 = NI6 *(MM-1) + 6*(M-1) + 1
+                  NIXM10= NI10*(MM-1) +10*(M-1) + 1
+C
+                  NIYM3 = NIXM3 + 1
+                  NIZM3 = NIYM3 + 1
+C
+                  GIVECM = GIVEC(MM)
+C
+                  CI  = CHGM(NIXM0)       
+                  DIX = DIPM(NIXM3)
+                  DIY = DIPM(NIYM3)
+                  DIZ = DIPM(NIZM3)
+                  QIXX = QADM(NIXM6  )
+                  QIYY = QADM(NIXM6+1)
+                  QIZZ = QADM(NIXM6+2)
+                  QIXY = QADM(NIXM6+3)
+                  QIXZ = QADM(NIXM6+4)
+                  QIYZ = QADM(NIXM6+5)
+                  OIXXX = OCTM(NIXM10  )
+                  OIYYY = OCTM(NIXM10+1)
+                  OIZZZ = OCTM(NIXM10+2)
+                  OIXXY = OCTM(NIXM10+3)
+                  OIXXZ = OCTM(NIXM10+4)
+                  OIXYY = OCTM(NIXM10+5)
+                  OIYYZ = OCTM(NIXM10+6)
+                  OIXZZ = OCTM(NIXM10+7)
+                  OIYZZ = OCTM(NIXM10+8)
+                  OIXYZ = OCTM(NIXM10+9)
+C                                                     
+C                 TENSORDOTS                                 
+C                                                           
+                  S1 = -(DJX*RX+DJY*RY+DJZ*RZ)
+                  S2 =  (DIX*RX+DIY*RY+DIZ*RZ)
+C                                                           
+                  S3 =  (DIX*DJX+DIY*DJY+DIZ*DJZ)
+                  S4 =   S1 * S2
+C                                                           
+                  S5 = (QJXX * RX * RX       +  
+     &                  QJXY * RX * RY * TWO +  
+     &                  QJXZ * RX * RZ * TWO +  
+     &                  QJYY * RY * RY       +  
+     &                  QJYZ * RY * RZ * TWO +  
+     &                  QJZZ * RZ * RZ)
+C                                                           
+                  S6 = (QIXX * RX * RX       +  
+     &                  QIXY * RX * RY * TWO +  
+     &                  QIXZ * RX * RZ * TWO +  
+     &                  QIYY * RY * RY       +  
+     &                  QIYZ * RY * RZ * TWO +  
+     &                  QIZZ * RZ * RZ)
+C                                                           
+                  S7 =-(QJXX * DIX * RX +  
+     &                  QJXY * DIX * RY +
+     &                  QJXZ * DIX * RZ +
+     &                  QJXY * DIY * RX +
+     &                  QJYY * DIY * RY +
+     &                  QJYZ * DIY * RZ +
+     &                  QJXZ * DIZ * RX +
+     &                  QJYZ * DIZ * RY +
+     &                  QJZZ * DIZ * RZ)
+C                                                           
+                  S8 = (QIXX * DJX * RX +  
+     &                  QIXY * DJX * RY +
+     &                  QIXZ * DJX * RZ +
+     &                  QIXY * DJY * RX +
+     &                  QIYY * DJY * RY +
+     &                  QIYZ * DJY * RZ +
+     &                  QIXZ * DJZ * RX +
+     &                  QIYZ * DJZ * RY +
+     &                  QIZZ * DJZ * RZ)
+C                                                            
+                  S9 =  S5 * S2
+                  S10=  S6 * S1
+C                                                     
+                  RXRXRX = RX * RX * RX                            
+                  RXRXRY = RX * RX * RY * THREE
+                  RXRYRY = RX * RY * RY * THREE
+                  RYRYRY = RY * RY * RY
+                  RYRYRZ = RY * RY * RZ * THREE
+                  RYRZRZ = RY * RZ * RZ * THREE
+                  RZRZRZ = RZ * RZ * RZ
+                  RXRYRZ = RX * RY * RZ * SIX
+                  RXRXRZ = RX * RX * RZ * THREE
+                  RXRZRZ = RX * RZ * RZ * THREE
+C                                                           
+                  S11=-(OJXXX * RXRXRX +
+     &                  OJXXY * RXRXRY +
+     &                  OJXYY * RXRYRY +
+     &                  OJYYY * RYRYRY +
+     &                  OJYYZ * RYRYRZ +
+     &                  OJYZZ * RYRZRZ +
+     &                  OJZZZ * RZRZRZ +
+     &                  OJXYZ * RXRYRZ +
+     &                  OJXXZ * RXRXRZ +
+     &                  OJXZZ * RXRZRZ)
+C                                                           
+                  S12=  OIXXX * RXRXRX +
+     &                  OIXXY * RXRXRY +
+     &                  OIXYY * RXRYRY +
+     &                  OIYYY * RYRYRY +
+     &                  OIYYZ * RYRYRZ +
+     &                  OIYZZ * RYRZRZ +
+     &                  OIZZZ * RZRZRZ +
+     &                  OIXYZ * RXRYRZ +
+     &                  OIXXZ * RXRXRZ +
+     &                  OIXZZ * RXRZRZ 
+C                                                           
+C                 ACCUMULATE THE TERMS
+C                                                           
+                  CC = CC + CI * CJ / RMN * GIVECM
+                  CD = CD + S1 * CI * RMN3 * GIVECM
+                  DC = DC + S2 * CJ * RMN3 * GIVECM
+                  CQ = CQ + S5 * CI * RMN5 * GIVECM
+                  QC = QC + S6 * CJ * RMN5 * GIVECM
+                  CT = CT + S11 * CI * RMN7 * GIVECM
+                  TC = TC + S12 * CJ * RMN7 * GIVECM
+                  DD = DD + (S3 * RMN3 + THREE * S4 * RMN5) * GIVECM
+                  DQ = DQ + (TWO * S7 * RMN5 + FIVE * S9  * RMN7 ) 
+     &                                  * GIVECM
+                  QD = QD + (TWO * S8 * RMN5 + FIVE * S10 * RMN7 ) 
+     &                                  * GIVECM
+            ENDDO
+         ENDDO
+      ENDDO
+C
+ 190  CONTINUE
+C
+      CC = CC / TMW
+      CD = CD / TMW
+      DC = DC / TMW
+      CQ = CQ / TMW
+      QC = QC / TMW
+      CT = CT / TMW
+      TC = TC / TMW
+      DD = DD / TMW
+      DQ = DQ / TMW
+      QD = QD / TMW
+C
+      CCTOT = CC
+      CDTOT = CD + DC
+      DDTOT = DD
+      CQTOT = CQ + QC
+      CTTOT = CT + TC
+      DQTOT = DQ + QD
+C
+      A = CCTOT
+      B = A + CDTOT 
+      C = B + CQTOT + DDTOT
+      D = C + CTTOT + DQTOT
+      E = ZERO
+C
+      SHIFT = D
+C
+      IF (LWRITE) THEN
+          WRITE(*,91) "CC",CC,"CD",CD,"DC",DC,"CQ",CQ,"QC",QC,
+     &                "CO",CT,"OC",TC,"DD",DD,"DQ",DQ,"QD",QD
+      ENDIF
+ 91   FORMAT(10(3X,A," = ",F20.16,/))
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
       SUBROUTINE EDMTPC(RDMA,CHG,DIP,QAD,OCT,NDMA,
      *                  EINT,A,B,C,D,E,NMOLS,NDMAS,LWRITE)
 C
@@ -8,7 +302,7 @@ C
 C           ELECTROSTATIC INTERACTION ENERGY FROM DISTRIBUTED MULTIPOLE
 C                   EXPANSION MODEL - CENTRAL MOLECULE MODEL
 C
-C              Bartosz Blasiak                         14 Nov 2013
+C              Bartosz Błasiak                         14 Nov 2013
 C
 C -----------------------------------------------------------------------------
 C
