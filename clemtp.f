@@ -1,5 +1,416 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
+      SUBROUTINE DMTCOR(RDMA,NDMA,CHG,DIP,QAD,OCT,
+     *                  CHGM,DIPM,QADM,OCTM,
+     *                  REDMSS,FREQ,GIJJ,LVEC,
+     *                  SHIFT,RF2,RF3,RF4,RK2,RK3,RK4,B,C,D,
+     *                  NMOLS,NDMAS,NDMAC,NMODES,MODE,LWRITE)
+C
+C -----------------------------------------------------------------------------
+C
+C           ELECTROSTATIC FREQUENCY SHIFT FROM DISTRIBUTED MULTIPOLE
+C                   EXPANSION MODEL - CENTRAL MOLECULE MODEL
+C                            CORRECTION TERMS
+C
+C              Bartosz Błasiak                         31 Dec 2013
+C
+C -----------------------------------------------------------------------------
+C
+C   Notes:
+C     The reduced format of tensor storage is used:
+C
+C     CHG(i) .
+C            1
+C     DIP(i) X   Y   Z
+C            1   2   3
+C     QAD(i) XX  YY  ZZ  XY  XZ  YZ
+C            1   2   3   4   5   6
+C     OCT(i) XXX YYY ZZZ XXY XXZ XYY YYZ XZZ YZZ XYZ
+C            1   2   3   4   5   6   7   8   9
+C -----------------------------------------------------------------------------
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION RDMA(NDMAS*3),CHG(NDMAS),DIP(NDMAS*3),QAD(NDMAS*6),
+     &          OCT(NDMAS*10),NDMA(NMOLS),
+     &          CHGM(NMODES*NDMAC),DIPM(NMODES*NDMAC*3),
+     &          QADM(NMODES*NDMAC*6),OCTM(NMODES*NDMAC*10),
+     &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),GIVEC(NMODES),
+     &          LVEC(NMODES*NDMAC*3)
+      PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
+     &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,
+     &           TOCMRC=219474.63067873946D+00)
+      LOGICAL LWRITE
+Cf2py INTENT(OUT) SHIFT,RF2,RF3,RF4,RK2,RK3,RK4,B,C,D
+C
+      RF2 = ZERO
+      RF3 = ZERO
+      RF4 = ZERO
+C
+      RK2 = ZERO
+      RK3 = ZERO
+      RK4 = ZERO
+C
+      MODEM1 = MODE - 1
+C     
+C     EXTRACT THE FIRST MOLECULE
+C
+      NI  = NDMA(1)
+      NI3 = NI*3
+      NI6 = NI*6
+      NI10= NI*10
+C
+      DO MM=1,NMODES
+         FMM = FREQ(MM)
+         GIVEC(MM) = GIJJ(MM) / (REDMSS(MM) * FMM * FMM )
+      ENDDO
+C
+      TMW = - TWO * REDMSS(MODE) * FREQ(MODE)
+C
+C     --- LOOP OVER SURROUNDING MOLECULES ---
+C
+      NMOLJ = NI
+      DO 190 J=2,NMOLS
+         NJ = NDMA(J)
+         NMOLJ = NMOLJ + NJ
+         DO N=1,NJ
+            NJX0 =   (NMOLJ-NJ) +    N       
+            NJX3 = 3*(NMOLJ-NJ) + 3*(N-1) + 1
+            NJX6 = 6*(NMOLJ-NJ) + 6*(N-1) + 1
+            NJX10=10*(NMOLJ-NJ) +10*(N-1) + 1
+C                                                     
+            NJY3 = NJX3 + 1
+            NJZ3 = NJY3 + 1
+C                                                     
+C           UNPACK FOR MOLECULE J
+C                                                     
+            CJ = CHG(NJX0)
+C
+            DJX= DIP(NJX3)
+            DJY= DIP(NJY3)
+            DJZ= DIP(NJZ3)
+C
+            QJXX = QAD(NJX6  )
+            QJYY = QAD(NJX6+1)
+            QJZZ = QAD(NJX6+2)
+            QJXY = QAD(NJX6+3)
+            QJXZ = QAD(NJX6+4)
+            QJYZ = QAD(NJX6+5)
+C
+            OJXXX = OCT(NJX10  )
+            OJYYY = OCT(NJX10+1)
+            OJZZZ = OCT(NJX10+2)
+            OJXXY = OCT(NJX10+3)
+            OJXXZ = OCT(NJX10+4)
+            OJXYY = OCT(NJX10+5)
+            OJYYZ = OCT(NJX10+6)
+            OJXZZ = OCT(NJX10+7)
+            OJYZZ = OCT(NJX10+8)
+            OJXYZ = OCT(NJX10+9)
+C
+C           --- ITERATE OVER CENTRAL MOLECULE I
+C
+            DO M=1,NI
+               NIX0 =    M
+               NIX3 = 3*(M-1) + 1
+               NIX6 = 6*(M-1) + 1
+               NIX10=10*(M-1) + 1
+C
+               NIY3 = NIX3 + 1
+               NIZ3 = NIY3 + 1
+C
+C              UNPACK DISTANCES FOR MOLECULE I
+C
+               RIX = RDMA(NIX3)
+               RIY = RDMA(NIY3)
+               RIZ = RDMA(NIZ3)
+C
+               RX = RIX - RDMA(NJX3)
+               RY = RIY - RDMA(NJY3)
+               RZ = RIZ - RDMA(NJZ3)
+C
+               RMN  = DSQRT(RX*RX+RY*RY+RZ*RZ)
+               RMN3 = ONE/(RMN*RMN*RMN)
+               RMN5 = RMN3/(RMN*RMN)
+               RMN7 = RMN5/(RMN*RMN)
+C
+C              EXTRACT DMA OF CENTRAL MOLECULE
+C
+               CI  = CHG(NIX0)
+C
+               DIX = DIP(NIX3)
+               DIY = DIP(NIY3)
+               DIZ = DIP(NIZ3)
+C
+               QIXX = QAD(NIX6  )
+               QIYY = QAD(NIX6+1)
+               QIZZ = QAD(NIX6+2)
+               QIXY = QAD(NIX6+3)
+               QIXZ = QAD(NIX6+4)
+               QIYZ = QAD(NIX6+5)
+C
+               OIXXX = OCT(NIX10  )
+               OIYYY = OCT(NIX10+1)
+               OIZZZ = OCT(NIX10+2)
+               OIXXY = OCT(NIX10+3)
+               OIXXZ = OCT(NIX10+4)
+               OIXYY = OCT(NIX10+5)
+               OIYYZ = OCT(NIX10+6)
+               OIXZZ = OCT(NIX10+7)
+               OIYZZ = OCT(NIX10+8)
+               OIXYZ = OCT(NIX10+9)
+C
+C              EXTRACT FIRST DERIVATIVES OF DMA WRT MODE
+C
+               NIXM0 = NI  *MODEM1 +    M
+               NIXM3 = NI3 *MODEM1 + 3*(M-1) + 1
+               NIXM6 = NI6 *MODEM1 + 6*(M-1) + 1
+               NIXM10= NI10*MODEM1 +10*(M-1) + 1
+C
+               NIYM3 = NIXM3 + 1
+               NIZM3 = NIYM3 + 1
+C
+               CI1  = CHGM(NIXM0)
+C
+               DIX1 = DIPM(NIXM3)
+               DIY1 = DIPM(NIYM3)
+               DIZ1 = DIPM(NIZM3)
+C
+               QIXX1 = QADM(NIXM6  )
+               QIYY1 = QADM(NIXM6+1)
+               QIZZ1 = QADM(NIXM6+2)
+               QIXY1 = QADM(NIXM6+3)
+               QIXZ1 = QADM(NIXM6+4)
+               QIYZ1 = QADM(NIXM6+5)
+C
+               OIXXX1 = OCTM(NIXM10  )
+               OIYYY1 = OCTM(NIXM10+1)
+               OIZZZ1 = OCTM(NIXM10+2)
+               OIXXY1 = OCTM(NIXM10+3)
+               OIXXZ1 = OCTM(NIXM10+4)
+               OIXYY1 = OCTM(NIXM10+5)
+               OIYYZ1 = OCTM(NIXM10+6)
+               OIXZZ1 = OCTM(NIXM10+7)
+               OIYZZ1 = OCTM(NIXM10+8)
+               OIXYZ1 = OCTM(NIXM10+9)
+C
+C              ELECTRONIC ANAHARMONICITY CORRECTION TERMS
+C
+               LX = LVEC(NIXM3)
+               LY = LVEC(NIYM3)
+               LZ = LVEC(NIZM3)
+C
+               S1 =   RX*LX +   RY*LY +   RZ*LZ
+               S2 =  DJX*LX +  DJY*LY +  DJZ*LZ
+               S3 =  DJX*RX +  DJY*RY +  DJZ*RZ
+               S4 =   LX*LX +   LY*LY +   LZ*LZ
+               S5 =  DIX*LX +  DIY*LY +  DIZ*LZ
+               S6 =  DIX*RX +  DIY*RY +  DIZ*RZ
+               S7 =  DIX*DJX+  DIY*DJY+  DIZ*DJZ
+               S8 = DIX1*LX + DIY1*LY + DIZ1*LZ
+               S9 = DIX1*RX + DIY1*RY + DIZ1*RZ
+               S10= DIX1*DJX+ DIY1*DJY+ DIZ1*DJZ
+C
+               S11= (QJXX * RX * RX       +  
+     &               QJXY * RX * RY * TWO +  
+     &               QJXZ * RX * RZ * TWO +  
+     &               QJYY * RY * RY       +  
+     &               QJYZ * RY * RZ * TWO +  
+     &               QJZZ * RZ * RZ)
+C
+               S14= (QIXX * RX * RX       +  
+     &               QIXY * RX * RY * TWO +  
+     &               QIXZ * RX * RZ * TWO +  
+     &               QIYY * RY * RY       +  
+     &               QIYZ * RY * RZ * TWO +  
+     &               QIZZ * RZ * RZ)
+C
+               S12=  QJXX * LX * RX +  
+     &               QJXY * LX * RY +
+     &               QJXZ * LX * RZ +
+     &               QJXY * LY * RX +
+     &               QJYY * LY * RY +
+     &               QJYZ * LY * RZ +
+     &               QJXZ * LZ * RX +
+     &               QJYZ * LZ * RY +
+     &               QJZZ * LZ * RZ 
+C
+               S13=  QIXX * LX * RX +  
+     &               QIXY * LX * RY +
+     &               QIXZ * LX * RZ +
+     &               QIXY * LY * RX +
+     &               QIYY * LY * RY +
+     &               QIYZ * LY * RZ +
+     &               QIXZ * LZ * RX +
+     &               QIYZ * LZ * RY +
+     &               QIZZ * LZ * RZ 
+C
+               S15= (QIXX1 * RX * RX       +  
+     &               QIXY1 * RX * RY * TWO +  
+     &               QIXZ1 * RX * RZ * TWO +  
+     &               QIYY1 * RY * RY       +  
+     &               QIYZ1 * RY * RZ * TWO +  
+     &               QIZZ1 * RZ * RZ)
+C
+               S16=  QIXX1 * LX * RX +  
+     &               QIXY1 * LX * RY +
+     &               QIXZ1 * LX * RZ +
+     &               QIXY1 * LY * RX +
+     &               QIYY1 * LY * RY +
+     &               QIYZ1 * LY * RZ +
+     &               QIXZ1 * LZ * RX +
+     &               QIYZ1 * LZ * RY +
+     &               QIZZ1 * LZ * RZ 
+C
+C              ACCUMULATE THE TERMS
+C
+               RK2 = RK2   - 2.00D+00 * CJ * CI1 * S1 * RMN3
+C
+               RK3 = RK3 + ( 2.00D+00 * CI1 * S2 - CI * CJ * S4 
+     &                     - 2.00D+00 * CJ * S8 ) * RMN3
+C
+               RK3 = RK3 + ( 3.00D+00 * CI * CJ * S1 
+     &                     - 6.00D+00 * CI1 * S1 * S3
+     &                     + 6.00D+00 * CJ * S1 * S9 ) * RMN5
+C
+               RK4 = RK4 + ( 4.00D+00 * CI1 * S12
+     &                     + 4.00D+00 * CJ * S16 
+     &                     - 6.00D+00 * ( S9*S2 + S1*S10 + S8*S3 )
+     &                     - 3.00D+00 * CI * ( 2.00D+00 * S1*S2 + S4*S3)
+     &                     + 3.00D+00 * CJ * ( 2.00D+00 * S1*S5 + S4*S6)
+     &                     ) * RMN5
+C
+               RK4 = RK4 + (30.00D+00 * S9 * S1 * S3 
+     &                     -10.00D+00 * CI1 * S11 * S1
+     &                     -10.00D+00 * CJ * S15 * S1
+     &                     +15.00D+00 * CI * S1 * S1 * S3
+     &                     -15.00D+00 * CJ * S1 * S1 * S6 ) * RMN7
+C
+C              --- ITERATE OVER NORMAL COORDINATES OF MOLECULE I ---
+C
+               DO MM=1,NMODES
+                  NIXM3 = NI3 *(MM-1) + 3*(M-1) + 1
+                  NIYM3 = NIXM3 + 1
+                  NIZM3 = NIYM3 + 1
+C
+                  GIVECM = GIVEC(MM)
+C
+C                 UNPACK EIGENVECTOR ELEMENTS
+C
+                  LX = LVEC(NIXM3)
+                  LY = LVEC(NIYM3)
+                  LZ = LVEC(NIZM3)
+C                                                     
+C                 MECHANICAL ANHARMONICITY CORRECTION TERMS
+C                                                           
+                  S1 =   RX*LX +   RY*LY +   RZ*LZ
+                  S2 =  DJX*LX +  DJY*LY +  DJZ*LZ
+                  S3 =  DJX*RX +  DJY*RY +  DJZ*RZ
+                  S4 =   LX*LX +   LY*LY +   LZ*LZ
+                  S5 =  DIX*LX +  DIY*LY +  DIZ*LZ
+                  S6 =  DIX*RX +  DIY*RY +  DIZ*RZ
+                  S7 =  DIX*DJX+  DIY*DJY+  DIZ*DJZ
+C
+                  S11= (QJXX * RX * RX       +  
+     &                  QJXY * RX * RY * TWO +  
+     &                  QJXZ * RX * RZ * TWO +  
+     &                  QJYY * RY * RY       +  
+     &                  QJYZ * RY * RZ * TWO +  
+     &                  QJZZ * RZ * RZ)
+C                                                           
+                  S14= (QIXX * RX * RX       +  
+     &                  QIXY * RX * RY * TWO +  
+     &                  QIXZ * RX * RZ * TWO +  
+     &                  QIYY * RY * RY       +  
+     &                  QIYZ * RY * RZ * TWO +  
+     &                  QIZZ * RZ * RZ)
+C                                                           
+                  S12=  QJXX * LX * RX +  
+     &                  QJXY * LX * RY +
+     &                  QJXZ * LX * RZ +
+     &                  QJXY * LY * RX +
+     &                  QJYY * LY * RY +
+     &                  QJYZ * LY * RZ +
+     &                  QJXZ * LZ * RX +
+     &                  QJYZ * LZ * RY +
+     &                  QJZZ * LZ * RZ 
+C                                                           
+                  S13=  QIXX * LX * RX +  
+     &                  QIXY * LX * RY +
+     &                  QIXZ * LX * RZ +
+     &                  QIXY * LY * RX +
+     &                  QIYY * LY * RY +
+     &                  QIYZ * LY * RZ +
+     &                  QIXZ * LZ * RX +
+     &                  QIYZ * LZ * RY +
+     &                  QIZZ * LZ * RZ 
+C                                                     
+C                 ACCUMULATE THE TERMS
+C                                                           
+                  RF2 = RF2 - CI * CJ * S1 * RMN3 * GIVECM
+C
+                  RF3 = RF3 + ( CI * S2 - CJ * S5 ) * RMN3 * GIVECM
+C
+                  RF3 = RF3 + ( 3.00D+00 * ( CJ*S1*S6 - CI*S1*S3 )
+     &                        ) * RMN5*GIVECM
+C
+                  RF4 = RF4 + ( 2.00D+00 * ( CJ * S13 + CI * S12 )
+     &                        - 3.00D+00 * ( S6*S2 + S1*S7 + S3*S5 )
+     &                        ) * RMN5 * GIVECM
+C
+                  RF4 = RF4 + (15.00D+00 * S6 * S3 * S1
+     &                        - 5.00D+00 * ( CI*S11*S1 + CJ*S14*S1 )
+     &                        ) * RMN7 * GIVECM
+            ENDDO
+         ENDDO
+      ENDDO
+C
+ 190  CONTINUE
+C
+      RF2 =  RF2/TMW
+      RF3 =  RF3/TMW
+      RF4 =  RF4/TMW
+C
+      RK2 = -RK2/TMW
+      RK3 = -RK3/TMW
+      RK4 = -RK4/TMW
+C
+      A = ZERO
+      B = RF2 + RK2
+      C = B + RF3 + RK3
+      D = C + RF4 + RK4
+      E = ZERO
+C
+      SHIFT = D
+C
+      IF (LWRITE) THEN
+C
+          CRF2 = RF2 * TOCMRC
+          CRF3 = RF3 * TOCMRC
+          CRF4 = RF4 * TOCMRC
+          CRK2 = RK2 * TOCMRC
+          CRK3 = RK3 * TOCMRC
+          CRK4 = RK4 * TOCMRC
+C
+          CB = B * TOCMRC
+          CC = C * TOCMRC
+          CD = D * TOCMRC
+C
+          WRITE(*,9919) CRF2, CRK2, CRF3, CRK3, CRF4, CRK4
+          WRITE(*,9917) CB, CC, CD
+      ENDIF
+C
+ 9919 FORMAT(/,10X,'MA',10X,'EA',/,'R2',8X,D10.2,8X,D10.2,/
+     &                             'R3',8X,D10.2,8X,D10.2,/
+     &                             'R4',8X,D10.2,8X,D10.2,/)
+C
+ 9917 FORMAT(/,' CORRECTIONS TOTAL',/,'B',8X,D10.2,/
+     &                                'C',8X,D10.2,/
+     &                                'D',8X,D10.2,/)
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
       SUBROUTINE SDMTPE(RDMA,NDMA,CHG,DIP,QAD,OCT,
      *                  CHGM,DIPM,QADM,OCTM,
      *                  REDMSS,FREQ,
