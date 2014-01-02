@@ -34,11 +34,11 @@ C
      &          OCT(NDMAS*10),NDMA(NMOLS),
      &          CHGM(NMODES*NDMAC),DIPM(NMODES*NDMAC*3),
      &          QADM(NMODES*NDMAC*6),OCTM(NMODES*NDMAC*10),
-     &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),GIVEC(NMODES),
-     &          LVEC(NMODES*NDMAC*3)
+     &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),GIVEC(NMODES)
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
      &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,
      &           TOCMRC=219474.63067873946D+00)
+      DOUBLE PRECISION LX,LY,LZ,LVEC(NMODES*NDMAC*3)
       LOGICAL LWRITE
 Cf2py INTENT(OUT) SHIFT,RF2,RF3,RF4,RK2,RK3,RK4,B,C,D
 C
@@ -375,7 +375,7 @@ C
       RK4 = -RK4/TMW
 C
       A = ZERO
-      B = RF2 + RK2
+      B = A + RF2 + RK2
       C = B + RF3 + RK3
       D = C + RF4 + RK4
       E = ZERO
@@ -399,9 +399,9 @@ C
           WRITE(*,9917) CB, CC, CD
       ENDIF
 C
- 9919 FORMAT(/,10X,'MA',10X,'EA',/,'R2',8X,D10.2,8X,D10.2,/
-     &                             'R3',8X,D10.2,8X,D10.2,/
-     &                             'R4',8X,D10.2,8X,D10.2,/)
+ 9919 FORMAT(/,14X,'MA',12X,'EA',/,'R2',D14.2,D14.2,/
+     &                             'R3',D14.2,D14.2,/
+     &                             'R4',D14.2,D14.2,/)
 C
  9917 FORMAT(/,' CORRECTIONS TOTAL',/,'B',8X,D10.2,/
      &                                'C',8X,D10.2,/
