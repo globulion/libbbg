@@ -268,7 +268,7 @@ C
                RK3 = RK3 + ( 2.00D+00 * CI1 * S2 - CI * CJ * S4 
      &                     - 2.00D+00 * CJ * S8 ) * RMN3
 C
-               RK3 = RK3 + ( 3.00D+00 * CI * CJ * S1 
+               RK3 = RK3 + ( 3.00D+00 * CI * CJ * S1 * S1
      &                     - 6.00D+00 * CI1 * S1 * S3
      &                     + 6.00D+00 * CJ * S1 * S9 ) * RMN5
 C
