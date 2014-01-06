@@ -399,13 +399,13 @@ C
           WRITE(*,9917) CB, CC, CD
       ENDIF
 C
- 9919 FORMAT(/,14X,'MA',12X,'EA',/,'R2',D14.2,D14.2,/
-     &                             'R3',D14.2,D14.2,/
-     &                             'R4',D14.2,D14.2,/)
+ 9919 FORMAT(/,14X,'MA',12X,'EA',/,'R2',F14.2,F14.2,/
+     &                             'R3',F14.2,F14.2,/
+     &                             'R4',F14.2,F14.2,/)
 C
- 9917 FORMAT(/,' CORRECTIONS TOTAL',/,'B',8X,D10.2,/
-     &                                'C',8X,D10.2,/
-     &                                'D',8X,D10.2,/)
+ 9917 FORMAT(/,' CORRECTIONS TOTAL',/,'B',8X,F10.2,/
+     &                                'C',8X,F10.2,/
+     &                                'D',8X,F10.2,/)
 C
       RETURN
       END
