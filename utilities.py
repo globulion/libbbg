@@ -18,7 +18,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
-         'QMOscillator',]
+         'QMOscillator','ParseDMAFromGamessEfpFile',]
          
 __version__ = '3.2.15'
 
@@ -1938,6 +1938,57 @@ Gamess reads Stone's DMA analysis
          Result.DMA[0] = array(ZerothMoments)
          
          return Result#, array(Structure) * UNITS.AngstromToBohr
+
+def ParseDMAFromGamessEfpFile(f):
+    """parse DMA and their centers from GAMESS *.efp file"""
+    STR = []
+    chg = []
+    dip = []
+    qad = []
+    oct = []
+    d = open(f)
+    l = d.readline()
+    # STRUCTURE
+    while not ("COORDINATES (BOHR)" in l): l = d.readline()
+    l = d.readline()
+    while not l.startswith(' STOP'):
+      STR.append(l.split()[1:4])
+      l = d.readline()
+    STR = array(STR,float64)
+    # MONOPOLES
+    l = d.readline();l = d.readline()
+    while not l.startswith(' STOP'):
+       a,b,c = l.split()
+       chg.append(float64(b)+float64(c))
+       l = d.readline()
+    chg = array(chg,float64)
+    # DIPOLES
+    l = d.readline();l = d.readline()
+    while not l.startswith(' STOP'):
+        dip.append(l.split()[1:])
+        l = d.readline()
+    dip = array(dip,float64)
+    # QUADRUPOLES
+    l = d.readline();l = d.readline()
+    while not l.startswith(' STOP'):
+         q = l.split()[1:-1]
+         l = d.readline()
+         q+= l.split()
+         qad.append(q)
+         l = d.readline()
+    qad = array(qad,float64)
+    # OCTUPOLES
+    l = d.readline();l = d.readline()
+    while not l.startswith(' STOP'):
+         q = l.split()[1:-1]
+         l = d.readline()
+         q+= l.split()[ :-1]
+         l = d.readline()
+         q+= l.split()
+         oct.append(q)
+         l = d.readline()
+    oct = array(oct,float64)
+    return STR, chg, dip, qad, oct
 
 def ParseDistributedPolarizabilitiesFromGamessEfpFile(f):
     """parse distributed polarizabilities and their centers from GAMESS *.efp file"""
