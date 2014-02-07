@@ -613,20 +613,20 @@ C                 OCTUPOLE CONTRIBUTION
 C
                   FX = FX + SEVEN*RIJ9 * (SUM1*RX1 - 
      &                      QNINE*RIJ2*SUM1*RIJRI*RIJX + 
-     &                      THREE*RIJ2*SUM1*RIJX +
-     &                      THREE*RIJ2*RIJRI*VOX) -
+     &                      THREE*SUM2*RIJX +
+     &                      THREE*RIJRI*VOX) -
      &                 SIX*RIJ7*VOX1
 C
                   FY = FY + SEVEN*RIJ9 * (SUM1*RY1 - 
      &                      QNINE*RIJ2*SUM1*RIJRI*RIJY + 
-     &                      THREE*RIJ2*SUM1*RIJY +
-     &                      THREE*RIJ2*RIJRI*VOY) -
+     &                      THREE*SUM2*RIJY +
+     &                      THREE*RIJRI*VOY) -
      &                 SIX*RIJ7*VOY1
 C
                   FZ = FZ + SEVEN*RIJ9 * (SUM1*RZ1 - 
      &                      QNINE*RIJ2*SUM1*RIJRI*RIJZ + 
-     &                      THREE*RIJ2*SUM1*RIJZ +
-     &                      THREE*RIJ2*RIJRI*VOZ) -
+     &                      THREE*SUM2*RIJZ +
+     &                      THREE*RIJRI*VOZ) -
      &                 SIX*RIJ7*VOZ1
 C
 C                 WEIGHT EACH CONTRIBUTION BY MODE COEFFICIENT GRF
@@ -1110,22 +1110,22 @@ C                 OCTUPOLE CONTRIBUTION
 C
                   FX = FX + SEVEN*RJI9 * (SUM1*RLMX - 
      &                      QNINE*RJI2*SUM1*RJIRI*RJIX + 
-     &                      THREE*RJI2*SUM1*RJIX +
-     &                      THREE*RJI2*RJIRI*VOX -
+     &                      THREE*SUM2*RJIX +
+     &                      THREE*RJIRI*VOX -
      &                      SUM3*RJIX ) -
      &                 SIX*RJI7*VOX1 + THREE*RJI7*V1OX
 C
                   FY = FY + SEVEN*RJI9 * (SUM1*RLMY - 
      &                      QNINE*RJI2*SUM1*RJIRI*RJIY + 
-     &                      THREE*RJI2*SUM1*RJIY +
-     &                      THREE*RJI2*RJIRI*VOY -
+     &                      THREE*SUM2*RJIY +
+     &                      THREE*RJIRI*VOY -
      &                      SUM3*RJIY ) -
      &                 SIX*RJI7*VOY1 + THREE*RJI7*V1OY
 C
                   FZ = FZ + SEVEN*RJI9 * (SUM1*RLMZ - 
      &                      QNINE*RJI2*SUM1*RJIRI*RJIZ + 
-     &                      THREE*RJI2*SUM1*RJIZ +
-     &                      THREE*RJI2*RJIRI*VOZ -
+     &                      THREE*SUM2*RJIZ +
+     &                      THREE*RJIRI*VOZ -
      &                      SUM3*RJIZ ) -
      &                 SIX*RJI7*VOZ1 + THREE*RJI7*V1OZ
 C
