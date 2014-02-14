@@ -18,9 +18,9 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
-         'QMOscillator','ParseDMAFromGamessEfpFile',]
+         'QMOscillator','ParseDMAFromGamessEfpFile','dihedral',]
          
-__version__ = '3.2.15'
+__version__ = '3.3.0'
 
 import re, gentcf, orbloc, PyQuante, clemtp, \
        scipy.optimize, scipy.integrate
@@ -29,7 +29,11 @@ from numpy import transpose, zeros, dot, \
                   sqrt, ceil, tensordot, \
                   cross, sum, where    , \
                   concatenate, average , \
-                  exp, linalg, sign
+                  exp, linalg, sign    , \
+                  arctan2
+from math import exp as mexp   ,\
+                 sqrt as msqrt ,\
+                 pi as mPi
 from numpy.linalg import svd, det, norm
 from dma   import DMA
 from units import *
@@ -39,6 +43,28 @@ import copy, os, math
 from scitools.all import *
 from matplotlib.font_manager import FontProperties as FP
 from pylab import plt, Line2D, subplots, rcParams
+
+def dihedral(A,unit='radian'):
+    """Compute dihedral angle n1-n2-n3-n4. 
+Usage: 
+dihedral([4x3 array],<unit='radian' or 'deg'>).
+Provide real atom numbers. The dihedral evaluated by this code gave opposite signs 
+as compared with MOLDEN for a test NMA molecule"""
+    P1 = A[1]-A[0]
+    P2 = A[2]-A[1]
+    P3 = A[3]-A[2]
+    N1 = cross(P1,P2)
+    N2 = cross(P2,P3)
+    N1/= msqrt(sum(N1*N1))
+    N2/= msqrt(sum(N2*N2))
+    P2/= msqrt(sum(P2*P2))
+    M1 = cross(N1,P2)
+    x = sum(N1*N2)
+    y = sum(M1*N2)
+    angle = arctan2(y,x)
+    conv = 180./mPi
+    if unit=='deg':angle*=conv
+    return angle
 
 def numerov1(q,s,x0,y0,y1,npoints,step,qarg={},sarg={}):
     """
