@@ -1251,11 +1251,18 @@ lprint - whether print no of iteration or not after finish
     #
     return tran, vecout
 
-def reorder(P,sim):
+def reorder(P,sim,axis=0):
     """reorders the tensor. <sim> is the list of pairs from 'order' function"""
     P_new = zeros(P.shape,dtype=float64)
-    for i,j in sim:
-        P_new[i-1] = P[j-1]
+    if   axis==0:
+         for i,j in sim:
+             P_new[i-1] = P[j-1]
+    elif axis==1:
+         for i,j in sim:
+             P_new[:,i-1] = P[:,j-1]
+    elif axis==2:
+         for i,j in sim:
+             P_new[:,:,i-1] = P[:,:,j-1]
     return P_new
 
 def order(R,P,start=0,lprint=1):
