@@ -114,7 +114,7 @@ and changing to AU units (frequencies and reduced masses)"""
           for i in range(self.Natoms):
               atoms.append( Atom(line.split()[0]) )
               line = data.readline()
-          #for i in atoms: print i
+          for i in atoms: print i
           return atoms
           
       def HarmonicFrequencies(self):
