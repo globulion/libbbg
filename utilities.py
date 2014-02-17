@@ -1252,7 +1252,9 @@ lprint - whether print no of iteration or not after finish
     return tran, vecout
 
 def reorder(P,sim,axis=0):
-    """reorders the tensor. <sim> is the list of pairs from 'order' function"""
+    """Reorders the tensor according to <axis> (default is 0). 
+<sim> is the list of pairs from 'order' function. 
+In normal numbers (starting from 1...)"""
     P_new = zeros(P.shape,dtype=float64)
     if   axis==0:
          for i,j in sim:
