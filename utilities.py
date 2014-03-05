@@ -43,6 +43,7 @@ import copy, os, math
 from scitools.all import *
 from matplotlib.font_manager import FontProperties as FP
 from pylab import plt, Line2D, subplots, rcParams
+from scitools.numpyutils import seq
 
 def dihedral(A,unit='radian'):
     """Compute dihedral angle n1-n2-n3-n4. 
