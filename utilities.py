@@ -18,7 +18,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
-         'QMOscillator','ParseDMAFromGamessEfpFile','dihedral',]
+         'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',]
          
 __version__ = '3.3.0'
 
@@ -30,7 +30,9 @@ from numpy import transpose, zeros, dot, \
                   cross, sum, where    , \
                   concatenate, average , \
                   exp, linalg, sign    , \
-                  arctan2
+                  arctan2, meshgrid    , \
+                  logical_and, fft     , \
+                  roll, real
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -44,6 +46,8 @@ from scitools.all import *
 from matplotlib.font_manager import FontProperties as FP
 from pylab import plt, Line2D, subplots, rcParams
 from scitools.numpyutils import seq
+from scipy.interpolate import RectBivariateSpline as RBS, \
+                              interp2d as I2D
 
 def dihedral(A,unit='radian'):
     """Compute dihedral angle n1-n2-n3-n4. 
@@ -632,6 +636,277 @@ Represents vibrational analysis tool
             #u[:,i] = self._norm(vec)
             #u[i] = self._norm(vec)
         return U
+    
+class Peak2DIR(UNITS):
+    """
+Represent a 2DIR peak in the spectrum of signals
+
+Usage:
+
+a = Peak(x=<coordsx>,y=<coordsy>,z=<coordsz>,Tw=<waiting time>,
+         t_max=1.0     ,dt=0.008,
+         n_points=2**10,w_cent=1500.0,
+         wx_max=2000.0 ,wx_min=0.0,
+         wy_max=2000.0 ,wy_min=0.0)
+a.set_peak(<n>=1,<func_name>='g')
+a.fit(<parameters>,[method='slsqp',bounds=[],**kwargs])
+a.get_r2()
+a.get_parameters()
+print peak
+
+Notes:
+
+ 1) <x> and <y> are lists or numpy arrays
+ 2) <n> is number of subpeaks subject to extract
+ 3) 'g' - Gaussian distributions (default)
+ 4) <parameters> is the list of lists or tuples
+    of the form:
+
+      [['par1',val1],
+       ['par2',val2],
+           . . .
+       ['parn',valn]]
+
+    Parameter (par) have to be strings 
+    whereas initial values (valn) floats.
+
+    <parameters> depend on a type of function
+    selected. Here I list {parn} names:
+    a) Gaussian 1 peak:
+       A, sigma, x_o
+    b) Gaussian 2 peaks:
+       A_1, sigma_1, x_o1,
+       A_2, sigma_2, x_o2
+       and so on
+"""
+    def __init__(self,x,y,z,Tw,
+                 t_max=1.0,dt=0.008,
+                 n_points=2**10,w_cent=1500.0,
+                 wx_max=2000.0,wx_min=0.0,
+                 wy_max=2000.0,wy_min=0.0):
+        
+        self.ToCmRec = 1.e-12*self.SpeedOfLight*100.0
+        self.FromAngToCmRec = self.ToCmRec*2.*mPi
+        dt *= 2.*mPi
+        ### grids of data
+        self.exp_grid = RBS(y,x,z)
+        self.sim_grid = Grid2D(xmin=0.0,xmax=t_max*2.*mPi,
+                               ymin=0.0,ymax=t_max*2.*mPi,
+                               dx=dt,dy=dt)
+        self.freq  =-fft.fftshift( fft.fftfreq(n_points,
+                                               d=dt*self.ToCmRec) )[::-1] + w_cent
+        
+        ### experimental data
+        self.__kx = where(logical_and(self.freq<wx_max, self.freq>wx_min))[0]
+        self.__ky = where(logical_and(self.freq<wy_max, self.freq>wy_min))[0]
+        self.X = self.freq.copy()[self.__kx]
+        self.Y = self.freq.copy()[self.__ky]
+        self.Z = self.exp_grid(Y,X)
+        self.Z/= self.Z.max()
+        
+        ### memorize important data
+        self.x = x
+        self.y = y
+        self.z = z
+        self.func = None
+        self.init = None
+        self.out  = None
+        self.status =-1
+        self.param  = None
+        self.__func = None
+        self.n      = None
+        self.__n_points = n_points
+        self.__dt = dt
+        self.Tw = Tw
+        self.w_cent = w_cent
+        
+    # public
+    def set_peak(self,n=1,func_name='r'):
+        """set the type of peak"""
+        self.__func = func_name
+        
+        if func_name=='r':
+           if   n==1: self.func = self._r1_no_exch
+           elif n==2: self.func = self._r2_no_exch
+           
+        self.n = n
+    
+    def get_parameters(self):
+        #print " No fitting performed - no parameters."
+        return self.param
+    
+    def get_fit(self):
+        """return the fitted data"""
+        if self.param is None: 
+           #print " No fitting performed - no parameters."
+           return None
+        else:
+           return self.func(**self.args)
+
+    def get_peaks(self):
+        """return all separate peaks"""
+        peaks = []
+        for i in xrange(self.n):
+            if self.__func == 'r':
+               w_01   = self.param[8*i+0]
+               anh    = self.param[8*i+1]
+               delta_1= self.param[8*i+2]
+               delta_2= self.param[8*i+3]
+               tau_1  = self.param[8*i+4]
+               tau_2  = self.param[8*i+5]
+               T1     = self.param[8*i+6]
+               T2     = self.param[8*i+7]
+               peak   = self._r1_no_exch(w_01,anh,delta_1,delta_2,tau_1,tau_2,T1,T2)
+
+            peaks.append(peak)
+        return array(peaks,dtype=float64)
+
+    def get_r2(self):
+        """return R^2 coefficient of fitting"""
+        data_av = average(self.Z)
+        sse = sum((self.func(**self.args)-self.Z)**2)
+        sst = sum((self.Z-data_av)**2)
+        return 1 - sse/sst
+        
+    def fit(self,opts,method='leastsq',disp=1,bounds=[],
+            epsilon=1e-08,pgtol=1e-012,factr=100.0,m=8000,
+            approx_grad=True,fprime=None,maxfun=2000000000,acc=1e-13):
+        """perform fitting using [options] list"""
+        self.__set_param(opts)
+
+        if method=='slsqp':
+           result  = scipy.optimize.fmin_slsqp(self._residsq,
+                                          self.init_list,iter=maxfun,
+                                          acc=acc,disp=2,bounds=bounds,
+                                          args=(opts,),full_output=True)
+           param ,a,b,c,s = result
+           self.status = c
+        #
+        self.param = param
+        self.__update_args(param,opts)
+
+    # protected
+    def _resid(self,params,opts):
+        """residual function for optimization"""
+        self.__update_args(params,opts)
+        return self.Z - self.func(**self.args)
+
+    def _residsq(self,params,opts):
+        """square residual function for optimization"""
+        self.__update_args(params,opts)
+        return sum((self.Z - self.func(**self.args))**2.)
+    
+    ### Response Functions
+
+    def __response(self,t3,t1,
+                   Tw, w_01, mu_01, mu_12, anh, Delta, tau, T1, T2):
+        """3-rd order response function for 3-level system (in time domain)"""
+        w_off = (w_01-self.w_cent) * self.FromAngToCmRec
+        anh  *= self.FromAngToCmRec
+        # di-Kubo line-shape function
+        def g(t):
+            G=0.
+            for i in range(2):
+                G+= tau[i]*Delta[i] * \
+          ( exp(-t/tau[i])*tau[i] - tau[i] + t ) 
+            G += t/T2
+            return G
+        #
+        M = exp(-Tw/T1) * (1.0 + 0.8 * exp(-Tw/10000000.0))
+        RR = 0.0; NR = 0.0
+        
+        mu_01_2= mu_01*mu_01
+        mu_12_2= mu_12*mu_12
+        # --- Rephasing
+        # R1 and R2
+        RR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(-t1+t3))*M*2.0*\
+             exp(-g(t1)+g(Tw)-g(t3)-g(t1+Tw)-g(Tw+t3)+g(t1+Tw+t3))
+        # R3
+        RR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(-t1+t3)-anhn*t3))*Mn*\
+             exp(-g(t1)+g(Tw)-g(t3)-g(t1+Tw)-g(Tw+t3)+g(t1+Tw+t3))
+        # --- Nonrephasing
+        # R4 and R5
+        NR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(t1+t3))*Mn*2.0*\
+             exp(-g(t1)-g(Tw)-g(t3)+g(t1+Tw)+g(Tw+t3)-g(t1+Tw+t3))
+        # R6
+        NR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(t1+t3)-anhn*t3))*Mn*\
+             exp(-g(t1)-g(Tw)-g(t3)+g(t1+Tw)+g(Tw+t3)-g(t1+Tw+t3))
+        #
+        return RR, NR
+
+    def _r1_no_exch(self,w_01,anh,delta_1,delta_2,tau_1,tau_2,T1,T2):
+        """3-rd order response without exchange and coupling"""
+        
+        ### signal in time-domain
+        rr, nr = self.sim_grid.eval(self.__response, 
+                                    # assumed parameters
+                                    Tw=self.Tw, mu_01=1., mu_12=msqrt(2.),
+                                    # optimizing parameters
+                                    w_01=w_01, 
+                                    anh=anh, 
+                                    Delta=array([delta_1,delta_2]), 
+                                    tau=array([tau_1,tau_2]), 
+                                    T1=T1, T2=T2, )
+        
+        ### rephasing and non-rephasing spectras (2D FFT)
+        data_rr_f = fft.fftshift( fft.fft2(rr,s=(self.__n_points,self.__n_points)) )
+        data_nr_f = fft.fftshift( fft.fft2(nr,s=(self.__n_points,self.__n_points)) )
+        data_rr_f = data_rr_f[::-1]
+        data_rr_f = roll(data_rr_f,1,axis=0)
+        
+        ### total signal
+        data_f = real(data_rr_f + data_nr_f)
+        
+        data_f = data_f[self.__kx,:]
+        data_f = data_f[:,self.__ky]
+        data_f/= data_f.max()
+        
+        return data_f
+    
+    # private
+    def __set_param(self,param):
+        args, init_list = self.__make_args(param)
+        self.opts = param
+        self.args = args
+        self.init_list = init_list
+        ### change the unit of frequencies
+        
+
+    def __make_args(self,init):
+        args = dict(init)
+        init_list=[]
+        for opt in init:
+            init_list.append(opt[1])
+        return dict(init), init_list
+
+    def __update_args(self,params,opts):
+        for i in range(len(opts)):
+            self.args[opts[i][0]] = params[i]
+
+    def __repr__(self):
+        """print the data report"""
+        log = "\n"
+        log+= " ====================================================\n"
+        log+= "                  SIGNAL DESCRIPTION\n"
+        log+= " ====================================================\n"
+        d_name = {'r'  :'3-rd order Response without exchange'    ,
+                  'l'  :'3-rd order Response with exchange'       ,
+                  None :'Not assigned'          }
+        log+= '\n'
+        log+= " - Profile: %s\n" % d_name[self.__func]
+        # peak generall overview
+        if self.n is not None:
+           log+= " - Peak No: %i\n" % self.n
+        else:
+           log+= " - Peak No: %s\n" % 'Not assigned'
+        log+= '\n'
+        # peak parameters and analysis
+        if self.param is not None:
+           log+= "   PARAMETERS\n"
+           log+= "\n"
+           p = self.param
+           # ... add here ...
+        return str(log)
     
 class Peak:
     """
@@ -3076,8 +3351,9 @@ class Grid2D:
         
         # make 2D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
-        self.xcoorv = self.xcoor[:, newaxis]
-        self.ycoorv = self.ycoor[newaxis, :]
+        #self.xcoorv = self.xcoor[:, newaxis]
+        #self.ycoorv = self.ycoor[newaxis, :]
+        self.xcoorv, self.ycoorv = meshgrid(self.xcoor,self.ycoor)
     
     def vectorized_eval(self,f):
         """Evaluate vectorized function f at each grid point"""
