@@ -656,10 +656,15 @@ print peak
 
 Notes:
 
- 1) <x> and <y> are lists or numpy arrays
- 2) <n> is number of subpeaks subject to extract
- 3) 'g' - Gaussian distributions (default)
- 4) <parameters> is the list of lists or tuples
+ 1) <x> and <y> are 1D lists or numpy ndarrays
+ 2) <z> is 2D ndarray or a list of 2D ndarrays
+    of length N = len(Tw) (corresponding to each
+    waiting time Tw)
+ 3) <Tw> is single waiting time or the list (ndarray)
+    of waiting times of length N
+ 4) <n> is number of subpeaks subject to extract
+ 5) 'g' - Gaussian distributions (default)
+ 6) <parameters> is the list of lists or tuples
     of the form:
 
       [['par1',val1],
@@ -693,15 +698,15 @@ Notes:
         self.sim_grid = Grid2D(xmin=0.0,xmax=t_max*2.*mPi,
                                ymin=0.0,ymax=t_max*2.*mPi,
                                dx=dt,dy=dt)
-        self.freq  =-fft.fftshift( fft.fftfreq(n_points,
-                                               d=dt*self.ToCmRec) )[::-1] + w_cent
+        self.freq  = fft.fftshift( fft.fftfreq(n_points,
+                                               d=dt*self.ToCmRec) ) + w_cent
         
         ### experimental data
         self.__kx = where(logical_and(self.freq<wx_max, self.freq>wx_min))[0]
         self.__ky = where(logical_and(self.freq<wy_max, self.freq>wy_min))[0]
-        self.X = self.freq.copy()[self.__kx]
-        self.Y = self.freq.copy()[self.__ky]
-        self.Z = self.exp_grid(Y,X)
+        self.X = self.freq.copy()[self.__ky]
+        self.Y = self.freq.copy()[self.__kx]
+        self.Z = self.exp_grid(self.Y,self.X)
         self.Z/= self.Z.max()
         
         ### memorize important data
@@ -768,9 +773,9 @@ Notes:
         sst = sum((self.Z-data_av)**2)
         return 1 - sse/sst
         
-    def fit(self,opts,method='leastsq',disp=1,bounds=[],
-            epsilon=1e-08,pgtol=1e-012,factr=100.0,m=8000,
-            approx_grad=True,fprime=None,maxfun=2000000000,acc=1e-13):
+    def fit(self,opts,method='slsqp',disp=1,bounds=[],ieqcons=[],
+            epsilon=1e-06,pgtol=1e-012,factr=100.0,m=8000,
+            approx_grad=True,fprime=None,maxfun=10000000,acc=1e-6,):
         """perform fitting using [options] list"""
         self.__set_param(opts)
 
@@ -778,7 +783,8 @@ Notes:
            result  = scipy.optimize.fmin_slsqp(self._residsq,
                                           self.init_list,iter=maxfun,
                                           acc=acc,disp=2,bounds=bounds,
-                                          args=(opts,),full_output=True)
+                                          args=(opts,),full_output=True,
+                                          epsilon=epsilon,ieqcons=ieqcons)
            param ,a,b,c,s = result
            self.status = c
         #
@@ -801,7 +807,7 @@ Notes:
     def __response(self,t3,t1,
                    Tw, w_01, mu_01, mu_12, anh, Delta, tau, T1, T2):
         """3-rd order response function for 3-level system (in time domain)"""
-        w_off = (w_01-self.w_cent) * self.FromAngToCmRec
+        w_off = -(w_01-self.w_cent) * self.FromAngToCmRec
         anh  *= self.FromAngToCmRec
         # di-Kubo line-shape function
         def g(t):
@@ -822,14 +828,14 @@ Notes:
         RR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(-t1+t3))*M*2.0*\
              exp(-g(t1)+g(Tw)-g(t3)-g(t1+Tw)-g(Tw+t3)+g(t1+Tw+t3))
         # R3
-        RR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(-t1+t3)-anhn*t3))*Mn*\
+        RR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(-t1+t3)-anh*t3))*M*\
              exp(-g(t1)+g(Tw)-g(t3)-g(t1+Tw)-g(Tw+t3)+g(t1+Tw+t3))
         # --- Nonrephasing
         # R4 and R5
-        NR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(t1+t3))*Mn*2.0*\
+        NR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(t1+t3))*M*2.0*\
              exp(-g(t1)-g(Tw)-g(t3)+g(t1+Tw)+g(Tw+t3)-g(t1+Tw+t3))
         # R6
-        NR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(t1+t3)-anhn*t3))*Mn*\
+        NR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(t1+t3)-anh*t3))*M*\
              exp(-g(t1)-g(Tw)-g(t3)+g(t1+Tw)+g(Tw+t3)-g(t1+Tw+t3))
         #
         return RR, NR
@@ -860,7 +866,7 @@ Notes:
         data_f = data_f[self.__kx,:]
         data_f = data_f[:,self.__ky]
         data_f/= data_f.max()
-        
+
         return data_f
     
     # private
@@ -3355,9 +3361,9 @@ class Grid2D:
         #self.ycoorv = self.ycoor[newaxis, :]
         self.xcoorv, self.ycoorv = meshgrid(self.xcoor,self.ycoor)
     
-    def vectorized_eval(self,f):
+    def eval(self,f,**kwargs):
         """Evaluate vectorized function f at each grid point"""
-        return f(self.xcoorv,self.ycoorv)
+        return f(self.xcoorv,self.ycoorv,**kwargs)
 
 def func_to_method(func, class_, method_name=None): 
     """inserts a method to a given class!:"""
