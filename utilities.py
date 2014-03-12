@@ -704,8 +704,8 @@ Notes:
         ### experimental data
         self.__kx = where(logical_and(self.freq<wx_max, self.freq>wx_min))[0]
         self.__ky = where(logical_and(self.freq<wy_max, self.freq>wy_min))[0]
-        self.X = self.freq.copy()[self.__ky]
-        self.Y = self.freq.copy()[self.__kx]
+        self.X = self.freq.copy()[self.__kx]
+        self.Y = self.freq.copy()[self.__ky]
         self.Z = self.exp_grid(self.Y,self.X)
         self.Z/= self.Z.max()
         
@@ -823,20 +823,27 @@ Notes:
         
         mu_01_2= mu_01*mu_01
         mu_12_2= mu_12*mu_12
+        
+        gt1     = g(t1)
+        gTw     = g(Tw)
+        gt3     = g(t3)
+        gt1Tw   = g(t1+Tw)
+        gTwt3   = g(Tw+t3)
+        gt1Twt3 = g(t1+Tw+t3)
         # --- Rephasing
         # R1 and R2
         RR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(-t1+t3))*M*2.0*\
-             exp(-g(t1)+g(Tw)-g(t3)-g(t1+Tw)-g(Tw+t3)+g(t1+Tw+t3))
+             exp(-gt1+gTw-gt3-gt1Tw-gTwt3+gt1Twt3)
         # R3
         RR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(-t1+t3)-anh*t3))*M*\
-             exp(-g(t1)+g(Tw)-g(t3)-g(t1+Tw)-g(Tw+t3)+g(t1+Tw+t3))
+             exp(-gt1+gTw-gt3-gt1Tw-gTwt3+gt1Twt3)
         # --- Nonrephasing
         # R4 and R5
         NR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(t1+t3))*M*2.0*\
-             exp(-g(t1)-g(Tw)-g(t3)+g(t1+Tw)+g(Tw+t3)-g(t1+Tw+t3))
+             exp(-gt1-gTw-gt3+gt1Tw+gTwt3-gt1Twt3)
         # R6
         NR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(t1+t3)-anh*t3))*M*\
-             exp(-g(t1)-g(Tw)-g(t3)+g(t1+Tw)+g(Tw+t3)-g(t1+Tw+t3))
+             exp(-gt1-gTw-gt3+gt1Tw+gTwt3-gt1Twt3)
         #
         return RR, NR
 
@@ -857,8 +864,9 @@ Notes:
         ### rephasing and non-rephasing spectras (2D FFT)
         data_rr_f = fft.fftshift( fft.fft2(rr,s=(self.__n_points,self.__n_points)) )
         data_nr_f = fft.fftshift( fft.fft2(nr,s=(self.__n_points,self.__n_points)) )
-        data_rr_f = data_rr_f[::-1]
-        data_rr_f = roll(data_rr_f,1,axis=0)
+        data_rr_f = data_rr_f[:,::-1]
+        #data_rr_f = data_rr_f[::-1]
+        data_rr_f = roll(data_rr_f,1,axis=1)
         
         ### total signal
         data_f = real(data_rr_f + data_nr_f)
@@ -866,7 +874,8 @@ Notes:
         data_f = data_f[self.__kx,:]
         data_f = data_f[:,self.__ky]
         data_f/= data_f.max()
-
+        data_f = data_f.transpose()
+        
         return data_f
     
     # private
@@ -3354,7 +3363,35 @@ class Grid2D:
         # store for convenience
         self.dx = dx;  self.dy = dy
         self.nx = self.xcoor.size;  self.ny = self.ycoor.size
+        self.size = (self.nx,self.ny)
+        # make 2D versions of the coordinate arrays
+        # (needed for vectorized  function evaluators)
+        #self.xcoorv = self.xcoor[:, newaxis]
+        #self.ycoorv = self.ycoor[newaxis, :]
+        #self.xcoorv, self.ycoorv = meshgrid(self.xcoor,self.ycoor)
+        self.ycoorv, self.xcoorv = meshgrid(self.ycoor,self.xcoor)
+    
+    def eval(self,f,**kwargs):
+        """Evaluate vectorized function f at each grid point"""
+        return f(self.xcoorv,self.ycoorv,**kwargs)
+    
+class Grid3D:
+    """represents 3D-grid of points"""
+    def __init__(self,
+                 xmin=0, xmax=1, dx=0.5,
+                 ymin=0, ymax=1, dy=0.5,
+                 zmin=0, zmax=1, dz=0.5):
+        # coordinates in each space direction
+        self.xcoor = seq(xmin, xmax, dx)
+        self.ycoor = seq(ymin, ymax, dy)
+        self.zcoor = seq(zmin, zmax, dz)
         
+        # store for convenience
+        self.dx = dx;  self.dy = dy; self.dz = dz
+        self.nx = self.xcoor.size  
+        self.ny = self.ycoor.size
+        self.nz = self.zcoor.size
+        self.size = (self.nx,self.ny,self.nz)
         # make 2D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
         #self.xcoorv = self.xcoor[:, newaxis]
