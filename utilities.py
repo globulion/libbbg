@@ -3380,14 +3380,26 @@ class Grid2D:
         self.shape = (self.nx,self.ny)
         # make 2D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
-        #self.xcoorv = self.xcoor[:, newaxis]
-        #self.ycoorv = self.ycoor[newaxis, :]
-        #self.xcoorv, self.ycoorv = meshgrid(self.xcoor,self.ycoor)
+        ###self.xcoorv = self.xcoor[:, newaxis]
+        ###self.ycoorv = self.ycoor[newaxis, :]
         self.ycoorv, self.xcoorv = meshgrid(self.ycoor,self.xcoor)
     
     def eval(self,f,**kwargs):
         """Evaluate vectorized function f at each grid point"""
         return f(self.xcoorv,self.ycoorv,**kwargs)
+
+    def newaxis(self,axis,val):
+        """change values of axis to new values"""
+        # x-axis
+        if   axis==0:
+             self.xcoorv.fill(1.)
+             self.xcoorv*= val[:,newaxis]
+        # y-axis
+        elif axis==1:
+             self.ycoorv.fill(1.)
+             self.ycoorv*= val[newaxis,:]
+        else: raise IndexError
+        return
     
 class Grid3D:
     """represents 3D-grid of points"""
@@ -3416,6 +3428,23 @@ class Grid3D:
     def eval(self,f,**kwargs):
         """Evaluate vectorized function f at each grid point"""
         return f(self.xcoorv,self.ycoorv,self.zcoorv,**kwargs)
+    
+    def newaxis(self,axis,val):
+        """change values of axis to new values"""
+        # x-axis
+        if   axis==0:
+             self.xcoorv.fill(1.)
+             self.xcoorv*= val[:,newaxis,newaxis]
+        # y-axis
+        elif axis==1:
+             self.ycoorv.fill(1.)
+             self.ycoorv*= val[newaxis,:,newaxis]
+        # z-axis
+        elif axis==2:
+             self.zcoorv.fill(1.)
+             self.zcoorv*= val[newaxis,newaxis,:]
+        else: raise IndexError
+        return
 
 def func_to_method(func, class_, method_name=None): 
     """inserts a method to a given class!:"""
