@@ -10,6 +10,7 @@ beta    = unichr(0x3B2).encode('utf-8')
 gamma   = unichr(0x3B3).encode('utf-8')
 delta   = unichr(0x3B4).encode('utf-8')
 epsilon = unichr(0x3B5).encode('utf-8')
+omega   = unichr(0x3c9).encode('utf-8')
 
 # upper-cases
 Alpha   = unichr(0x391).encode('utf-8')
