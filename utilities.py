@@ -32,7 +32,8 @@ from numpy import transpose, zeros, dot, \
                   exp, linalg, sign    , \
                   arctan2, meshgrid    , \
                   logical_and, fft     , \
-                  roll, real, mgrid
+                  roll, real, mgrid    , \
+                  int64
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -3395,15 +3396,15 @@ class Grid3D:
                  ymin=0, ymax=1, dy=0.5,
                  zmin=0, zmax=1, dz=0.5):
         # coordinates in each space direction
-        nx = (xmax-xmin)/dx + 1
-        ny = (ymax-ymin)/dy + 1
-        nz = (zmax-zmin)/dz + 1
+        nx = int64((xmax-xmin)/dx + 1)
+        ny = int64((ymax-ymin)/dy + 1)
+        nz = int64((zmax-zmin)/dz + 1)
         
         x,y,z = mgrid[0:nx,0:ny,0:nz]
         
         # store for convenience
-        self.dx = dx;  self.dy = dy; self.dz = dz
-        self.nx = nx;  self.ny = ny; self.nz = nz
+        self.dx = dx; self.dy = dy; self.dz = dz
+        self.nx = nx; self.ny = ny; self.nz = nz
         self.shape = (self.nx,self.ny,self.nz)
         
         # make 3D versions of the coordinate arrays
