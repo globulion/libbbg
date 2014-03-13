@@ -32,7 +32,7 @@ from numpy import transpose, zeros, dot, \
                   exp, linalg, sign    , \
                   arctan2, meshgrid    , \
                   logical_and, fft     , \
-                  roll, real
+                  roll, real, mgrid
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -48,6 +48,7 @@ from pylab import plt, Line2D, subplots, rcParams
 from scitools.numpyutils import seq
 from scipy.interpolate import RectBivariateSpline as RBS, \
                               interp2d as I2D
+from letters import greek as let_greek
 
 def dihedral(A,unit='radian'):
     """Compute dihedral angle n1-n2-n3-n4. 
@@ -865,7 +866,6 @@ Notes:
         data_rr_f = fft.fftshift( fft.fft2(rr,s=(self.__n_points,self.__n_points)) )
         data_nr_f = fft.fftshift( fft.fft2(nr,s=(self.__n_points,self.__n_points)) )
         data_rr_f = data_rr_f[:,::-1]
-        #data_rr_f = data_rr_f[::-1]
         data_rr_f = roll(data_rr_f,1,axis=1)
         
         ### total signal
@@ -920,7 +920,20 @@ Notes:
            log+= "   PARAMETERS\n"
            log+= "\n"
            p = self.param
-           # ... add here ...
+           # ... function types ...
+           if self.__func == 'r':
+              l1 = " %6s"%('Peak'.rjust(6))
+              l2 = " %6s"%(('%s'%let_greek.omega+'_01').rjust(6))
+              l3 = " %6s"%(let_greek.Delta.rjust(6))
+              l4 = " %6s"%('Peak'.rjust(6))
+              l5 = " %6s"%('Peak'.rjust(6))
+              l6 = " %6s"%('Peak'.rjust(6))
+              l7 = " %6s"%('Peak'.rjust(6))
+              l8 = " %6s"%('Peak'.rjust(6))
+              l9 = " %6s"%('Peak'.rjust(6))
+           for line in [l1,l2,l3,l4,l5,l6,l7,l8,l9]:
+               log+= line + '\n'
+           
         return str(log)
     
 class Peak:
@@ -3363,7 +3376,7 @@ class Grid2D:
         # store for convenience
         self.dx = dx;  self.dy = dy
         self.nx = self.xcoor.size;  self.ny = self.ycoor.size
-        self.size = (self.nx,self.ny)
+        self.shape = (self.nx,self.ny)
         # make 2D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
         #self.xcoorv = self.xcoor[:, newaxis]
@@ -3382,25 +3395,26 @@ class Grid3D:
                  ymin=0, ymax=1, dy=0.5,
                  zmin=0, zmax=1, dz=0.5):
         # coordinates in each space direction
-        self.xcoor = seq(xmin, xmax, dx)
-        self.ycoor = seq(ymin, ymax, dy)
-        self.zcoor = seq(zmin, zmax, dz)
+        nx = (xmax-xmin)/dx + 1
+        ny = (ymax-ymin)/dy + 1
+        nz = (zmax-zmin)/dz + 1
+        
+        x,y,z = mgrid[0:nx,0:ny,0:nz]
         
         # store for convenience
         self.dx = dx;  self.dy = dy; self.dz = dz
-        self.nx = self.xcoor.size  
-        self.ny = self.ycoor.size
-        self.nz = self.zcoor.size
-        self.size = (self.nx,self.ny,self.nz)
-        # make 2D versions of the coordinate arrays
+        self.nx = nx;  self.ny = ny; self.nz = nz
+        self.shape = (self.nx,self.ny,self.nz)
+        
+        # make 3D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
-        #self.xcoorv = self.xcoor[:, newaxis]
-        #self.ycoorv = self.ycoor[newaxis, :]
-        self.xcoorv, self.ycoorv = meshgrid(self.xcoor,self.ycoor)
-    
+        self.xcoorv = float64(x)*dx + xmin
+        self.ycoorv = float64(y)*dy + ymin
+        self.zcoorv = float64(z)*dz + zmin
+            
     def eval(self,f,**kwargs):
         """Evaluate vectorized function f at each grid point"""
-        return f(self.xcoorv,self.ycoorv,**kwargs)
+        return f(self.xcoorv,self.ycoorv,self.zcoorv,**kwargs)
 
 def func_to_method(func, class_, method_name=None): 
     """inserts a method to a given class!:"""
