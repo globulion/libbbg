@@ -33,7 +33,7 @@ from numpy import transpose, zeros, dot, \
                   arctan2, meshgrid    , \
                   logical_and, fft     , \
                   roll, real, mgrid    , \
-                  int64
+                  int64, amax
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -695,21 +695,47 @@ Notes:
         self.ToCmRec = 1.e-12*self.SpeedOfLight*100.0
         self.FromAngToCmRec = self.ToCmRec*2.*mPi
         dt *= 2.*mPi
-        ### grids of data
-        self.exp_grid = RBS(y,x,z)
-        self.sim_grid = Grid2D(xmin=0.0,xmax=t_max*2.*mPi,
-                               ymin=0.0,ymax=t_max*2.*mPi,
-                               dx=dt,dy=dt)
+        self.__nTw = None
+        
+        ### range of calculation
         self.freq  = fft.fftshift( fft.fftfreq(n_points,
                                                d=dt*self.ToCmRec) ) + w_cent
-        
-        ### experimental data
         self.__kx = where(logical_and(self.freq<wx_max, self.freq>wx_min))[0]
         self.__ky = where(logical_and(self.freq<wy_max, self.freq>wy_min))[0]
         self.X = self.freq.copy()[self.__kx]
         self.Y = self.freq.copy()[self.__ky]
-        self.Z = self.exp_grid(self.Y,self.X)
-        self.Z/= self.Z.max()
+            
+        ### MULTI-WAITING-TIME MODE
+        try:
+            self.__nTw = len(Tw)
+            
+            ### simulation grid
+            self.sim_grid = Grid3D(xmin=0.0,xmax=t_max*2.*mPi,
+                                   ymin=0.0,ymax=t_max*2.*mPi,
+                                   zmin=0  ,zmax=self.__nTw-1,
+                                   dx=dt,dy=dt,dz=1.)
+            self.sim_grid.newaxis(2,Tw)
+            
+            ### experimental data
+            Z = zeros((self.Y.shape[0],self.X.shape[0],self.__nTw),float64)
+            for i in xrange(self.__nTw):
+                exp_grid = RBS(y,x,z[:,:,i])
+                Z[:,:,i] = exp_grid(self.Y,self.X)
+            self.Z = Z
+            self.Z/= self.Z.max()
+            
+        ### SINGLE-WAITING-TIME MODE
+        except TypeError:
+            
+            ### simulation grid
+            self.exp_grid = RBS(y,x,z)
+            self.sim_grid = Grid2D(xmin=0.0,xmax=t_max*2.*mPi,
+                                   ymin=0.0,ymax=t_max*2.*mPi,
+                                   dx=dt,dy=dt)
+        
+            ### experimental data
+            self.Z = self.exp_grid(self.Y,self.X)
+            self.Z/= self.Z.max()
         
         ### memorize important data
         self.x = x
@@ -732,10 +758,14 @@ Notes:
         """set the type of peak"""
         self.__func = func_name
         
-        if func_name=='r':
-           if   n==1: self.func = self._r1_no_exch
-           elif n==2: self.func = self._r2_no_exch
-           
+        if self.__nTw is None:
+           if func_name=='r':
+              if   n==1: self.func = self._r1_no_exch
+              elif n==2: self.func = self._r2_no_exch
+        else:
+           if func_name=='r':
+              if   n==1: self.func = self._r1_no_exch_m
+              elif n==2: self.func = self._r2_no_exch_m
         self.n = n
     
     def get_parameters(self):
@@ -878,7 +908,41 @@ Notes:
         data_f = data_f.transpose()
         
         return data_f
-    
+
+    def _r1_no_exch_m(self,w_01,anh,delta_1,delta_2,tau_1,tau_2,T1,T2):
+        """3-rd order response without exchange and coupling"""
+        
+        ### signal in time-domain
+        rr, nr = self.sim_grid.eval(self.__response, 
+                                    # assumed parameters
+                                    mu_01=1., mu_12=msqrt(2.),
+                                    # optimizing parameters
+                                    w_01=w_01, 
+                                    anh=anh, 
+                                    Delta=array([delta_1,delta_2]), 
+                                    tau=array([tau_1,tau_2]), 
+                                    T1=T1, T2=T2, )
+        
+        ### rephasing and non-rephasing spectras (2D FFT)
+        data_rr_f = fft.fftshift( fft.fft2(rr,axes=(0,1),s=(self.__n_points,self.__n_points)) )
+        data_nr_f = fft.fftshift( fft.fft2(nr,axes=(0,1),s=(self.__n_points,self.__n_points)) )
+        data_rr_f = data_rr_f[:,::-1,:]
+        data_rr_f = roll(data_rr_f,1,axis=1)
+        
+        ### total signal
+        data_f = real(data_rr_f + data_nr_f)
+        
+        data_f = data_f[self.__kx,:,:]
+        data_f = data_f[:,self.__ky,:]
+        #data_f/= data_f[:,:,0].max()
+        #for i in range(7):
+        #    data_f[:,:,i]/=data_f[:,:,i].max()
+        max_vals = amax(amax(data_f,1),0)
+        data_f/= max_vals
+        data_f = transpose(data_f,(1,0,2))
+        
+        return data_f
+        
     # private
     def __set_param(self,param):
         args, init_list = self.__make_args(param)
@@ -934,9 +998,18 @@ Notes:
               l9 = " %6s"%('Peak'.rjust(6))
            for line in [l1,l2,l3,l4,l5,l6,l7,l8,l9]:
                log+= line + '\n'
-           
+           log+= "\n"
+           log+= " ----------------------------------------------------\n"
+           log+= (" R² = %10.6f" % self.get_r2()).center(52)
+           log+= "\n"
+        else:
+           log+= " ----------------------------------------------------\n"
+           log+= " No fitting was performed".center(52)
+           log+= "\n"
+        log+= " ----------------------------------------------------\n"            
         return str(log)
     
+        
 class Peak:
     """
 Represent a peak in the spectrum of signals
