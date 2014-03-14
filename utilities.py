@@ -48,6 +48,7 @@ from matplotlib.font_manager import FontProperties as FP
 from pylab import plt, Line2D, subplots, rcParams
 from scitools.numpyutils import seq
 from scipy.interpolate import RectBivariateSpline as RBS, \
+                              interp1d as I1D,            \
                               interp2d as I2D
 from letters import greek as let_greek
 
@@ -686,16 +687,21 @@ Notes:
        A_2, sigma_2, x_o2
        and so on
 """
-    def __init__(self,x,y,z,Tw,
-                 t_max=1.0,dt=0.008,
-                 n_points=2**10,w_cent=1500.0,
-                 wx_max=2000.0,wx_min=0.0,
-                 wy_max=2000.0,wy_min=0.0):
+    def __init__(self, x, y, z, Tw,
+                 t_max=1.0     , dt=0.008     ,
+                 n_points=2**10, w_cent=1500.0,
+                 wx_max=2000.0 , wx_min=0.0   ,
+                 wy_max=2000.0 , wy_min=0.0   ,):
         
         self.ToCmRec = 1.e-12*self.SpeedOfLight*100.0
         self.FromAngToCmRec = self.ToCmRec*2.*mPi
         dt *= 2.*mPi
         self.__nTw = None
+        
+        self.__t_max_1D    = 60.0
+        self.__n_points_1D = 2**10
+        self.__time_1D     = linspace(0.,self.__t_max_1D,self.__n_points_1D) * 2.*mPi
+        self.__dt_1D       = self.__time_1D[1]-self.__time_1D[0]
         
         ### range of calculation
         self.freq  = fft.fftshift( fft.fftfreq(n_points,
@@ -716,7 +722,6 @@ Notes:
                                    zmin=0  ,zmax=self.__nTw-1,
                                    dx=dt,dy=dt,dz=1.)
             self.sim_grid.newaxis(2,Tw)
-            print self.sim_grid.zcoorv
             
             ### experimental data
             Z = zeros((self.Y.shape[0],self.X.shape[0],self.__nTw),float64)
@@ -771,6 +776,7 @@ Notes:
         self.n = n
     
     def get_parameters(self):
+        """get the parameters of the fitting"""
         #print " No fitting performed - no parameters."
         return self.param
     
@@ -805,24 +811,35 @@ Notes:
         data_av = average(self.Z)
         sse = sum((self.func(**self.args)-self.Z)**2)
         sst = sum((self.Z-data_av)**2)
-        return 1 - sse/sst
+        return 1.0 - sse/sst
     
-    def get_ftir(self):
-        """return FTIR spectrum from simulated parameters"""
-        data = self._spectrum_1D(**self.args)
-        return data
+    def get_ftir(self,normalize=False):
+        """
+Return FTIR spectrum from simulated parameters.
         
-    def fit(self,opts,method='slsqp',disp=1,bounds=[],ieqcons=[],
-            epsilon=1e-06,pgtol=1e-012,factr=100.0,m=8000,
-            approx_grad=True,fprime=None,maxfun=10000000,acc=1e-6,):
+Options:
+
+normalize (default: False)
+"""
+        args = self.args.copy()
+        args.update({'normalize': normalize})
+        freq, ftir = self._spectrum_1D(**args)
+        ftir-= ftir.min()
+        return freq, ftir
+        
+    def fit(self,opts,method='slsqp',bounds=[],ieqcons=[],
+            epsilon=1e-06,acc=1e-6,max_iter=1000,disp=2,
+            ftircons=False,full_output=True):
         """perform fitting using [options] list"""
         self.__set_param(opts)
 
         if method=='slsqp':
+           if ftircons: ieqcons.append( self._ftir_constr )
+           
            result  = scipy.optimize.fmin_slsqp(self._residsq,
-                                          self.init_list,iter=maxfun,
-                                          acc=acc,disp=2,bounds=bounds,
-                                          args=(opts,),full_output=True,
+                                          self.init_list,iter=max_iter,
+                                          acc=acc,disp=disp,bounds=bounds,
+                                          args=(opts,),full_output=full_output,
                                           epsilon=epsilon,ieqcons=ieqcons)
            param ,a,b,c,s = result
            self.status = c
@@ -830,7 +847,76 @@ Notes:
         self.param = param
         self.__update_args(param,opts)
 
+    def set_ftir(self,freq,ftir,w_min,w_max,thresh=0.990):
+        """
+Set the benchmark FTIR data and acceptance threshold. 
 
+Usage:
+
+freq         - <x> frequencies in [cm-1]
+ftir         - <y> experimental FTIR spectrum [dimensionless]
+w_min, w_max - spectral window to compare with simulation
+thresh       - R² threshold for simulation fit to experimental 
+               FTIR spectrum. Default is 0.990
+"""
+        ### set threshold
+        assert 1.0>thresh>0.8, "Threshold has to be between 0.8 and 1.0"
+        self.__ftir_threshold = thresh
+        ### frequency range
+        freq_1d        = fft.fftshift( fft.fftfreq(self.__n_points_1D,
+                                             d=self.__dt_1D*self.ToCmRec) ) + self.w_cent
+        self.__k_1D    = where(logical_and(freq_1d<w_max, freq_1d>w_min))[0]
+        self.__freq_1D = freq_1d.copy()[self.__k_1D]
+        ### interpolate the data
+        f = I1D(freq,ftir)
+        self.__ftir = f(self.__freq_1D)
+        return
+    
+    def set_1D(self,t_max,n_points):
+        """
+Settings for 1D FTIR simulation
+
+Usage:
+
+t_max        - maximum time in [ps] 
+n_points     - number of time points (should be a power of 2).
+               Good value is 2**10
+"""
+        self.__t_max_1D    = t_max
+        self.__n_points_1D = n_points
+        self.__time_1D     = linspace(0.,self.__t_max_1D,self.__n_points_1D) * 2.*mPi
+        self.__dt_1D       = self.__time_1D[1]-self.__time_1D[0]
+        return
+    
+    def _ftir_constr(self, *args):
+        """constraint for FTIR spectrum"""
+        data_av = average(self.__ftir)
+        sim_dat = self._spectrum_1D(**self.args)[1][self.__k_1D]
+        sse = sum((sim_dat-self.__ftir)**2)
+        sst = sum((self.__ftir-data_av)**2)
+        r2 = 1.0 - sse/sst
+        return r2 - self.__ftir_threshold
+    
+    def _spectrum_1D(self, w_01, anh, delta_1, delta_2, tau_1, tau_2, T1, T2,
+                     mu_01=1., normalize=False):
+        #             t_max=None, n_points=None):
+        """1D FTIR spectrum. Returns tuple (x [cm-1], y [intensity])"""
+        #if t_max is None:
+        #    t_max    = self.__t_max_1D
+        #    n_points = self.__n_points_1D
+
+        #time_1D = linspace(0.,t_max,n_points) * 2.*mPi
+        #dt = time_1D[1]-time_1D[0]
+        spectrum = self.__response_1D( self.__time_1D, w_01, mu_01, 
+                                      array([delta_1,delta_2]), 
+                                      array([tau_1,tau_2]), T1, T2)
+        ftir = fft.fftshift(fft.fft(spectrum))
+        freq = fft.fftshift(fft.fftfreq(self.__n_points_1D,d=self.__dt_1D*self.ToCmRec)) + self.w_cent
+        data_f = real(ftir)[::-1]
+        data_f-= data_f.min()
+        if normalize: data_f/=data_f.max()
+        return freq, data_f
+    
     # protected
     def _resid(self,params,opts):
         """residual function for optimization"""
@@ -932,20 +1018,6 @@ Notes:
         data_f = data_f.transpose()
         
         return data_f
-    
-    def _spectrum_1D(self,w_01, delta_1, delta_2, tau_1, tau_2, T1, T2,
-                     mu_01=1.,anh=None,
-                     t_max=60.0,n_points=2**10):
-        """1D FTIR spectrum"""
-        time_1D = linspace(0.,t_max,n_points) * 2.*mPi
-        dt = time_1D[1]-time_1D[0]
-        spectrum = self.__response_1D( time_1D, w_01, mu_01, 
-                                      array([delta_1,delta_2]), 
-                                      array([tau_1,tau_2]), T1, T2)
-        ftir = fft.fftshift(fft.fft(spectrum))
-        freq = fft.fftshift(fft.fftfreq(ftir.size,d=dt*self.ToCmRec)) + self.w_cent
-        data_f = real(ftir)[::-1]
-        return data_f, freq
     
     def _r1_no_exch_m(self,w_01,anh,delta_1,delta_2,tau_1,tau_2,T1,T2):
         """3-rd order response without exchange and coupling"""
