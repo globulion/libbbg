@@ -704,7 +704,8 @@ Notes:
         self.__ky = where(logical_and(self.freq<wy_max, self.freq>wy_min))[0]
         self.X = self.freq.copy()[self.__kx]
         self.Y = self.freq.copy()[self.__ky]
-            
+        
+        
         ### MULTI-WAITING-TIME MODE
         try:
             self.__nTw = len(Tw)
@@ -715,6 +716,7 @@ Notes:
                                    zmin=0  ,zmax=self.__nTw-1,
                                    dx=dt,dy=dt,dz=1.)
             self.sim_grid.newaxis(2,Tw)
+            print self.sim_grid.zcoorv
             
             ### experimental data
             Z = zeros((self.Y.shape[0],self.X.shape[0],self.__nTw),float64)
@@ -804,6 +806,11 @@ Notes:
         sse = sum((self.func(**self.args)-self.Z)**2)
         sst = sum((self.Z-data_av)**2)
         return 1 - sse/sst
+    
+    def get_ftir(self):
+        """return FTIR spectrum from simulated parameters"""
+        data = self._spectrum_1D(**self.args)
+        return data
         
     def fit(self,opts,method='slsqp',disp=1,bounds=[],ieqcons=[],
             epsilon=1e-06,pgtol=1e-012,factr=100.0,m=8000,
@@ -823,6 +830,7 @@ Notes:
         self.param = param
         self.__update_args(param,opts)
 
+
     # protected
     def _resid(self,params,opts):
         """residual function for optimization"""
@@ -835,8 +843,24 @@ Notes:
         return sum((self.Z - self.func(**self.args))**2.)
     
     ### Response Functions
-
-    def __response(self,t3,t1,
+    def __response_1D(self, t, w_01, mu_01, Delta, tau, T1, T2):
+        """First-order response function"""
+        w_off = (w_01-self.w_cent) * self.FromAngToCmRec
+        R = 0.
+        Tor = 1000000.0
+        def g(t):
+            G=0.
+            for i in range(2):
+                G+= tau[i]*Delta[i] * \
+          ( exp(-t/tau[i])*tau[i] - tau[i] + t ) 
+            G += t/T2
+            return G
+        r = mu_01 * mu_01 * exp(-g(t) -t/(Tor*3.) -t/(T1*2.) -1.j*w_off*t)
+        #r*= pop_ratio[n]
+        R+= r       
+        return R 
+    
+    def __response_3D(self,t3,t1,
                    Tw, w_01, mu_01, mu_12, anh, Delta, tau, T1, T2):
         """3-rd order response function for 3-level system (in time domain)"""
         w_off = -(w_01-self.w_cent) * self.FromAngToCmRec
@@ -883,7 +907,7 @@ Notes:
         """3-rd order response without exchange and coupling"""
         
         ### signal in time-domain
-        rr, nr = self.sim_grid.eval(self.__response, 
+        rr, nr = self.sim_grid.eval(self.__response_3D, 
                                     # assumed parameters
                                     Tw=self.Tw, mu_01=1., mu_12=msqrt(2.),
                                     # optimizing parameters
@@ -908,12 +932,26 @@ Notes:
         data_f = data_f.transpose()
         
         return data_f
-
+    
+    def _spectrum_1D(self,w_01, delta_1, delta_2, tau_1, tau_2, T1, T2,
+                     mu_01=1.,anh=None,
+                     t_max=60.0,n_points=2**10):
+        """1D FTIR spectrum"""
+        time_1D = linspace(0.,t_max,n_points) * 2.*mPi
+        dt = time_1D[1]-time_1D[0]
+        spectrum = self.__response_1D( time_1D, w_01, mu_01, 
+                                      array([delta_1,delta_2]), 
+                                      array([tau_1,tau_2]), T1, T2)
+        ftir = fft.fftshift(fft.fft(spectrum))
+        freq = fft.fftshift(fft.fftfreq(ftir.size,d=dt*self.ToCmRec)) + self.w_cent
+        data_f = real(ftir)[::-1]
+        return data_f, freq
+    
     def _r1_no_exch_m(self,w_01,anh,delta_1,delta_2,tau_1,tau_2,T1,T2):
         """3-rd order response without exchange and coupling"""
         
         ### signal in time-domain
-        rr, nr = self.sim_grid.eval(self.__response, 
+        rr, nr = self.sim_grid.eval(self.__response_3D, 
                                     # assumed parameters
                                     mu_01=1., mu_12=msqrt(2.),
                                     # optimizing parameters
@@ -934,13 +972,14 @@ Notes:
         
         data_f = data_f[self.__kx,:,:]
         data_f = data_f[:,self.__ky,:]
-        #data_f/= data_f[:,:,0].max()
-        #for i in range(7):
+        data_f/= data_f[:,:,0].max()
+        #for i in range(1):
         #    data_f[:,:,i]/=data_f[:,:,i].max()
-        max_vals = amax(amax(data_f,1),0)
-        data_f/= max_vals
+        #max_vals = amax(amax(data_f,1),0)
+        #data_f/= max_vals
         data_f = transpose(data_f,(1,0,2))
-        
+        for i in range(3):
+            print data_f[:,:,i].max()
         return data_f
         
     # private
