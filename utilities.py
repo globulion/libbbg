@@ -33,7 +33,7 @@ from numpy import transpose, zeros, dot, \
                   arctan2, meshgrid    , \
                   logical_and, fft     , \
                   roll, real, mgrid    , \
-                  int64, amax
+                  int64, amax, vectorize
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -791,7 +791,7 @@ n_points     - number of time points (should be a power of 2).
         self.__dt_1D       = self.__time_1D[1]-self.__time_1D[0]
         return
     
-    def set_ftir(self,freq,ftir,w_min,w_max,thresh=0.990,w_01_1D=None):
+    def set_ftir(self,freq,ftir,w_01_1D,w_min,w_max,thresh=0.990):
         """
 Set the benchmark FTIR data and acceptance threshold. 
 
@@ -865,14 +865,14 @@ Options:
 normalize (default: False)
 """
         args = self.args.copy()
-        args.update({'normalize': normalize, 'w_01':1903.15})
+        args.update({'normalize': normalize, 'w_01':self.__w_01_D1})
         freq, ftir = self._spectrum_1D(**args)
         return freq, ftir
     
     def get_ftir_exp(self):
         """return experimental FTIR (after interpolation)"""
         _args = self.args.copy()
-        _args.update({'normalize':True,'w_01':1903.15})
+        _args.update({'normalize':True,'w_01':self.__w_01_D1})
         return self.__freq_1D, self.__ftir, self._spectrum_1D(**_args)[1][self.__k_1D]
     
     ### METHODS
@@ -953,6 +953,10 @@ normalize (default: False)
         gt1Tw   = g(t1+Tw)
         gTwt3   = g(Tw+t3)
         gt1Twt3 = g(t1+Tw+t3)
+        #print gt1Twt3
+        #try: print gt1Twt3[:,:,0]
+        #except: pass
+        #M =1
         # --- Rephasing
         # R1 and R2
         RR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(-t1+t3))*M*2.0*\
@@ -968,13 +972,16 @@ normalize (default: False)
         NR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(t1+t3)-anh*t3))*M*\
              exp(-gt1-gTw-gt3+gt1Tw+gTwt3-gt1Twt3)
         #
+        #try: print real(RR[:,:,0])
+        #except: pass
+        #print real(RR)
         return RR, NR
-
+    
     def _ftir_constr(self, *args):
         """constraint for FTIR spectrum"""
         data_av = average(self.__ftir)
         _args = self.args.copy()
-        _args.update({'normalize':True,'w_01':1903.15})
+        _args.update({'normalize':True,'w_01':self.__w_01_D1})
         sim_dat = self._spectrum_1D(**_args)[1][self.__k_1D]
         sse = sum((sim_dat-self.__ftir)**2)
         sst = sum((self.__ftir-data_av)**2)
@@ -1014,7 +1021,7 @@ normalize (default: False)
                                     Delta=array([delta_1,delta_2]), 
                                     tau=array([tau_1,tau_2]), 
                                     T1=T1, T2=T2, )
-        
+        #print rr
         ### rephasing and non-rephasing spectras (2D FFT)
         data_rr_f = fft.fftshift( fft.fft2(rr,s=(self.__n_points,self.__n_points)) )
         data_nr_f = fft.fftshift( fft.fft2(nr,s=(self.__n_points,self.__n_points)) )
@@ -1035,6 +1042,7 @@ normalize (default: False)
         """3-rd order response without exchange and coupling"""
         
         ### signal in time-domain
+        #self.__response_3D_f = vectorize(self.__response_3D)
         rr, nr = self.sim_grid.eval(self.__response_3D, 
                                     # assumed parameters
                                     mu_01=1., mu_12=msqrt(2.),
@@ -1044,11 +1052,21 @@ normalize (default: False)
                                     Delta=array([delta_1,delta_2]), 
                                     tau=array([tau_1,tau_2]), 
                                     T1=T1, T2=T2, )
-        
+        #print rr[:,:,0]
         ### rephasing and non-rephasing spectras (2D FFT)
-        data_rr_f = fft.fftshift( fft.fft2(rr,axes=(0,1),s=(self.__n_points,self.__n_points)) )
-        data_nr_f = fft.fftshift( fft.fft2(nr,axes=(0,1),s=(self.__n_points,self.__n_points)) )
+        #data_rr_f = zeros((self.__n_points,self.__n_points,self.__nTw),complex64)
+        #data_nr_f = data_rr_f.copy()
+        
+        #for i in range(self.__nTw):
+        #    data_rr_f[:,:,i] = fft.fftshift( fft.fft2(rr[:,:,i],s=(self.__n_points,self.__n_points)) )
+        #    data_nr_f[:,:,i] = fft.fftshift( fft.fft2(nr[:,:,i],s=(self.__n_points,self.__n_points)) )
+        
+        data_rr_f = fft.fftshift( fft.fft2(rr,axes=(0,1),s=(self.__n_points,self.__n_points)), axes=(0,1))
+        data_nr_f = fft.fftshift( fft.fft2(nr,axes=(0,1),s=(self.__n_points,self.__n_points)), axes=(0,1))
         data_rr_f = data_rr_f[:,::-1,:]
+        #for i in range(3):
+        #      data_rr_f[:,:,i] = data_rr_f[:,::-1,i]
+        #    data_rr_f[:,:,i] = roll(data_rr_f[:,:,i],1,axis=1)
         data_rr_f = roll(data_rr_f,1,axis=1)
         
         ### total signal
@@ -1062,8 +1080,9 @@ normalize (default: False)
         #max_vals = amax(amax(data_f,1),0)
         #data_f/= max_vals
         data_f = transpose(data_f,(1,0,2))
-        for i in range(3):
-            print data_f[:,:,i].max()
+        #for i in range(self.__nTw):
+        #    print data_f[:,:,i].max()
+        #print self.sim_grid.zcoorv
         return data_f
         
     # private
@@ -3564,6 +3583,25 @@ class ROTATE:
 class Grid2D:
     """represents 2D-grid of points"""
     def __init__(self,
+                 xmin=0, xmax=1, dx=0.5,
+                 ymin=0, ymax=1, dy=0.5,):
+        # coordinates in each space direction
+        nx = int64((xmax-xmin)/dx + 1)
+        ny = int64((ymax-ymin)/dy + 1)
+        
+        x,y = mgrid[0:nx,0:ny]
+        
+        # store for convenience
+        self.dx = dx; self.dy = dy
+        self.nx = nx; self.ny = ny
+        self.shape = (self.nx,self.ny)
+        
+        # make 3D versions of the coordinate arrays
+        # (needed for vectorized  function evaluators)
+        self.xcoorv = float64(x)*dx + xmin
+        self.ycoorv = float64(y)*dy + ymin
+
+    def __init________(self,
                  xmin=0, xmax=1, dx=0.5,
                  ymin=0, ymax=1, dy=0.5):
         # coordinates in each space direction
