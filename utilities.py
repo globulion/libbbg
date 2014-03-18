@@ -865,14 +865,14 @@ Options:
 normalize (default: False)
 """
         args = self.args.copy()
-        args.update({'normalize': normalize, 'w_01':self.__w_01_D1})
+        args.update({'normalize': normalize, 'w_01':self.__w_01_1D})
         freq, ftir = self._spectrum_1D(**args)
         return freq, ftir
     
     def get_ftir_exp(self):
         """return experimental FTIR (after interpolation)"""
         _args = self.args.copy()
-        _args.update({'normalize':True,'w_01':self.__w_01_D1})
+        _args.update({'normalize':True,'w_01':self.__w_01_1D})
         return self.__freq_1D, self.__ftir, self._spectrum_1D(**_args)[1][self.__k_1D]
     
     ### METHODS
@@ -938,7 +938,7 @@ normalize (default: False)
             for i in range(2):
                 G+= tau[i]*Delta[i] * \
           ( exp(-t/tau[i])*tau[i] - tau[i] + t ) 
-            G += t/T2
+            G += t/T2 #+ t/(2.*T1) + t/(3.*10000000.0)
             return G
         #
         M = exp(-Tw/T1) * (1.0 + 0.8 * exp(-Tw/10000000.0))
@@ -981,7 +981,7 @@ normalize (default: False)
         """constraint for FTIR spectrum"""
         data_av = average(self.__ftir)
         _args = self.args.copy()
-        _args.update({'normalize':True,'w_01':self.__w_01_D1})
+        _args.update({'normalize':True,'w_01':self.__w_01_1D})
         sim_dat = self._spectrum_1D(**_args)[1][self.__k_1D]
         sse = sum((sim_dat-self.__ftir)**2)
         sst = sum((self.__ftir-data_av)**2)
