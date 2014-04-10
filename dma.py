@@ -209,7 +209,7 @@ where n is rank of multipole moment"""
         return
     
     def if_traceless(self):
-        """does the dma object is traceless?"""
+        """Is the dma object traceless?"""
         return self.traceless
      
     def interchange(self,ind):
