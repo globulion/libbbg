@@ -18,9 +18,10 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
-         'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',]
+         'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
+         'text_to_list',]
          
-__version__ = '3.3.0'
+__version__ = '3.3.1'
 
 import re, gentcf, orbloc, PyQuante, clemtp, \
        scipy.optimize, scipy.integrate
@@ -33,7 +34,8 @@ from numpy import transpose, zeros, dot, \
                   arctan2, meshgrid    , \
                   logical_and, fft     , \
                   roll, real, mgrid    , \
-                  int64, amax, vectorize
+                  int64, amax, vectorize, \
+                  arange
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -51,6 +53,36 @@ from scipy.interpolate import RectBivariateSpline as RBS, \
                               interp1d as I1D,            \
                               interp2d as I2D
 from letters import greek as let_greek
+
+def text_to_list(text,delimiter=None):
+    """
+Transform one text line into a list. Returns list of integers.
+
+Syntax: 
+       text_to_list(text,delimiter=None)
+
+Usage:
+
+1) text = '     2 3 4 5 6    4    '
+
+text_to_list(text) = [2 3 4 5 6 4]
+
+2) text = ' 2-4'
+
+text_to_list(text) = [2 3 4]
+
+3) text = ' 3, 56, 6, -1, 33  '
+
+text_to_list(text,delimiter=',') = [3 56 6 -1 33] 
+
+"""
+    if '-' in text:
+       start,end = text.split('-')
+       rang = arange(int(start),int(end)+1)
+    else:
+       rang = text.split(delimiter)
+       rang = map(int,rang)
+    return rang
 
 def dihedral(A,unit='radian'):
     """Compute dihedral angle n1-n2-n3-n4. 
@@ -938,7 +970,7 @@ normalize (default: False)
             for i in range(2):
                 G+= tau[i]*Delta[i] * \
           ( exp(-t/tau[i])*tau[i] - tau[i] + t ) 
-            G += t/T2 #+ t/(2.*T1) + t/(3.*10000000.0)
+            G += t/T2 + t/(2.*T1) + t/(3.*10000000.0)
             return G
         #
         M = exp(-Tw/T1) * (1.0 + 0.8 * exp(-Tw/10000000.0))
