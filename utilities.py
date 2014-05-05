@@ -19,7 +19,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
-         'text_to_list',]
+         'text_to_list','QMFile',]
          
 __version__ = '3.3.1'
 
@@ -303,6 +303,236 @@ class Graph:
     font1.set_weight('bold')
     marker = 'o'
     
+class QMFile(UNITS):
+   """
+---------------------------------------------------------
+           Represents the following file formats: 
+                   XYZ, DMA and FCHK.
+
+These files contain molecular structure and other quantum 
+chemistry information. These formats mean:
+
+1) XYZ - structure file format. Contains number of atoms,
+         comment, list of atoms and cartesian coordinates
+2) DMA - Solvshift Distributed Multipole Analysis format.
+         Contains atoms, atomic cartesian coordinates, di
+         stributed multipoles and their origins.
+3) FCHK- Gaussian formatted checkpoint file. Contains ato
+         mic structure, wavefunction of a molecule and ma
+         ny other useful information.
+---------------------------------------------------------
+                                             May 5 2014
+Usage:
+
+f = QMFile()                                 # initialize object
+
+atoms, xyz = f(file,format,**kwargs)         # get atomic symbols and coordinates
+                                             # directly by invoking QMFile class 
+                                             # instance as a function
+
+f.open(file,format='fchk',**kwargs)          # open file using initialized object
+
+str   = f.get_pos(**kwargs)                  # return atomic coordinates 
+atoms = f.get_atoms()                        # return atom list
+mol   = f.get_mol()                          # return Molecule object
+dma   = f.get_dma()                          # return DMA object
+misc  = f.get_misc()                         # return miscellanea
+
+Notes:
+
+ 1) if format is not provided, it will be determined automatiacally
+    from file name extension
+
+ 2) Now, only structural information is supported (coordinates and atomic lists
+    only)
+
+ 3) Additional options for **kwargs:
+
+    - units = 'angs' or 'bohr'. Default is 'bohr'. This option specify
+            final units of memorials being returned (structural information). 
+    
+---------------------------------------------------------------------------------
+                                                                      @Globulion
+"""
+
+   def __init__(self,file=None,format=None,**kwargs):
+       self._init()
+       if file is not None: self.__call__(file,format,**kwargs)
+       return
+
+   def open(self,file,format=None,
+                 units='Angstrom',name='Unnamed molecule',
+                 mult=1,charge=0,method='HF',basis='3-21G'):
+       """open file"""
+       self.__file_name = file
+       self.__format = format
+       if format is None:
+          if   file.endswith('.xyz'):   self._open_xyz(file,units,name,mult,charge,method,basis)
+          elif file.endswith('.dma'):   self._open_dma(file)
+          elif file.endswith('.fchk'):  self._open_fchk(file,units,name,mult,charge,method,basis)
+       else:
+          self.__format_dict[format](file,units,name,mult,charge,method,basis)
+       return
+
+   def get_all(self):
+       """return all memorials in a tuple: (atoms, pos, mol, dma, misc)"""
+       return self.__atoms, self.__pos, self.__mol, self.__dma, self.__misc
+
+   def get_pos(self):
+       """return positions (and charges, if present)"""
+       return self.__pos
+   
+   def get_atoms(self):
+       """return atoms"""
+       return self.__atoms
+
+   def get_mol(self):
+       """return Molecule object"""
+       return self.__mol
+
+   def get_dma(self):
+       """return DMA object"""
+       return self.__dma
+
+   def get_misc(self):
+       """return misc (e.g.: comment second line in XYZ file)"""
+       return self.__misc
+
+   def __call__(self,file,format=None,**kwargs):
+       """open file and return atom list (as symbols) and atomic coordinates (as ndarray)"""
+       self.open(file,format,**kwargs)
+       return self.__atoms, self.__pos
+
+   def __repr__(self):
+       """print me!"""
+       pos_q, mol_q, dma_q = 'No','No','No'
+       if self.__pos is not None: pos_q = 'Yes'
+       if self.__mol is not None: mol_q = 'Yes'
+       if self.__dma is not None: dma_q = 'Yes'
+       log = '\n'
+       log+= ' File: %s\n' % self.__file_name
+       log+= '   * Atoms  : %i\n' % len(self.__atoms)
+       log+= '   * Coord  : %s\n' % pos_q
+       log+= '   * Mol    : %s\n' % mol_q
+       log+= '   * DMA    : %s\n' % dma_q
+       log+= '   * Misc   : %s\n' % str(self.__misc)
+       return str(log)
+
+   # protected
+
+   def _init(self):
+       """create the namespace of variables"""
+       self.__pos   = None
+       self.__atoms = None
+       self.__mol   = None
+       self.__dma   = None
+       self.__misc  = None
+       self.__file_name = None
+       self.__format = None
+       self.__units = 'au'
+       self.__defaults = {'name'  :'Unnamed molecule',
+                          'mult'  :1,
+                          'charge':0,
+                          'method':'HF',
+                          'basis' :'3-21G'}
+       self.__format_dict = {'xyz' :self._open_xyz,
+                             'dma' :self._open_dma,
+                             'fchk':self._open_fchk}
+       return
+
+   def _open_xyz(self,file,units,name,mult,charge,method,basis):
+       """open xyz file"""
+       data = open(file).readlines()
+       n_atoms = int(data[0])
+       misc = data[1]
+       data.pop(0);data.pop(0)
+       coord = []
+       for i in range(n_atoms):
+           coord.append(data[i].split()[:])   # it was [:4] instead of [:]
+           coord[i][1:] = map(float64,coord[i][1:])
+           if units.lower()=='angstrom':
+              for j in range(3):
+                  coord[i][j+1]*= self.AngstromToBohr
+            
+       data = [map(float64,[x for x in coord[y][1:]]) \
+                              for y in range( len(coord))]
+       data = array(data,dtype=float64)
+
+       Coords = []
+       for i in range(n_atoms):
+           atom  = (Atom(coord[i][0]).atno, (coord[i][1], 
+                                             coord[i][2],
+                                             coord[i][3]) )
+           Coords.append(atom)
+       Mol = PyQuante.Molecule(name,Coords,units='Bohr',
+                               multiplicity=mult,charge=charge,
+                               basis=basis,method=method)
+   
+       self.__mol = Mol
+       self.__pos = data
+       self.__atoms = coord
+       self.__misc = misc
+       return
+
+   def _open_fchk(self,file,**kwargs):
+       """open fchk file"""
+       file = open(file)
+       line = file.readline()
+       g = lambda n,m: n/m+bool(n%m)
+       
+       # search for atomic numbers
+       querry = "Atomic numbers"
+       while True:
+           if querry in line: break
+           line = file.readline()       
+       n_atoms = int(line.split()[-1])
+       line = file.readline()
+       
+       atnos = []
+       for i in xrange(g(n_atoms,6)):
+           atnos += line.split()
+           line = file.readline()
+           
+       atnos = array(atnos,dtype=int)
+       
+       # search for atomic coordinates       
+       querry = "Current cartesian coordinates"
+       while True:
+           if querry in line: break
+           line = file.readline()
+       N = int(line.split()[-1])
+       line = file.readline()
+       
+       coord = []
+       for i in xrange(g(N,5)):
+           coord += line.split()
+           line = file.readline()
+           
+       coord = array(coord,dtype=float64).reshape(n_atoms,3)
+
+       # create Molecule object
+       Coords = []
+       for i in range(n_atoms):
+           atom  = (atnos[i], (coord[i][0],
+                               coord[i][1],
+                               coord[i][2]) )
+           Coords.append(atom)
+       Mol = PyQuante.Molecule(name,Coords,units='Bohr',
+                               multiplicity=mult,charge=charge,
+                               basis=basis,method=method)
+   
+       self.__mol = Mol                        
+       self.__pos = coord
+       self.__atoms = atnos
+       return
+
+   def _open_dma(self,file,**kwargs):
+       """open dma file"""
+       dma = DMA(file=file)
+       self.__dma = dma
+       self.__pos = dma.get_pos()
+       return
+
 class QMOscillator(Graph):
     """Solver for 1D QM oscillator confined to a given potential.
 
