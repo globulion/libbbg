@@ -3663,8 +3663,10 @@ class ModifyStruct(object):
         
     def makeRing(self,p1,p2,p3,n,r,scale=0):
         """kreuje obwolutek wokół atomu p1 składający się z n punktów
-        oddalonych od atomu p1 o odległość r"""
-        new, center, rot = self.__makeAxes(p1,p2,p3,scale)
+        oddalonych od atomu p1 o odległość r. p2 - punkt określający oś 'z'
+        p3 - punkt określający oś horyzontalną (chyba 'x'). Numery atomów
+        są normalne (zaczynąją się od 1)."""
+        new, center, rot = self.__makeAxes(p1-1,p2-1,p3-1,scale)
         obw = zeros((n,3),dtype=float64)
         for i in range(n):
             obw[i,0] = r  * cos(2*pi*i/n)
@@ -3675,7 +3677,8 @@ class ModifyStruct(object):
         return 
     
     def makeMidBonds(self,all=True,bonds=None):
-        """adds dummy atom in the middle between atoms"""
+        """adds dummy atom in the middle between atoms. Bonds is a list of (i,j) elements
+where i and j is the atom ID (starting from 1)."""
         midBonds = []
         if all:
            for i in range(self.n_atoms):
@@ -3684,7 +3687,7 @@ class ModifyStruct(object):
                    midBonds.append(point)
         else:
             for i in bonds:
-                point = 0.5 * (self.xyz[i[0]]+self.xyz[i[1]])
+                point = 0.5 * (self.xyz[i[0]-1]+self.xyz[i[1]-1])
                 midBonds.append(point)
 
         midBonds = array( midBonds,dtype=float64)
