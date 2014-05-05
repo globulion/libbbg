@@ -14,8 +14,235 @@ from utilities2 import array_outer_product,    \
 from units import *
 import copy
 
+def ParseDMA(file,type='coulomb'):
+    """\
+>>>>> Copied from LIBBBG.utilities <<<<<
+============================================================================
+Parse DMA from GAUSSIAN, GAMESS or COULOMB.py file. It returns a DMA object.
+Usage:
+ParseDMA(type='coulomb')
+----------------------------------------------------------------------------
+<type>s:
+1) coulomb  or c (or just nothing - it is default)
+2) gaussian or gau
+3) gamess   or gms
+Notes:
+Gaussian file has to have pop=ChelpG printout in log
+Gamess reads Stone's DMA analysis
+============================================================================
+"""
+    if   type.lower() == 'slv':
+         pass
+         
+    elif type.lower() == 'gamess' or type.lower() == 'gms':
+         data = open(file)
+         # ----------------------------------
+         #querry1 = "PROPERTIES FOR THE B3LYP    DFT FUNCTIONAL (RHF  TYPE) DENSITY MATRIX"
+         #querry2 = "MP2 PROPERTIES...FOR THE FIRST ORDER WAVEFUNCTION"
+         line = data.readline()
+         #while 1:
+         #      if ((querry1 in line) or (querry2 in line)): break
+         #      line = data.readline()
+         # ----------------------------------
+         querry = " NET CHARGES AT POINTS"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(3): line = data.readline()
+         ZerothMoments = []
+         Structure = []
+         while line.split()!=[]:
+               ZerothMoments.append( float64( line.split()[2] ) )
+               Structure.append( array(line.split()[-3:],dtype=float64)  )
+                    
+               line = data.readline()
+         # ----------------------------------
+         querry = " FIRST MOMENTS AT POINTS"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(3): line = data.readline()
+         FirstMoments = []
+         while line.split()!=[]:
+               FirstMoments.append( map(float64, line.split()[1:]))
+               line = data.readline()
+         # ----------------------------------
+         querry = " SECOND MOMENTS AT POINTS"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(3): line = data.readline()
+         SecondMoments = []
+         while line.split()!=[]:
+               SecondMoments.append( map( float64, line.split()[1:] ))
+               line = data.readline()
+         # ----------------------------------
+         querry = " THIRD MOMENTS AT POINTS"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(4): line = data.readline()
+         ThirdMoments = []
+         while 'CPU' not in line.split():
+               A = map( float64, line.split()[1:] )
+               line = data.readline()
+               B = map( float64, line.split() )
+               ThirdMoments.append( A+B )
+               line = data.readline()
+
+         # add up the nuclear and electronic charges
+         npoints = len(FirstMoments)
+         natoms  = len(ZerothMoments) - npoints
+         #if
+         for i in range(natoms):
+             ZerothMoments[i+natoms] += ZerothMoments[i]
+         for i in range(natoms):
+             ZerothMoments.pop(0)
+             Structure.pop(0)
+
+         return DMA( q=array(ZerothMoments)   ,
+                     m=array(FirstMoments )   ,
+                     T=array(SecondMoments)   ,
+                     O=array(ThirdMoments )   ,
+                     pos=array(Structure)    )#,Structure
+
+    # -----------------------------------------------------------------------------
+    elif type.lower() == 'coulomb' or type.lower() == 'c':
+         # return DMA object
+         data = open(file)
+         line = data.readline()
+         querry = " Distributed zeroth-order property"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(3): line = data.readline()
+         ZerothMoments = []
+         Structure = []
+         Origin = []
+         while line.split()!=[]:
+               ZerothMoments.append( float64( line.split()[0] ) )
+                    
+               line = data.readline()
+         # ----------------------------------
+         querry = " Distributed first-order property"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(4): line = data.readline()
+         FirstMoments = []
+         while line.split()!=[]:
+               FirstMoments.append( map(float64, line.split()[:]))
+               line = data.readline()
+         # ----------------------------------
+         querry = " Distributed second-order property"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(4): line = data.readline()
+         SecondMoments = []
+         while line.split()!=[]:
+               SecondMoments.append( map( float64, line.split()[:] ))
+               line = data.readline()
+         # ----------------------------------
+         querry = " Distributed third-order property"
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(5): line = data.readline()
+         ThirdMoments = []
+         while '-----' not in line:
+               A = map( float64, line.split()[:] )
+               line = data.readline()
+               B = map( float64, line.split()[:] )
+               ThirdMoments.append( A+B )
+               line = data.readline()
+               
+         # ------------------------------------
+         querry = " Structure"
+         struct = True
+         while 1:
+               if querry in line: break
+               #print line
+               line = data.readline()
+               if not line: 
+                  struct = False
+                  break
+
+         atoms = []
+         if struct:
+            for i in range(3): line = data.readline()
+            while line.split()!=[]:
+                  coord = line.split()
+                  atoms.append(Atom(coord[0]))
+                  Structure.append( map( float64, coord[1:] ) )
+                  line = data.readline()
+
+         Structure = array(Structure,dtype=float64)                  
+         
+         querry = " Origins"
+         origins = True
+         while 1:
+               if querry in line: break
+               line = data.readline()
+               if not line: 
+                  origins = False
+                  break              
+
+         if origins:
+            for i in range(3): line = data.readline()
+            while line.split()!=[]:
+                  coord = line.split()
+                  Origin.append( map( float64, coord[1:] ) )
+                  line = data.readline()  
+            
+            Origin = array(Origin   ,dtype=float64)
+
+         else:
+            Origin    = Structure.copy()
+          
+         return DMA( q=array(ZerothMoments)   ,
+                     m=array(FirstMoments )   ,
+                     T=array(SecondMoments)   ,
+                     O=array(ThirdMoments )   ,
+                     atoms=atoms              ,
+                     pos=Structure            ,
+                     origin=Origin)#,Structure
+    # -----------------------------------------------------------------------------
+    elif type.lower() == 'gaussian' or type.lower() == 'gau':
+         data = open(file)
+         # seek for atomic positions!
+         querry = "Electrostatic Properties Using The SCF Density"
+         line = data.readline()
+         while 1:
+               if querry in line: break
+               line = data.readline()
+               if line =='': raise Exception('No CHELPG population found!')
+         for i in range(4): line = data.readline()
+         Structure = []
+         while ('Atomic Center' in line or 'Ghost Center' in line):
+               Structure.append( array(line.split()[-3:],dtype=float64)  )
+               line = data.readline()
+
+         # seek for charges!
+         querry = " Charge="
+         while 1:
+               if querry in line: break
+               line = data.readline()
+         for i in range(2): line = data.readline()
+         ZerothMoments = []
+         for i in range(len(Structure)):
+             ZerothMoments.append( float64( line.split()[-1] ) )    
+             line = data.readline()
+        
+         Result = DMA(nfrag=len(Structure))
+         Result.pos = array(Structure) * UNITS.AngstromToBohr
+         Result.DMA[0] = array(ZerothMoments)
+         
+         return Result#, array(Structure) * UNITS.AngstromToBohr
+      
 def interchange(T,ind):
     """\
+>>>>> Copied from LIBBBG.utilities <<<<<
 interchange rows according to order list
 
 Usage: ingerchange(array,order_list)
@@ -121,6 +348,7 @@ mathematical operations:
 """
     
     def __init__(self,
+                 file=None,
                  nfrag=0,
                  name='Untitled',
                  q=0,m=0,T=0,O=0,
@@ -133,6 +361,8 @@ mathematical operations:
            m=zeros((nfrag,3),dtype=float64)
            T=zeros((nfrag,6),dtype=float64)
            O=zeros((nfrag,10),dtype=float64)
+        elif file is not None:
+           self.__call__(file)
         else:
            pass
         # DMA distribution in reduced format (GAMESS-like)
@@ -155,6 +385,11 @@ mathematical operations:
         # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
         self.traceless = False
     
+    def __call__(self,file):
+        """open DMA file"""
+        dma = ParseDMA(file,'c')
+        return dma
+     
     def get_pos(self):
         """return positions of atoms"""
         return self.pos
