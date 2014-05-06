@@ -394,6 +394,33 @@ Notes:
        f.close()
        return
    
+   def insert(self,xyz,id=0,atoms=None):
+       """
+Insert atoms into the structure.
+
+Usage:
+
+xyz   - array of coordinates in Bohr (and charges, optional)
+id    - insert xyz after (id)th atom. Default is 0 (insert at the beginnig)
+atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
+"""
+       N,M = self.__pos.shape
+       n,m = xyz.shape
+       I = id
+       # insert the structure
+       new = zeros((N+n,M),float64)
+       new[:I] = self.__pos[:I]
+       new[I:I+n] = xyz
+       new[I+n:] = self.__pos[I:]
+       # insert atom symbols
+       if atoms is None:
+          atoms = ['X' for i in range(n)]
+       for i in range(n):
+           self.__atoms.insert(id+i,atoms[i])
+       # save
+       self.__pos = new
+       return
+   
    def get_all(self):
        """return all memorials in a tuple: (atoms, pos, mol, dma, misc)"""
        return self.__atoms, self.__pos, self.__mol, self.__dma, self.__misc
