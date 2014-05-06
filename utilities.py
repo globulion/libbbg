@@ -374,6 +374,26 @@ Notes:
           self.__format_dict[format](file,units,name,mult,charge,method,basis)
        return
 
+   def write(self,name='default.xyz'):
+       """write the structure into the XYZ file"""
+       f = open(name,'w')
+       f.write('%d\n' % len(self.__atoms))
+       f.write('%s' % self.__misc)
+       if self.__pos.shape[1]==3:
+          for i in range(len(self.__atoms)):
+              log = '%2s ' % self.__atoms[i]
+              log+= '%14.6f %14.6f %14.6f\n' % tuple(self.__pos[i]*self.BohrToAngstrom)
+              f.write(log)
+       elif self.__pos.shape[1]==4:
+          for i in range(len(self.__atoms)):
+              log = '%2s ' % self.__atoms[i]
+              log+= '%14.6f %14.6f %14.6f' % tuple(self.__pos[i,:3]*self.BohrToAngstrom)
+              log+= '%14.6f\n' % self.__pos[i,3]
+              f.write(log)
+       f.write('\n')
+       f.close()
+       return
+   
    def get_all(self):
        """return all memorials in a tuple: (atoms, pos, mol, dma, misc)"""
        return self.__atoms, self.__pos, self.__mol, self.__dma, self.__misc
@@ -451,8 +471,11 @@ Notes:
        misc = data[1]
        data.pop(0);data.pop(0)
        coord = []
+       atoms = []
        for i in range(n_atoms):
-           coord.append(data[i].split()[:])   # it was [:4] instead of [:]
+           line_spl = data[i].split() 
+           coord.append(line_spl[:])   # it was [:4] instead of [:]
+           atoms.append(line_spl[0])
            coord[i][1:] = map(float64,coord[i][1:])
            if units.lower()=='angstrom':
               for j in range(3):
@@ -474,7 +497,7 @@ Notes:
    
        self.__mol = Mol
        self.__pos = data
-       self.__atoms = coord
+       self.__atoms = atoms
        self.__misc = misc
        return
 
