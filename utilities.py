@@ -406,6 +406,11 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
 """
        N,M = self.__pos.shape
        n,m = xyz.shape
+       # case where there is mismatch in number of columns
+       if m+1==M:
+          xew = zeros((n,m+1),float64)
+          xew[:,:3] = xyz
+          xyz = xew
        I = id
        # insert the structure
        new = zeros((N+n,M),float64)
@@ -3785,7 +3790,16 @@ where i and j is the atom ID (starting from 1)."""
         return
     
     def __makeAxes(self,p1,p2,p3,scale=0):
-        P1,P2,P3 = self.xyz[(p1,p2,p3),]
+        """create the local axes with the center at p1, z-axis goint through p2 and (probably x)-axis throug p3"""
+        # case for determine P3 point automatically
+        if p3<0:
+            P1,P2 = self.xyz[(p1,p2),]
+            X,Y,Z = P2-P1
+            y=z=1.0; x = - (Y+Z)/X
+            P3 = array([x,y,z]); P3/= norm(P3)
+        # case, where P3 is provided
+        else:
+            P1,P2,P3 = self.xyz[(p1,p2,p3),]
 
         c = P2 - P1
         c/= norm(c)
