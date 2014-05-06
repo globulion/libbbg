@@ -397,6 +397,10 @@ Notes:
    def get_misc(self):
        """return misc (e.g.: comment second line in XYZ file)"""
        return self.__misc
+   
+   def get_file_name(self):
+       """return file name"""
+       return self.__file_name
 
    def __call__(self,file,format=None,**kwargs):
        """open file and return atom list (as symbols) and atomic coordinates (as ndarray)"""
