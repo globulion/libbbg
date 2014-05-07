@@ -362,16 +362,17 @@ Notes:
 
    def open(self,file,format=None,
                  units='Angstrom',name='Unnamed molecule',
-                 mult=1,charge=0,method='HF',basis='3-21G'):
+                 mult=1,charge=0,method='HF',basis='3-21G',
+                 mol=True):
        """open file"""
        self.__file_name = file
        self.__format = format
        if format is None:
-          if   file.endswith('.xyz'):   self._open_xyz(file,units,name,mult,charge,method,basis)
+          if   file.endswith('.xyz'):   self._open_xyz(file,units,name,mult,charge,method,basis,mol)
           elif file.endswith('.dma'):   self._open_dma(file)
           elif file.endswith('.fchk'):  self._open_fchk(file,units,name,mult,charge,method,basis)
        else:
-          self.__format_dict[format](file,units,name,mult,charge,method,basis)
+          self.__format_dict[format](file,units,name,mult,charge,method,basis,mol)
        return
 
    def write(self,name='default.xyz'):
@@ -496,7 +497,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
                              'fchk':self._open_fchk}
        return
 
-   def _open_xyz(self,file,units,name,mult,charge,method,basis):
+   def _open_xyz(self,file,units,name,mult,charge,method,basis,mol=True):
        """open xyz file"""
        data = open(file).readlines()
        n_atoms = int(data[0])
@@ -523,9 +524,12 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
                                              coord[i][2],
                                              coord[i][3]) )
            Coords.append(atom)
-       Mol = PyQuante.Molecule(name,Coords,units='Bohr',
-                               multiplicity=mult,charge=charge,
-                               basis=basis,method=method)
+       Mol = None
+       if mol:
+          print "FDFFFFF"
+          Mol = PyQuante.Molecule(name,Coords,units='Bohr',
+                                  multiplicity=mult,charge=charge,
+                                  basis=basis,method=method)
    
        self.__mol = Mol
        self.__pos = data
