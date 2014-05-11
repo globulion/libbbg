@@ -527,7 +527,6 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
            Coords.append(atom)
        Mol = None
        if mol:
-          print "FDFFFFF"
           Mol = PyQuante.Molecule(name,Coords,units='Bohr',
                                   multiplicity=mult,charge=charge,
                                   basis=basis,method=method)
