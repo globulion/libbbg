@@ -351,6 +351,7 @@ Notes:
     - units = 'angs' or 'bohr'. Default is 'bohr'. This option specify
             final units of memorials being returned (structural information). 
     
+ 4) all memorials are stored in A.U.!
 ---------------------------------------------------------------------------------
                                                                       @Globulion
 """
