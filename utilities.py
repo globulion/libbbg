@@ -19,7 +19,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
-         'text_to_list','QMFile',]
+         'text_to_list','QMFile','Emtp_charges',]
          
 __version__ = '3.3.1'
 
@@ -307,7 +307,7 @@ class QMFile(UNITS):
    """
 ---------------------------------------------------------
            Represents the following file formats: 
-                   XYZ, DMA and FCHK.
+                   XYZ, DMA, LOG and FCHK.
 
 These files contain molecular structure and other quantum 
 chemistry information. These formats mean:
@@ -364,7 +364,7 @@ Notes:
    def open(self,file,format=None,
                  units='Angstrom',name='Unnamed molecule',
                  mult=1,charge=0,method='HF',basis='3-21G',
-                 mol=True):
+                 mol=True,freq=False,anh=False):
        """open file"""
        self.__file_name = file
        self.__format = format
@@ -372,6 +372,7 @@ Notes:
           if   file.endswith('.xyz'):   self._open_xyz(file,units,name,mult,charge,method,basis,mol)
           elif file.endswith('.dma'):   self._open_dma(file)
           elif file.endswith('.fchk'):  self._open_fchk(file,units,name,mult,charge,method,basis)
+          elif (file.endswith('.g09') or file.endswith('.log')):   self._open_g09(file,freq,anh)
        else:
           self.__format_dict[format](file,units,name,mult,charge,method,basis,mol)
        return
@@ -495,7 +496,9 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
                           'basis' :'3-21G'}
        self.__format_dict = {'xyz' :self._open_xyz,
                              'dma' :self._open_dma,
-                             'fchk':self._open_fchk}
+                             'fchk':self._open_fchk,
+                             'log' :self._open_g09,
+                             'gms' :self._open_gms,}
        return
 
    def _open_xyz(self,file,units,name,mult,charge,method,basis,mol=True):
@@ -595,6 +598,48 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        self.__dma = dma
        self.__pos = dma.get_pos()
        return
+   
+   def _open_gms(self,file):
+       """open GAMESS log file (not working yet)"""
+       file = open(file)
+       line = file.readline()
+       raise NotImplementedError
+   
+   def _open_g09(self,file,freq,anh):
+       """open Gaussian G09RevD.01 log file. Attention: #P (extended printout) and NOSYMM keywords are necessary!"""
+       file = open(file)
+       line = file.readline()
+       ### search for atomic symbols, charge and multiplicity
+       atoms = []
+       querry = "Symbolic Z-matrix:"
+       while True:
+           if querry in line: break
+           line = file.readline()
+       line = file.readline()
+       chg = float64(line.split()[2])
+       mult= float64(line.split()[5])
+       line = file.readline()
+       while len(line)>2:
+           atom = Atom(line.split()[0])
+           atoms.append(atom)
+           line = file.readline()
+       ### search for atomic positions
+       pos = []
+       querry = "Input orientation:"
+       while True:
+           if querry in line: break
+           line = file.readline()
+       for i in range(4): line = file.readline()
+       for i in range(len(atoms)):
+           line = file.readline()
+           xyz  = array(line.split()[3:],float64)
+           pos.append(xyz)
+       pos = array(pos,float64) * self.AngstromToBohr
+       # save
+       self.__atoms = atoms
+       self.__pos = pos
+       return
+   
 
 class QMOscillator(Graph):
     """Solver for 1D QM oscillator confined to a given potential.
@@ -3474,6 +3519,60 @@ a.u. as well. Uses FORTRAN subroutine CLEMTP"""
     Emtp.log = log
 
     return Emtp.A, Emtp.B, Emtp.C, Emtp.D, Emtp.E
+
+def Emtp_charges(DMA1,DMA2):
+    """calculates E(EL)MTP from two DMA CHARGE distributions.
+dma1 and dma2 are the objects of the class DMA. Calculations are
+in atomic units and a respective interaction energy is in 
+a.u. as well."""
+    
+    converter=UNITS.HartreePerHbarToCmRec
+    #
+    dma1=DMA1.copy()
+    dma2=DMA2.copy()
+    #
+    Ra,Rb = dma1.get_origin(),dma2.get_origin()
+    qa,qb = dma1[0],dma2[0]
+    #
+    qq = 0.0
+    for i in xrange(len(Ra)):
+         for j in xrange(len(Rb)):
+             R    = Rb[j]-Ra[i]
+             Rab=sqrt(sum(R**2,axis=0))
+             qq  +=   qa[i]*qb[j]/Rab 
+    #
+    qq *= converter
+    Emtp.A = qq
+    Emtp.B = qq
+    Emtp.C = qq
+    Emtp.D = qq
+    Emtp.E = qq
+    Emtp.F = 0
+    Emtp.G = 0
+    Emtp.H = 0
+    #
+    #Q = qq*converter
+    #log = "\n" 
+    #log+= " --------------------------------:--------------------------\n"
+    #log+= " INTERACTION ENERGY TERMS [cm-1] : PARTITIONING TERMS [cm-1]\n"
+    #log+= " --------------------------------:--------------------------\n"
+    #log+= "%6s %20.2f      :\n" % ("Total".rjust(6),Q)
+    #log+= " "+"-"*32+":"+"-"*26+"\n"
+    #log+= "%7s %19.2f      :  1        %10.2f\n" % ("q-q".rjust(6), Q,Q)
+    #log+= "%7s %19.2f      :  1+2      %10.2f\n" % ("q-D".rjust(6), 0,Q)
+    #log+= "%7s %19.2f      :  1+2+3    %10.2f\n" % ("q-Q".rjust(6), 0,Q)
+    #log+= "%7s %19.2f      :  1+2+3+4  %10.2f\n" % ("q-O".rjust(6), 0,Q)
+    #log+= "%7s %19.2f      :  1+2+3+4+5%10.2f\n" % ("D-D".rjust(6), 0,Q)
+    #log+= "%7s %19.2f      :\n"                  % ("D-Q".rjust(6), 0)
+    #log+= "%7s %19.2f      :\n"                  % ("D-O".rjust(6), 0)
+    #log+= "%7s %19.2f      :\n"                  % ("Q-Q".rjust(6), 0)
+    #log+= "%7s %19.2f      :\n"                  % ("Q-O".rjust(6), 0)
+    #log+= "%7s %19.2f      :\n"                  % ("O-O".rjust(6), 0)
+    #log+= " "+"-"*32+":"+"-"*26+"\n"
+    log = "\n"
+    Emtp.log = log
+
+    return qq,qq,qq,qq,qq
     
 def get_elmtp(DMA1,DMA2):
     """calculates E(EL)MTP from two DMA distributions.
@@ -3657,6 +3756,7 @@ def FrequencyShift(solute=0,solvent=0,solute_structure=0):
     #new.pos = array(solute_structure)
     new.set_structure(pos=solute_structure,equal=True)
     A,B,C,D,E = Emtp(new,solvent.copy())
+    #A,B,C,D,E = Emtp_charges(new,solvent.copy())
     result = array([A,B,C,D,E])
     # switch to cm-1
     # result  *= UNITS.HartreePerHbarToCmRec
