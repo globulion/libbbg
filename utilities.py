@@ -456,7 +456,11 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
    def get_file_name(self):
        """return file name"""
        return self.__file_name
-
+   
+   def get_freq(self):
+       """return frequencies, reduced masses, force constants, IR intensities and eigenvectors"""
+       return self.__freq, self.__redmss, self.__forcec, self.__irints, self.__eigvec
+   
    def __call__(self,file,format=None,**kwargs):
        """open file and return atom list (as symbols) and atomic coordinates (as ndarray)"""
        self.open(file,format,**kwargs)
@@ -635,10 +639,77 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
            xyz  = array(line.split()[3:],float64)
            pos.append(xyz)
        pos = array(pos,float64) * self.AngstromToBohr
+       
+       self.__nmodes = len(atoms) * 3 - 6
+       self.__n3 = len(atoms) * 3
+       ### search for frequencies, reduced masses, foce constants, IR intensities 
+       if freq:
+          nmodes = len(atoms) * 3 - 6
+          querry = " Frequencies --- "
+          n = nmodes
+          while True: 
+            if querry in line: break 
+            line = file.readline()
+          redmss = zeros(n,float64)
+          freqs  = zeros(n,float64)
+          irints = zeros(n,float64)
+          forcec = zeros(n,float64)
+          eigvec = zeros((self.__n3,n),float64)
+          for j in range( n/5+bool(n%5) ):
+              # frequencies
+              freqs[(j*5):j*5+self.__dupa(j)] =\
+              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                                              for x in range(self.__dupa(j)) ]
+              # reduced masses
+              line = file.readline()
+              redmss[(j*5):j*5+self.__dupa(j)] =\
+              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                                              for x in range(self.__dupa(j)) ]
+              # force constants
+              line = file.readline()
+              forcec[(j*5):j*5+self.__dupa(j)] =\
+              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                                              for x in range(self.__dupa(j)) ]
+              # IR intensities
+              line = file.readline()
+              irints[(j*5):j*5+self.__dupa(j)] =\
+              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                                              for x in range(self.__dupa(j)) ]
+              # Eigenvectors
+              line = file.readline()
+              line = file.readline()
+              for i in range(self.__n3):
+                  eigvec[i][(j*5):j*5+self.__dupa(j)] =\
+                  [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                                                  for x in range(self.__dupa(j)) ]
+                  if (i+1)==self.__n3:
+                     for h in range(3): line = file.readline()
+                  else: line = file.readline()
+              #for h in range(4): line = file.readline()
+              
+          freqs  = freqs [::-1]
+          redmss = redmss[::-1]
+          forcec = forcec[::-1]
+          irints = irints[::-1]
+          eigvec = eigvec[:,::-1]
+          
        # save
        self.__atoms = atoms
        self.__pos = pos
+       if freq: 
+          self.__freq = freqs
+          self.__redmss = redmss
+          self.__forcec = forcec
+          self.__irints = irints
+          self.__eigvec = eigvec
        return
+   
+   # U T I L I T I E S
+   def __dupa(self,j):
+       """some strange but extremely helpful utility:D"""
+       if self.__nmodes-j*5 >= 5: return 5
+       else                   : return self.__nmodes%5
+
    
 
 class QMOscillator(Graph):
