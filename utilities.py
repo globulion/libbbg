@@ -364,7 +364,7 @@ Notes:
    def open(self,file,format=None,
                  units='Angstrom',name='Unnamed molecule',
                  mult=1,charge=0,method='HF',basis='3-21G',
-                 mol=True,freq=False,anh=False):
+                 mol=True,freq=False,anh=False,oniom=False):
        """open file"""
        self.__file_name = file
        self.__format = format
@@ -372,7 +372,7 @@ Notes:
           if   file.endswith('.xyz'):   self._open_xyz(file,units,name,mult,charge,method,basis,mol)
           elif file.endswith('.dma'):   self._open_dma(file)
           elif file.endswith('.fchk'):  self._open_fchk(file,units,name,mult,charge,method,basis)
-          elif (file.endswith('.g09') or file.endswith('.log')):   self._open_g09(file,freq,anh)
+          elif (file.endswith('.g09') or file.endswith('.log')):   self._open_g09(file,freq,anh,oniom)
        else:
           self.__format_dict[format](file,units,name,mult,charge,method,basis,mol)
        return
@@ -468,14 +468,23 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        """return frequencies, reduced masses, force constants, IR intensities and eigenvectors"""
        return self.__freq, self.__redmss, self.__forcec, self.__irints, self.__eigvec
    
-   def get_spectrum(self,func='g',w=10.0,n=10000):
+   def scale_freq(self,s):
+       """scale the frequencies using a scaling factor"""
+       self.__freq*= s
+       return
+   
+   def get_spectrum(self,func='g',w=10.0,n=10000, sc=1.00):
        """return the spectrum"""
-       x, s = self._func(func,w,n)
+       x, s = self._func(func,w,n,sc)
        return x, s
    
-   def _func(self,func,w,n):
+   def get_oniom_perc(self):
+       """return percentages of vibration between model and real systems in ONIOM calculation"""
+       return self.__modelP, self.__realP
+   
+   def _func(self,func,w,n,sc):
        """phenomenological line shape function for FTIR spectra"""
-       x = linspace(self.__freq.min(),self.__freq.max(),n)
+       x = linspace(self.__freq.min(),self.__freq.max(),n) * sc
        s = zeros(len(x),float64)
        # Gaussian function
        if func=='g':
@@ -637,7 +646,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        line = file.readline()
        raise NotImplementedError
    
-   def _open_g09(self,file,freq,anh):
+   def _open_g09(self,file,freq,anh,oniom):
        """open Gaussian G09RevD.01 log file. Attention: #P (extended printout) and NOSYMM keywords are necessary!"""
        file = open(file)
        line = file.readline()
@@ -651,6 +660,9 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        chg = float64(line.split()[2])
        mult= float64(line.split()[5])
        line = file.readline()
+       if oniom: 
+          line = file.readline()
+          line = file.readline()
        while len(line)>2:
            atom = Atom(line.split()[0])
            atoms.append(atom)
@@ -683,6 +695,8 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
           irints = zeros(n,float64)
           forcec = zeros(n,float64)
           eigvec = zeros((self.__n3,n),float64)
+          modelP = zeros(n,float64)
+          realP  = zeros(n,float64)
           for j in range( n/5+bool(n%5) ):
               # frequencies
               freqs[(j*5):j*5+self.__dupa(j)] =\
@@ -698,6 +712,17 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
               forcec[(j*5):j*5+self.__dupa(j)] =\
               [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                               for x in range(self.__dupa(j)) ]
+              if oniom: 
+                 # Percent ModelSys
+                 line = file.readline()
+                 modelP[(j*5):j*5+self.__dupa(j)] =\
+                    [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                                                    for x in range(self.__dupa(j)) ]
+                 # Percent RealSys
+                 line = file.readline()
+                 realP [(j*5):j*5+self.__dupa(j)] =\
+                    [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                                                    for x in range(self.__dupa(j)) ]
               # IR intensities
               line = file.readline()
               irints[(j*5):j*5+self.__dupa(j)] =\
@@ -720,6 +745,8 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
           forcec = forcec[::-1]
           irints = irints[::-1]
           eigvec = eigvec[:,::-1]
+          modelP = modelP[::-1]
+          realP  = realP [::-1]
           
        # save
        self.__atoms = atoms
@@ -730,6 +757,12 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
           self.__forcec = forcec
           self.__irints = irints
           self.__eigvec = eigvec
+          if oniom:
+             self.__modelP = modelP
+             self.__realP  = realP
+          else:
+             self.__modelP = None
+             self.__realP  = None
        return
    
    # U T I L I T I E S
