@@ -35,7 +35,7 @@ from numpy import transpose, zeros, dot, \
                   logical_and, fft     , \
                   roll, real, mgrid    , \
                   int64, amax, vectorize, \
-                  arange
+                  arange, log
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -377,6 +377,13 @@ Notes:
           self.__format_dict[format](file,units,name,mult,charge,method,basis,mol)
        return
 
+   def set_pos(self,pos,units='bohr'):
+       """set the position array"""
+       assert len(pos) == len(self.__atoms), "The number of atoms is not matching to the coordinates (%d,%d)" % (len(self.__atoms),len(pos))
+       if (units.lower()).startswith('angs'): self.__pos = pos * self.AngstromToBohr
+       else: self.__pos = pos
+       return 
+   
    def write(self,name='default.xyz'):
        """write the structure into the XYZ file"""
        f = open(name,'w')
@@ -460,6 +467,27 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
    def get_freq(self):
        """return frequencies, reduced masses, force constants, IR intensities and eigenvectors"""
        return self.__freq, self.__redmss, self.__forcec, self.__irints, self.__eigvec
+   
+   def get_spectrum(self,func='g',w=10.0,n=10000):
+       """return the spectrum"""
+       x, s = self._func(func,w,n)
+       return x, s
+   
+   def _func(self,func,w,n):
+       """phenomenological line shape function for FTIR spectra"""
+       x = linspace(self.__freq.min(),self.__freq.max(),n)
+       s = zeros(len(x),float64)
+       # Gaussian function
+       if func=='g':
+          for i in range(self.__nmodes):
+              s+= self.__irints[i] * exp( -4.*log(2.) * (x-self.__freq[i])**2/w**2 )
+          s *= w * sqrt(mPi/4. * log(2.))
+       # Lorenzian function
+       if func=='l':
+          for i in range(self.__nmodes):
+              s+= self.__irints[i] / ( 4.0 * (x-self.__freq[i])**2 + w**2 )
+          s *= w * 2. / mPi
+       return x, s
    
    def __call__(self,file,format=None,**kwargs):
        """open file and return atom list (as symbols) and atomic coordinates (as ndarray)"""
@@ -3840,6 +3868,7 @@ class Allign:
         self.atid=atid
         self.vec=vec
         self.axes=axes
+        self.__dma_alligned = None
         self.__allign() ### ---> init,final
         self.rot,self.rms = RotationMatrix(initial=self.initial,final=self.final)
         if abs(self.rms)>0.0001: print " Warning! Not orthogonal set! (rms=%f)"%self.rms
@@ -3856,7 +3885,7 @@ class Allign:
         return self.__dma_alligned, self.xyz
     
     def __allign(self):
-        axes=identity(3,dtype=float64)
+        axes=identity(3,dtype=float64)[[self.axes]]
         if self.vec:
            init = zeros((3,3),dtype=float64)
            for c in [0,1,2]: 
@@ -3865,9 +3894,16 @@ class Allign:
         
            self.initial=init
         elif self.atid:
-           P1 = self.xyz[self.atid[0]-1]
-           P2 = self.xyz[self.atid[1]-1]
-           P3 = self.xyz[self.atid[2]-1]
+           if self.atid[2]<1:
+              P1 = self.xyz[self.atid[0]-1]
+              P2 = self.xyz[self.atid[1]-1]
+              X,Y,Z = P2-P1
+              y=z=1.0; x = - (Y+Z)/X
+              P3 = array([x,y,z]); P3/= norm(P3)
+           else:
+             P1 = self.xyz[self.atid[0]-1]
+             P2 = self.xyz[self.atid[1]-1]
+             P3 = self.xyz[self.atid[2]-1]
            C = P2 - P1
            B = cross(C,P3 - P1)
            A = cross(B,C)
@@ -4321,7 +4357,7 @@ def PRINTV(M,list1,list2,list3):
                m =    M[:,(b*d):-1]
 
            for i in range(len(l1)):
-               t1 = "%s" % l1[i]
+               t1 = "%4d" % round(l1[i],0) # oryginalna wersja: "%s" % l1[i]
                print "%15s" % t1.rjust(15),
            print
            for i in range(len(l1)):
@@ -4332,12 +4368,12 @@ def PRINTV(M,list1,list2,list3):
                kk = '-'*13
                print "%s" % kk.rjust(15),
            print
-
+           
            for u in range(len(m)):
              for i in range(len(transpose(m))):
-               v = "%.5E" % m[u][i]
+               v = "%.3f" % m[u][i] # oryginalna wersja: %.5E
                print "%15s" % v.rjust(15),
-             t3 = "%s" % list3[u]
+             t3 = "%4d" % round(list3[u],0)   # oryginalna wersja: "%s" % list3[u]
              print ': %4s' % t3.rjust(4)
            print
            
