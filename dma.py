@@ -945,15 +945,16 @@ The numbers are normal numbers (not in Python convention)."""
         overall.pos[0] = origin
         
         ### make full format of DMA
-        self.MAKE_FULL()
+        tmp = self.copy()
+        tmp.MAKE_FULL()
         
         ### compute molecular solvatochromic moments
         mu   = zeros((3),dtype=float64)
         quad = zeros((3,3),dtype=float64)
         oct  = zeros((3,3,3),dtype=float64)
         for atom in range(self.nfrag):
-            r     = self.pos[atom] - origin
-            qatom = self.DMA[0][atom]
+            r     = tmp.pos[atom] - origin
+            qatom = tmp.DMA[0][atom]
             ### calculate dipole moment
             mu   += qatom * r 
             ### calculate quadrupole moment
@@ -998,25 +999,26 @@ The numbers are normal numbers (not in Python convention)."""
         overall.name = 'Test of reproducing overall multipoles from CAMM [units: A.U.]'
         overall.pos = zeros((1,3),dtype=float64)
         overall.pos[0] = origin
-        self.MAKE_FULL()
-        self.ChangeOrigin(zero=1)
+        tmp = self.copy()
+        tmp.MAKE_FULL()
+        tmp.ChangeOrigin(zero=1)
         
         ### make full format of DMA
-        self.MAKE_FULL()
+        tmp.MAKE_FULL()
         
         ### compute molecular solvatochromic moments
         mu   = zeros((3),dtype=float64)
         quad = zeros((3,3),dtype=float64)
         oct  = zeros((3,3,3),dtype=float64)
         for atom in range(self.nfrag):
-            r     = self.origin[atom]### zmiana origin z pos!!!
-            qatom = self.DMA[0][atom]
+            r     = tmp.origin[atom]### zmiana origin z pos!!!
+            qatom = tmp.DMA[0][atom]
             ### calculate dipole moment
-            mu   += self.DMA[1][atom]
+            mu   += tmp.DMA[1][atom]
             ### calculate quadrupole moment
-            quad += self.DMA_FULL[3][atom]
+            quad += tmp.DMA_FULL[3][atom]
             ### calculate octupole moment
-            oct  += self.DMA_FULL[4][atom]
+            oct  += tmp.DMA_FULL[4][atom]
 
         ### set the molecular moments into the DMA solvent object
         overall.DMA[1][0] = mu
