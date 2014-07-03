@@ -919,7 +919,7 @@ The numbers are normal numbers (not in Python convention)."""
         self.DMA[2] *= quadrupoles
         self.DMA[3] *= octupoles
         
-    def OverallMoments_old(self,origin=zeros(3,dtype=float64)):
+    def get_mult_c(self,origin=zeros(3,dtype=float64)):
         """calculates overall primitive moments from charges.
            This tool has a purpose of testing population analysis obtained by
            fitting to the molecular ab initio potential or other methods"""
@@ -973,8 +973,8 @@ The numbers are normal numbers (not in Python convention)."""
         return overall
     
     
-    def OverallMoments(self,origin=zeros(3,dtype=float64)):
-        """calculates overall primitive moments from charges.
+    def get_mult(self,origin=zeros(3,dtype=float64)):
+        """calculates overall primitive moments from CAMM.
            This tool has a purpose of testing population analysis obtained by
            fitting to the molecular ab initio potential or other methods"""
         overall = DMA(nfrag=1)
