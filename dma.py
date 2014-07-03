@@ -156,7 +156,14 @@ Gamess reads Stone's DMA analysis
                B = map( float64, line.split()[:] )
                ThirdMoments.append( A+B )
                line = data.readline()
-               
+         # ----------------------------------
+         querry = " form@"
+         while 1:
+             if querry in line: break
+             line = data.readline()
+         typ = line.split()[0]
+         if   typ == 'primitive': is_traceless = False
+         elif typ == 'traceless': is_traceless = True
          # ------------------------------------
          querry = " Structure"
          struct = True
@@ -206,7 +213,8 @@ Gamess reads Stone's DMA analysis
                      O=array(ThirdMoments )   ,
                      atoms=atoms              ,
                      pos=Structure            ,
-                     origin=Origin)#,Structure
+                     origin=Origin,
+                     is_traceless=is_traceless )
     # -----------------------------------------------------------------------------
     elif type.lower() == 'gaussian' or type.lower() == 'gau':
          data = open(file)
@@ -354,41 +362,49 @@ mathematical operations:
                  q=0,m=0,T=0,O=0,
                  pos=zeros((1,3),dtype=float64),
                  origin=zeros((1,3),dtype=float64),
-                 atoms=[Atom('X')]):
+                 atoms=[Atom('X')],
+                 is_traceless=False):
                     
-        if nfrag>0:
-           q=zeros((nfrag),dtype=float64)
-           m=zeros((nfrag,3),dtype=float64)
-           T=zeros((nfrag,6),dtype=float64)
-           O=zeros((nfrag,10),dtype=float64)
-        elif file is not None:
+        if file is not None:
            self.__call__(file)
-        else:
-           pass
-        # DMA distribution in reduced format (GAMESS-like)
-        self.DMA = [q,m,T,O]
-        #self.pos = zeros((nfrag,3),dtype=float64)
-        #self.origin = zeros((nfrag,3),dtype=float64)
-        # name
-        self.name = name
-        # origin
-        self.origin = origin
-        # position array
-        self.pos = pos
-        # number of distributed sites (fragments)
-        self.nfrag = len(self.DMA[0])
-        # atomic sites if any
-        if len(atoms)>1: self.atoms = atoms
-        else: self.atoms = atoms*self.nfrag
-        # if DMA FULL formatted memorial were created. Now it is not, so 'False'.
-        self.full = False
-        # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
-        self.traceless = False
+        elif nfrag>0:
+             q=zeros((nfrag),dtype=float64)
+             m=zeros((nfrag,3),dtype=float64)
+             T=zeros((nfrag,6),dtype=float64)
+             O=zeros((nfrag,10),dtype=float64)
+        if file is None:
+           # DMA distribution in reduced format (GAMESS-like)
+           self.DMA = [q,m,T,O]
+           #self.pos = zeros((nfrag,3),dtype=float64)
+           #self.origin = zeros((nfrag,3),dtype=float64)
+           # name
+           self.name = name
+           # origin
+           self.origin = origin
+           # position array
+           self.pos = pos
+           # number of distributed sites (fragments)
+           self.nfrag = len(self.DMA[0])
+           # atomic sites if any
+           if len(atoms)>1: self.atoms = atoms
+           else: self.atoms = atoms*self.nfrag
+           # if DMA FULL formatted memorial were created. Now it is not, so 'False'.
+           self.full = False
+           # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
+           self.traceless = is_traceless
     
     def __call__(self,file):
         """open DMA file"""
         dma = ParseDMA(file,'c')
-        return dma
+        self.DMA = [dma[x] for x in [0,1,2,3]]
+        self.origin = dma.get_origin()
+        self.pos   = dma.get_pos()
+        self.name  = dma.get_name()
+        self.nfrag = len(dma[0])
+        self.atoms = [Atom('X')] * self.nfrag
+        self.full  = False
+        self.traceless = False
+        return
      
     def get_pos(self):
         """return positions of atoms"""
@@ -1081,14 +1097,14 @@ The numbers are normal numbers (not in Python convention)."""
         log+= " "+"-"*100+"\n"
         if self.nfrag == 1:
            if self.traceless: 
-              log+= (" traceless form,   origin: %s\n"  % str(self.origin*0.5291772086)[1:-1]).rjust(100)  
+              log+= (" traceless form@,   origin: %s\n"  % str(self.origin*0.5291772086)[1:-1]).rjust(100)  
            else: 
-              log+= (" primitive form,   origin: %s \n" % str(self.origin*0.5291772086)[1:-1]).rjust(100) 
+              log+= (" primitive form@,   origin: %s \n" % str(self.origin*0.5291772086)[1:-1]).rjust(100) 
         else:
            if self.traceless: 
-              log+= " traceless form\n".rjust(100)  
+              log+= " traceless form@\n".rjust(100)  
            else: 
-              log+= " primitive form\n".rjust(100) 
+              log+= " primitive form@\n".rjust(100) 
         log+= "\n\n\n"
         
         return str(log) 

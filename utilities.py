@@ -2912,7 +2912,14 @@ Gamess reads Stone's DMA analysis
                B = map( float64, line.split()[:] )
                ThirdMoments.append( A+B )
                line = data.readline()
-               
+         # ----------------------------------
+         querry = " form@"
+         while 1:
+             if querry in line: break
+             line = data.readline()
+         typ = line.split()[0]
+         if   typ == 'primitive': is_traceless = False
+         elif typ == 'traceless': is_traceless = True
          # ------------------------------------
          querry = " Structure"
          struct = True
@@ -2962,7 +2969,8 @@ Gamess reads Stone's DMA analysis
                      O=array(ThirdMoments )   ,
                      atoms=atoms              ,
                      pos=Structure            ,
-                     origin=Origin)#,Structure
+                     origin=Origin,
+                     is_traceless=is_traceless )
     # -----------------------------------------------------------------------------
     elif type.lower() == 'gaussian' or type.lower() == 'gau':
          data = open(file)
