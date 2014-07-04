@@ -19,7 +19,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
-         'text_to_list','QMFile','Emtp_charges',]
+         'text_to_list','QMFile','Emtp_charges','MDOut',]
          
 __version__ = '3.3.1'
 
@@ -53,6 +53,161 @@ from scipy.interpolate import RectBivariateSpline as RBS, \
                               interp1d as I1D,            \
                               interp2d as I2D
 from letters import greek as let_greek
+
+class MDOut(UNITS):
+   """
+ Represents MD output file containing basic information
+ about the trajectory, i.e. time, temperatures and so on.
+ 
+ Usage:
+ 
+ d = MDOut(file,pkg='amber')    # amber is default
+ d.read()                       # read the file
+ d.write(time=True)             # write the reports. 
+                                # time=True is default
+                                # time=True: write in time (ps)
+                                # time=False: write in time steps
+ d.get_obs()                    # return MD observable dictionary
+
+ Notes:
+
+   1) Now only AMBER out files are supported
+   2) Units saved and stored are in the units identical as in output
+      file!
+"""
+
+   def __init__(self,file=None,pkg='amber'):
+       self._init(pkg)
+       if file is not None:
+          self.__call__(file)
+       return
+
+   # --- P U B L I C ---
+   
+   def __call__(self,file):
+       """open the file"""
+       self._open(file)
+       return
+
+   def read(self):
+       """read the MD output file"""
+       if self.__pkg == 'amber':
+          for obs,val in self.__obs.items():
+              new_val = self._findall(obs)
+              self.__obs[obs] = new_val
+       else: 
+          raise NotImplementedError
+       return
+
+   def write(self,time=True):
+       """write the reports"""
+       if time: x= self.__obs['time']
+       else   : x= self.__obs['step']
+       for obs,val in self.__obs.items():
+           if obs!='time' and obs!='step':
+              self._write_report(obs,x,val)
+       return
+ 
+   def get_obs(self):
+       """return the dictionary with observables"""
+       return self.__obs
+  
+   # --- P R O T E C T E D ---
+   
+   def _open(self,file):
+       """read the text from MD output file"""
+       p = open(file)
+       self.__text = p.read()
+       p.close()
+       return
+
+   def _findall(self,obs):
+       """find all mathces for an observable"""
+       p = self.__pattern[obs]
+       m = re.findall(p, self.__text)
+       if obs!='step':
+          m = array(m,float64)
+       else:
+          m = array(m,int)
+       return m
+
+   def _write_report(self,obs,x,y):
+       """write a report for a particular observable"""
+       report = open('summary.'+obs.upper(),'w')
+       title = '#\n' ; log = ''
+       report.write(title)
+       if len(x)!=len(y): 
+          print " Not equal number of X and Y points for observable %s" % obs.upper()
+       else:   
+          for i in range(len(x)):
+              log+= '%16.3f %16.6f\n' % (x[i],y[i])
+          report.write(log)
+       report.close()
+       return
+ 
+   def _update(self):
+       """update the object"""
+       # update the observable dictionary
+       self.__obs = {'time'  : self.__time,
+                     'step'  : self.__step,
+                     'volume': self.__volume,
+                     'pres'  : self.__pres,
+                     'dens'  : self.__dens,
+                     'temp'  : self.__temp,
+                     'ekin'  : self.__ekin,
+                     'epot'  : self.__epot,
+                     'etot'  : self.__etot,
+                     'escf'  : self.__escf,
+                     'bond'  : self.__bond,
+                     'angle' : self.__angle,
+                     'dihed' : self.__dihed,
+                     'ehbond': self.__ehbond,
+                     '14el'  : self.__14el,
+                     'elec'  : self.__elec,
+                     'vdw'   : self.__vdw,
+                     'virial': self.__virial, }
+       return
+
+   def _init(self,pkg):
+       """create the namespace of memorials"""
+       self.__pkg = pkg
+       # MD observables
+       self.__time    = None ;  self.__bond    = None
+       self.__volume  = None ;  self.__angle   = None
+       self.__pres    = None ;  self.__dihed   = None
+       self.__dens    = None ;  self.__ehbond  = None
+       self.__temp    = None ;  self.__14el    = None
+       self.__ekin    = None ;  self.__elec    = None
+       self.__epot    = None ;  self.__vdw     = None
+       self.__etot    = None ;  self.__virial  = None
+       self.__escf    = None ;  self.__step    = None
+       self.__restr   = None
+       # search patterns
+       _real = r'\s*(-?\d*\.\d*)'
+       _int  = r'\s*(\d*)'
+       self.__pattern = { 'time'  : r'TIME\(PS\) ='  +_real,
+                          'step'  : r'NSTEP ='     +_int,
+                          'volume': r'VOLUME     ='+_real,
+                          'pres'  : r'PRESS ='     +_real,
+                          'dens'  : r'Density    ='+_real,
+                          'temp'  : r'TEMP\(K\) ='   +_real,
+                          'ekin'  : r'EKtot   ='   +_real,
+                          'epot'  : r'EPtot      ='+_real,
+                          'etot'  : r'Etot   ='    +_real,
+                          'escf'  : r'ESCF='       +_real,
+                          'bond'  : r'BOND   ='    +_real,
+                          'angle' : r'ANGLE   ='   +_real,
+                          'dihed' : r'DIHED      ='+_real,
+                          'ehbond': r'EHBOND  ='   +_real,
+                          '14el'  : r'1-4 EEL ='   +_real,
+                          'elec'  : r'EELEC  ='    +_real,
+                          'vdw'   : r'VDWAALS    ='+_real,
+                          'virial': r'VIRIAL  ='   +_real, 
+                          'restr' : r'RESTRAINT  ='+_real }
+       #
+       self._update()  
+       return
+
 
 def text_to_list(text,delimiter=None):
     """
