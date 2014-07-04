@@ -116,9 +116,18 @@ class MDOut(UNITS):
    
    def _open(self,file):
        """read the text from MD output file"""
-       p = open(file)
-       self.__text = p.read()
-       p.close()
+       if type(file) == '''<type 'str'>''':
+          print 'fff'
+          p = open(file)
+          self.__text = p.read()
+          p.close()
+       else: 
+          text = ''
+          for f in file:
+              p = open(f)
+              text+= p.read()
+              p.close()
+          self.__text = text
        return
 
    def _findall(self,obs):
