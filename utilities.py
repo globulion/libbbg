@@ -528,7 +528,8 @@ Notes:
    def open(self,file,format=None,
                  units='Angstrom',name='Unnamed molecule',
                  mult=1,charge=0,method='HF',basis='3-21G',
-                 mol=True,freq=False,anh=False,oniom=False):
+                 mol=True,freq=False,anh=False,oniom=False,
+                 pol=False):
        """open file"""
        self.__file_name = file
        self.__format = format
@@ -536,7 +537,7 @@ Notes:
           if   file.endswith('.xyz'):   self._open_xyz(file,units,name,mult,charge,method,basis,mol)
           elif file.endswith('.dma'):   self._open_dma(file)
           elif file.endswith('.fchk'):  self._open_fchk(file,units,name,mult,charge,method,basis)
-          elif (file.endswith('.g09') or file.endswith('.log')):   self._open_g09(file,freq,anh,oniom)
+          elif (file.endswith('.g09') or file.endswith('.log')):   self._open_g09(file,freq,anh,oniom,pol)
        else:
           self.__format_dict[format](file,units,name,mult,charge,method,basis,mol)
        return
@@ -632,6 +633,23 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        """return frequencies, reduced masses, force constants, IR intensities and eigenvectors"""
        return self.__freq, self.__redmss, self.__forcec, self.__irints, self.__eigvec
    
+   def translate(self,transl):
+       """translate tensors by <transl> cartesian displacement vector"""
+       if self.__pos   is not None: self.__pos   += transl
+       return
+   
+   def rotate(self,rot):
+       """rotate the tensors by <rot> unitary matrix"""
+       # transform the atomic position static and dynamic information
+       if self.__pos   is not None:
+          self.__pos    = dot(self.__pos , rot)
+       if self.__eigvec  is not None:
+          print "Eigenvectors were not rotated!"
+       #   self.__eigvec   = dot(self.__lvec, rot)
+       if self.__pol is not None:
+          self.__pol = dot(transpose(rot),dot(self.__pol,rot))
+       return
+   
    def scale_freq(self,s):
        """scale the frequencies using a scaling factor"""
        self.__freq*= s
@@ -645,6 +663,15 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
    def get_oniom_perc(self):
        """return percentages of vibration between model and real systems in ONIOM calculation"""
        return self.__modelP, self.__realP
+   
+   def get_pol(self):
+       """return molecular total polarizability"""
+       return self.__pol
+   
+   def set_pol(self,pol):
+       """set the polarizability"""
+       self.__pol = pol
+       return
    
    def _func(self,func,w,n,sc):
        """phenomenological line shape function for FTIR spectra"""
@@ -669,16 +696,18 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
 
    def __repr__(self):
        """print me!"""
-       pos_q, mol_q, dma_q = 'No','No','No'
+       pos_q, mol_q, dma_q, pol_q = 'No','No','No','No'
        if self.__pos is not None: pos_q = 'Yes'
        if self.__mol is not None: mol_q = 'Yes'
        if self.__dma is not None: dma_q = 'Yes'
+       if self.__pol is not None: pol_q = 'Yes'
        log = '\n'
        log+= ' File: %s\n' % self.__file_name
        log+= '   * Atoms  : %i\n' % len(self.__atoms)
        log+= '   * Coord  : %s\n' % pos_q
        log+= '   * Mol    : %s\n' % mol_q
        log+= '   * DMA    : %s\n' % dma_q
+       log+= '   * POL    : %s\n' % pol_q
        log+= '   * Misc   : %s\n' % str(self.__misc)
        return str(log)
 
@@ -693,6 +722,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        self.__misc  = None
        self.__file_name = None
        self.__format = None
+       self.__pol   = None
        self.__units = 'au'
        self.__defaults = {'name'  :'Unnamed molecule',
                           'mult'  :1,
@@ -810,7 +840,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        line = file.readline()
        raise NotImplementedError
    
-   def _open_g09(self,file,freq,anh,oniom):
+   def _open_g09(self,file,freq,anh,oniom,pol):
        """open Gaussian G09RevD.01 log file. Attention: #P (extended printout) and NOSYMM keywords are necessary!"""
        file = open(file)
        line = file.readline()
@@ -846,6 +876,24 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        
        self.__nmodes = len(atoms) * 3 - 6
        self.__n3 = len(atoms) * 3
+       ### search for polarizability
+       if pol:
+          querry = " Exact polarizability:"
+          while True:
+            if querry in line: break
+            line = file.readline()
+          pol = array(line.split()[-6:],float64)
+          self.__pol = zeros((3,3),float64)
+          self.__pol[0,0] = pol[0]
+          self.__pol[0,1] = pol[1]
+          self.__pol[1,0] = pol[1]
+          self.__pol[1,1] = pol[2]
+          self.__pol[0,2] = pol[3]
+          self.__pol[2,0] = pol[3]
+          self.__pol[1,2] = pol[4]
+          self.__pol[2,1] = pol[4]
+          self.__pol[2,2] = pol[5]
+          
        ### search for frequencies, reduced masses, foce constants, IR intensities 
        if freq:
           nmodes = len(atoms) * 3 - 6
