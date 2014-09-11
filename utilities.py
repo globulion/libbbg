@@ -2556,11 +2556,11 @@ def order(R,P,start=0,lprint=1):
         r_ = sum(( R[i+start]-new_P[i+start])**2)
         r__= sum((-R[i+start]-new_P[i+start])**2)
         if lprint:
-         if s < -154: 
-            print "TUTAJ s < -154"
-            #new_P[i]*=-1.
+         #if s < -154: 
+         #   print "TUTAJ s < -154"
+         #   #new_P[i]*=-1.
          if r__<r_:
-            print "TUTAJ r__<r_"
+            print "    HERE r__ < r_ (sign reversal)"
             new_P[i]*=-1.
     return new_P, sim#, array(rad,dtype=float)
 
