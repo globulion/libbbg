@@ -19,7 +19,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
-         'text_to_list','QMFile','Emtp_charges','MDOut',]
+         'text_to_list','QMFile','Emtp_charges','MDOut',
+         'ParseLmocFromGamessEfpFile']
          
 __version__ = '3.3.1'
 
@@ -53,6 +54,32 @@ from scipy.interpolate import RectBivariateSpline as RBS, \
                               interp1d as I1D,            \
                               interp2d as I2D
 from letters import greek as let_greek
+
+def ParseLmocFromGamessEfpFile(efp_file):
+    """Parse LMO centroinds from GAMESS *.efp file. Returns them in A.U."""
+    # open the *.efp file and read the contents
+    f = open(efp_file)
+    text = f.read()
+    f.close()
+
+    # search for section with LMOCs
+    sec = re.compile(' STOP',re.DOTALL)
+    s = re.split(sec,text)
+
+    lmoc_text = s[5]
+
+    # extract LMOCs
+    k = re_real + '.*'
+    templ = 'CT.* '+ 3*k + '\n'
+
+    l = re.findall(templ,lmoc_text)
+
+    LMOC = []
+    for i in l:
+        LMOC.append(i.split()[1:])
+    LMOC = array(LMOC,float64)
+
+    return LMOC
 
 class MDOut(UNITS):
    """
@@ -1129,14 +1156,16 @@ x,y - argument and wave-function values for these arguments
 
 def check_sim(l):
     """check the sim list"""
+    log = ' --- OK ---'
     for x,y in l:
         i=0;j=0
         for a,b in l:
             if a==x: i+=1
             if b==y: j+=1
         if (i>1 or j>1): 
-            print " --- !ERROR! --- "
+            log = " --- !ERROR! --- "
             break
+    return log
         
 def lind(file,querry):
     """
