@@ -245,7 +245,7 @@ class MDOut(UNITS):
        return
 
 
-def text_to_list(text,delimiter=None):
+def text_to_list(text,delimiter=None,dtype=int,dt=1):
     """
 Transform one text line into a list. Returns list of integers.
 
@@ -269,10 +269,10 @@ text_to_list(text,delimiter=',') = [3 56 6 -1 33]
 """
     if '-' in text:
        start,end = text.split('-')
-       rang = arange(int(start),int(end)+1)
+       rang = arange(dtype(start),dtype(end)+1,dt)
     else:
        rang = text.split(delimiter)
-       rang = map(int,rang)
+       rang = map(dtype,rang)
     return rang
 
 def dihedral(A,unit='radian'):
