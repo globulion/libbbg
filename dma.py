@@ -491,7 +491,7 @@ premute all moments, positions and origins using ind list
     def write(self, file, type='c'):
         """writes  the DMA distribution in a file"""
         newfile = open(file,'w')
-        if type=='c':
+        if type=='c' or type=='dma':
            log = ' SLV output file. All units in AU\n\n'
            log+= self.__repr__()
            log += ' Structure\n'
