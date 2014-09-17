@@ -77,7 +77,9 @@ class UNITS:
       BohrElectronToDebye    = 2.541746
       DebyeToBohrElectron    = 0.39343034276438327
       AngstromToBohr         = 1.889725989
+      AngstromToNanometer    = 0.100000000
       NanometerToBohr        = 18.89725989 
+      NanometerToAngstrom    = 10.00000000
       BohrToAngstrom         = 0.5291772086
       BohrToNanometer        = 0.05291772086      
       ElectronMassToAmu      = 1./1822.8889
