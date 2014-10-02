@@ -574,6 +574,7 @@ Notes:
        # close the appropriate file object
        if self.__file_obj is not None: self.__file_obj.close()
        # clean the memory
+       self._init()
        return
    
    def set_pos(self,pos,units='bohr'):
@@ -750,20 +751,21 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
 
    def _init(self):
        """create the namespace of variables"""
-       self.__pos   = None
-       self.__atoms = None
-       self.__mol   = None
-       self.__dma   = None
-       self.__misc  = None
+       self.__pos       = None
+       self.__atoms     = None
+       self.__mol       = None
+       self.__dma       = None
+       self.__misc      = None
        self.__file_name = None
-       self.__format = None
-       self.__pol   = None
-       self.__units = 'au'
-       self.__defaults = {'name'  :'Unnamed molecule',
-                          'mult'  :1,
-                          'charge':0,
-                          'method':'HF',
-                          'basis' :'3-21G'}
+       self.__file_obj  = None
+       self.__format    = None
+       self.__pol       = None
+       self.__units     = 'au'
+       self.__defaults  = {'name'  :'Unnamed molecule',
+                           'mult'  :1,
+                           'charge':0,
+                           'method':'HF',
+                           'basis' :'3-21G'}
        self.__format_dict = {'xyz' :self._open_xyz,
                              'dma' :self._open_dma,
                              'fchk':self._open_fchk,
