@@ -569,6 +569,13 @@ Notes:
           self.__format_dict[format](file,units,name,mult,charge,method,basis,mol)
        return
 
+   def close(self):
+       """close the file and clean the memory"""
+       # close the appropriate file object
+       if self.__file_obj is not None: self.__file_obj.close()
+       # clean the memory
+       return
+   
    def set_pos(self,pos,units='bohr'):
        """set the position array"""
        assert len(pos) == len(self.__atoms), "The number of atoms is not matching to the coordinates (%d,%d)" % (len(self.__atoms),len(pos))
@@ -580,7 +587,8 @@ Notes:
        """write the structure into the XYZ file"""
        f = open(name,'w')
        f.write('%d\n' % len(self.__atoms))
-       f.write('%s' % self.__misc)
+       if self.__misc is None: f.write('\n')
+       else:                   f.write('%s' % self.__misc)
        if self.__pos.shape[1]==3:
           for i in range(len(self.__atoms)):
               log = '%2s ' % self.__atoms[i]
@@ -765,7 +773,8 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
 
    def _open_xyz(self,file,units,name,mult,charge,method,basis,mol=True):
        """open xyz file"""
-       data = open(file).readlines()
+       self.__file_obj = open(file)
+       data = self.__file_obj.readlines()
        n_atoms = int(data[0])
        misc = data[1]
        data.pop(0);data.pop(0)
@@ -802,9 +811,10 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        self.__misc = misc
        return
 
-   def _open_fchk(self,file,**kwargs):
+   def _open_fchk(self,file,units,name,mult,charge,method,basis):
        """open fchk file"""
        file = open(file)
+       self.__file_obj = file
        line = file.readline()
        g = lambda n,m: n/m+bool(n%m)
        
@@ -864,12 +874,14 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
    def _open_gms(self,file):
        """open GAMESS log file (not working yet)"""
        file = open(file)
+       self.__file_obj = file
        line = file.readline()
        raise NotImplementedError
    
    def _open_g09(self,file,freq,anh,oniom,pol):
        """open Gaussian G09RevD.01 log file. Attention: #P (extended printout) and NOSYMM keywords are necessary!"""
        file = open(file)
+       self.__file_obj = file
        line = file.readline()
        ### search for atomic symbols, charge and multiplicity
        atoms = []
