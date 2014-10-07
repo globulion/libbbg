@@ -20,7 +20,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
          'text_to_list','QMFile','Emtp_charges','MDOut',
-         'ParseLmocFromGamessEfpFile']
+         'ParseLmocFromGamessEfpFile','resol']
          
 __version__ = '3.3.1'
 
@@ -54,6 +54,21 @@ from scipy.interpolate import RectBivariateSpline as RBS, \
                               interp1d as I1D,            \
                               interp2d as I2D
 from letters import greek as let_greek
+
+def resol(t,dt):
+    """
+ Provide the maximum frequency and resolution (in [cm-1])
+ Usage:
+    resol(t,dt), where t is sampling time and dt is spacing between samples 
+                 (everything is vigen in [ps])
+"""
+    m = int(t/dt)
+    df= 1./(dt*m) *1.0e+12  # Hz
+    df*=UNITS.HzToCmRec * 2.*mPi
+    #
+    fm= 1./(2.*dt) * 1.0e+12 * UNITS.HzToCmRec * 2.*mPi
+    print " Max: %10.1f [cm-1], Resolution: %10.1f [cm-1] " % (fm,df)
+    return
 
 def ParseLmocFromGamessEfpFile(efp_file):
     """Parse LMO centroinds from GAMESS *.efp file. Returns them in A.U."""
