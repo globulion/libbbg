@@ -28,6 +28,8 @@ CLPLTP = Extension(name='clpltp',
                    sources=['clpltp.f'],
                    library_dirs=['/usr/lib/lapack','/usr/lib/pyshared/python2.7/scipy/lib/lapack'],
                    libraries=['flapack.so',])
+FT_LIB = Extension(name='fourier.ft',
+                   sources=['fourier/ft.f'],)
 #SOLPOL = Extension(name='solpol',
 #                   sources=['solpol.f'])
 
@@ -39,10 +41,10 @@ setup(name='LIBBBG',
       author='Bartosz Błasiak',
       author_email='globula@o2.pl',
       url='http://www.ex.no/pymod/m1',
-      packages=['letters'],
+      packages=['letters','fourier',],
       py_modules=['dma','gaussfreq','units',
                   'utilities','utilities2',
-                  'dipderiv','re_templates',
-                  'mpfit','solpol','letters.greek'],
-      ext_modules=[GENTCF,ORBLOC,CLEMTP],
+                  'dipderiv','re_templates','fourier',
+                  'mpfit','solpol','letters.greek','fourier.ft'],
+      ext_modules=[GENTCF,ORBLOC,CLEMTP,FT_LIB],
      )
