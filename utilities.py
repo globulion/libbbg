@@ -20,7 +20,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
          'text_to_list','QMFile','Emtp_charges','MDOut',
-         'ParseLmocFromGamessEfpFile','resol']
+         'ParseLmocFromGamessEfpFile','resol','ft_1d']
          
 __version__ = '3.3.1'
 
@@ -36,7 +36,7 @@ from numpy import transpose, zeros, dot, \
                   logical_and, fft     , \
                   roll, real, mgrid    , \
                   int64, amax, vectorize, \
-                  arange, log
+                  arange, log, linspace
 from math import exp as mexp   ,\
                  sqrt as msqrt ,\
                  pi as mPi
@@ -54,6 +54,140 @@ from scipy.interpolate import RectBivariateSpline as RBS, \
                               interp1d as I1D,            \
                               interp2d as I2D
 from letters import greek as let_greek
+from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+def ft_1d(f,t,dt,n=None,algorithm='fft'):
+    """\
+------------------------------------------------------------------------------
+Compute Discrete Fourier Transform of the time-domain signal f(t) 
+measured through t seconds and sampled every dt seconds.
+
+------------------------------------------------------------------------------
+
+Usage:
+v, gr, gi, v_max, v_res = ft(f,t,dt,n=None,algorithm='fft')
+
+Input:
+ - f    - 1d ndarray of time-domain signal points (real or complex)
+ - t    - time of measurement [s]
+ - dt   - sampling time [s]
+ - n    - request extended number of points
+ - algorithm - default: FFT of Cooley and Tukey (scales as np*np)
+               other:   DFT - explicit implementation (scales as np*log_2(np))
+               
+Output:
+ - v    - ndarray of frequencies [Hz]
+ - gr   - real part of Fourier spectrum
+ - gi   - imaginary part of Fourier spectrum
+ - v_max- maximum reasonable frequency [Hz]
+ - v_res- resolution of Fourier spectrum [Hz]
+ 
+Notes:
+ - zero padding is automatic if <n> is switched and is larger 
+   than len(<f>). 
+ - If FFT algorithm is switched, len(<f>) is not a power of 2 and <n=None>
+   the ft_1d function will zero-padd to reach the total number of points which
+   is equal to the nearest power of 2. However, if the user requests specific
+   number of points for FFT then <n> has to be a power of two.
+ - the output Fourier spectrum in frequency domain should be taken up to the
+   <v_max>. Note that the spectrum for higher frequencies should be rejected!
+   To increase <v_max> decrease sampling time.
+------------------------------------------------------------------------------
+                                                 Last revision:  9 Oct 2014
+"""
+    # check if the data type is complex or purely real
+    if 'complex' in str(type(f[0])):
+       f_real = f.real.copy()
+       f_imag = f.imag.copy()
+    else:
+       f_real = f.copy()
+       f_imag = None
+    # Fast Fourier Transform (Cooley-Tukey)
+    if algorithm.lower()=='fft':
+       # prepare the data points
+       N  = array([ 2**i for i in range(4,30) ], int)
+       if n is None:                         
+          nf = len(f)
+          if not nf in N:
+             np = N[where(N>nf)][0]
+             fr = zeros(np,float64)
+             fi = zeros(np,float64)
+             fr[:nf] = f_real.copy()
+             if f_imag is not None: 
+                fi[:nf] = f_imag.copy()
+          else:
+             np = nf
+             fr = f_real.copy()
+             if f_imag is not None:
+                fi = f_imag.copy()
+             else: 
+                fi = zeros(np,float64)
+          #
+       else:
+          nf = len(f)
+          merror = " Invalid number of points requested!"
+          assert n in N, merror
+          merror = " The number of points <n=%i> is smaller than the size of input data: %i!" % (n,nf)
+          assert n >= nf, merror
+          np = n
+          fr = zeros(np,float64)
+          fi = zeros(np,float64)
+          fr[:nf] = f_real.copy()
+          if f_imag is not None:
+             fi[:nf] = f_imag.copy()
+       #
+       m = int(log2(np))
+       # do the FFT
+       ht = t/(np-1)
+       v_max = 1./(2.*ht)  # Hz
+       v_res = 1./ (np*ht) # Hz
+       v     = linspace(0,np,np) / (ht*np)  # Hz
+
+       gr,gi = libbbg_fft(fr,fi,m) 
+       gr/= msqrt(np)
+       gi/= msqrt(np)
+          
+    # Direct Discrete Fourier Transform
+    elif algorithm.lower()=='dft':
+       nf = len(f)
+       if n is not None: 
+          message = " Requested number of points <n=%d> is smaller than data size <%d> so n is ignored" % (n,nf)
+          if n<nf: 
+             print message
+             np = len(nf)
+             fr = f_real.copy()
+             if f_imag is not None:
+                fi = f_imag.copy()
+          else: 
+             np = n
+             fr = zeros(np,float64)
+             fi = zeros(np,float64)
+             fr[:nf] = f_real.copy()
+             if f_imag is not None:
+                fi[:nf] = f_imag.copy()
+       else:
+          np = len(nf)
+          fr = f_real.copy()
+          if f_imag is not None:
+             fi = f_imag.copy()
+       #
+       ht = t/(np-1)
+       v_max = 1./(2.*ht)  # Hz
+       v_res = 1./ (np*ht) # Hz
+       v     = linspace(0,np,np) / (ht*np)  # Hz
+
+       gr = zeros(np,float64)
+       gi = zeros(np,float64)
+       gr,gi = libbbg_dft(fr,fi,gr,gi) 
+       gr/= msqrt(np)
+       gi/= msqrt(np)
+
+    # bad algorithm request
+    else:
+       error = " Not known algorithm=%s requested!" % algorithm.lower()
+       raise ValueError, error
+    #
+    return v, gr, gi, v_max, v_res
 
 def resol(t,dt):
     """
