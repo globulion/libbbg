@@ -56,7 +56,7 @@ from scipy.interpolate import RectBivariateSpline as RBS, \
 from letters import greek as let_greek
 from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
 
-def ft_1d(f,t,dt,n=None,algorithm='fft'):
+def ft_1d(f,t,dt,n=None,algorithm='fft',cunit=None):
     """\
 ------------------------------------------------------------------------------
 Compute Discrete Fourier Transform of the time-domain signal f(t) 
@@ -65,7 +65,7 @@ measured through t seconds and sampled every dt seconds.
 ------------------------------------------------------------------------------
 
 Usage:
-v, gr, gi, v_max, v_res = ft(f,t,dt,n=None,algorithm='fft')
+v, gr, gi, v_max, v_res = ft(f,t,dt,n=None,algorithm='fft',cunit=None)
 
 Input:
  - f    - 1d ndarray of time-domain signal points (real or complex)
@@ -74,7 +74,11 @@ Input:
  - n    - request extended number of points
  - algorithm - default: FFT of Cooley and Tukey (scales as np*np)
                other:   DFT - explicit implementation (scales as np*log_2(np))
-               
+ - cunit- return frequencies converted from Hz to another unit (detault is Hz)
+         'ang' - angular frequency (multiply by 2pi)
+         'cm-1'- wavenumber
+          any number can be also provided. Then frequencies will be multiplied
+          by it.
 Output:
  - v    - ndarray of frequencies [Hz]
  - gr   - real part of Fourier spectrum
@@ -102,6 +106,15 @@ Notes:
     else:
        f_real = f.copy()
        f_imag = None
+    # check changing units
+    uconv = 1.000
+    if cunit is not None:
+       try:
+         if   cunit.lower() == 'ang' : uconv = 2.00*mPi
+         elif cunit.lower() == 'cm-1': uconv = UNITS.HzToCmRec
+         elif cunit.lower() == 'hz'  : pass
+       except TypeError:
+         uconv = float64(cunit)
     #
     nf = len(f)
     ht = t/(nf-1)
@@ -186,6 +199,10 @@ Notes:
     else:
        error = " Not known algorithm=%s requested!" % algorithm.lower()
        raise ValueError, error
+    #
+    v *= uconv
+    gr*= uconv   ; v_max*=uconv
+    gi*= uconv   ; v_res*=uconv
     #
     return v, gr, gi, v_max, v_res
 
