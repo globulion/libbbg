@@ -102,12 +102,14 @@ Notes:
     else:
        f_real = f.copy()
        f_imag = None
+    #
+    nf = len(f)
+    ht = t/(nf-1)
     # Fast Fourier Transform (Cooley-Tukey)
     if algorithm.lower()=='fft':
        # prepare the data points
        N  = array([ 2**i for i in range(4,30) ], int)
        if n is None:                         
-          nf = len(f)
           if not nf in N:
              np = N[where(N>nf)][0]
              fr = zeros(np,float64)
@@ -138,7 +140,6 @@ Notes:
        #
        m = int(log2(np))
        # do the FFT
-       ht = t/(np-1)
        v_max = 1./(2.*ht)  # Hz
        v_res = 1./ (np*ht) # Hz
        v     = linspace(0,np,np) / (ht*np)  # Hz
@@ -149,7 +150,6 @@ Notes:
           
     # Direct Discrete Fourier Transform
     elif algorithm.lower()=='dft':
-       nf = len(f)
        if n is not None: 
           message = " Requested number of points <n=%d> is smaller than data size <%d> so n is ignored" % (n,nf)
           if n<nf: 
@@ -166,12 +166,12 @@ Notes:
              if f_imag is not None:
                 fi[:nf] = f_imag.copy()
        else:
-          np = len(nf)
+          np = nf
           fr = f_real.copy()
+          fi = zeros(np,float64)
           if f_imag is not None:
              fi = f_imag.copy()
        #
-       ht = t/(np-1)
        v_max = 1./(2.*ht)  # Hz
        v_res = 1./ (np*ht) # Hz
        v     = linspace(0,np,np) / (ht*np)  # Hz
