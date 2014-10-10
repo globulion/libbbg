@@ -629,7 +629,7 @@ class RungeKutta:
     ------- = f(y_1(t), y_2(t), ..., f_n(t)) = f({y_i(t)})
       dt 
 
- RungeKutta class is a purely-python vectorized implementation of Kunge-Kutta 
+ RungeKutta class is a purely-Python vectorized implementation of Kunge-Kutta 
  method.
  
  Usage:
@@ -671,39 +671,51 @@ class RungeKutta:
   Note that these can be written as a one second-order differential equation.
   Now, we want to construct <func>. Below there is an example of solving this
   problem using RungeKutta class method for the case when initial conditions
-  are theta(0) = 2.3 radians and omega(0) = 0.3 radians/second:
+  are theta(0) = 2.3 radians and omega(0) = 0.3 radians/second. What is the be
+  haviour of the pendulum? Try to change b value to 1.5 and 0.8 and examine 
+  the differences:
   
     import utilities
+    from numpy import array, linspace, sin, cos, sqrt, pi
                                           
     # define inputs
     gfc= lambda y, tau, q, b, w_0: array([   y[1]                              ,
                                           -q*y[1] - sin(y[0]) + b*cos(w_0*tau) ])
                                           
-    steps = 1000; dt = 3*3.1415/100.; w_0 = 2./3.; q = 0.5; b = 3.5
+    steps = 10000; dt = 3*pi/100.; w_0 = 2./3.; q = 0.5; b = 3.5
     init  = [ 2.3, 0.3 ]
     
     # create RungeKutta instance and solve the problem
     pendulum = utilities.RungeKutta()
     pendulum.set(gfc,tau=dt,init=init)
     pendulum.eval(steps,w_0=w_0,q=q,b=b)
-    t = linspace(0.,steps*dt,steps+1)
+    t = linspace(0.,steps*dt,steps)
     r = pendulum()
     y_1 = r[:,0]; y_2 = r[:,1]
     
     # make frequency-domain power spectrum signal
-    v, gr, gi, v_max, v_res = utilities.ft_1d(x,steps,dt,algorithm='FFT',
-                                                         cunit='ANG')
+    v, gr, gi, v_max, v_res = utilities.ft_1d(y_1,steps,dt,algorithm='FFT',
+                                                           cunit='Hz')
     s = sqrt(gi**2. + gr**2.)
+    print " Resolution of spectrum      : %10.6f" % v_res
+    print " Maximal reasonable frequency: %10.2f" % v_max
     
     # plot the happy results
     import pylab as pl
     f = pl.figure()
     ax1 = f.add_subplot(311)
+    ax1.set_xlabel('Time [s]')
+    ax1.set_ylabel('$\\Theta(t)$ [rad]')
     ax1.plot(t,y_1,'b-')
-    ax1 = f.add_subplot(312)
-    ax1.plot(y_1,y_2,'g-')
-    ax2 = f.add_subplot(313)
-    ax2.plot(v,s,'r-')
+    ax2 = f.add_subplot(312)
+    ax2.set_xlabel('$\\Theta(t)$ [rad]')
+    ax2.set_ylabel('$\\omega(t)$ [rad/s]')
+    ax2.plot(y_1,y_2,'g-')
+    ax3 = f.add_subplot(313)
+    ax3.set_xlabel('$\\upsilon$ [Hz]')
+    ax3.set_ylabel('Intensity')
+    ax3.plot(v,s,'r-')
+    ax3.set_xlim([0.0,v_max])
     pl.show(block=True)
 
     
@@ -711,6 +723,7 @@ class RungeKutta:
     o keyword for step in <func> has to be exactly <tau>
     o the function <func> has to return ndarray of functions (NOT list!)
     o init can be tuple, list or array
+    o steps is the number of steps including the initial condition
  -----------------------------------------------------------------------------
                                                Last revision: 10 Oct 2014
 """
