@@ -608,17 +608,124 @@ objects to increase the speed instead of using slow 'for' python loop"""
     return s
 
 class RungeKutta:
-   """Runge-Kutta method"""
+   """
+ -----------------------------------------------------------------------------
+             Numerical Solver of Ordinary Differential Equations
+                        *** Runge-Kutta Method ***
+                Bartosz Błasiak, blasiak.bartosz@gmail.com
+ -----------------------------------------------------------------------------
+
+ Solves numerically the set of n first-order ordinary differential equations of
+ the form:
+ 
+ 
+    dy_1(t)
+    ------- = f(y_1(t), y_2(t), ..., f_n(t)) = f({y_i(t)})
+      dt 
+
+                    ···
+    
+    dy_n(t)
+    ------- = f(y_1(t), y_2(t), ..., f_n(t)) = f({y_i(t)})
+      dt 
+
+ RungeKutta class is a purely-python vectorized implementation of Kunge-Kutta 
+ method.
+ 
+ Usage:
+ 
+    solver = RungeKutta()
+    solver.set(func,tau,init)
+    solver.eval(n_pass,**kwargs)
+    result = solver()  or  result = solver.get()
+ 
+ Inputs:
+ 
+    func = function returning an ndarray of f({y_i(t)}) functions 
+           for each dy_n(t)/dt (see below for an example)
+    tau  = step of integration
+    init = initial conditions
+    **kwargs = additional arguments of func
+    
+ Notes:
+ 
+    o func and init are ndarrays of length n
+    
+ Example:
+ --------
+ 
+ Here we consider a driven pendulum. We want to obtain the functions of angle
+ theta(t) and angular frequency dtheta(t)/dt as a function of time. We denote
+ y_1(t) = theta(t) and y_2(t) = dtheta(t)/dt. w_0 and b are the frequency and
+ amplitude of a driving force whereas q is a damping coefficient (q and b >0).
+ The set of two coupled 1-st order differential equations is as follows:
+ 
+    dy_1(t)
+    ------- = y_2(t)                                                (1)
+      dt 
+
+    dy_2(t)
+    ------- = -q y_2(t) - sin(y_1(t)) + b cos(w_0 t)                (2)
+      dt 
+
+  Note that these can be written as a one second-order differential equation.
+  Now, we want to construct <func>. Below there is an example of solving this
+  problem using RungeKutta class method for the case when initial conditions
+  are theta(0) = 2.3 radians and omega(0) = 0.3 radians/second:
+  
+    import utilities
+                                          
+    # define inputs
+    gfc= lambda y, tau, q, b, w_0: array([   y[1]                              ,
+                                          -q*y[1] - sin(y[0]) + b*cos(w_0*tau) ])
+                                          
+    steps = 1000; dt = 3*3.1415/100.; w_0 = 2./3.; q = 0.5; b = 3.5
+    init  = [ 2.3, 0.3 ]
+    
+    # create RungeKutta instance and solve the problem
+    pendulum = utilities.RungeKutta()
+    pendulum.set(gfc,tau=dt,init=init)
+    pendulum.eval(steps,w_0=w_0,q=q,b=b)
+    t = linspace(0.,steps*dt,steps+1)
+    r = pendulum()
+    y_1 = r[:,0]; y_2 = r[:,1]
+    
+    # make frequency-domain power spectrum signal
+    v, gr, gi, v_max, v_res = utilities.ft_1d(x,steps,dt,algorithm='FFT',
+                                                         cunit='ANG')
+    s = sqrt(gi**2. + gr**2.)
+    
+    # plot the happy results
+    import pylab as pl
+    f = pl.figure()
+    ax1 = f.add_subplot(311)
+    ax1.plot(t,y_1,'b-')
+    ax1 = f.add_subplot(312)
+    ax1.plot(y_1,y_2,'g-')
+    ax2 = f.add_subplot(313)
+    ax2.plot(v,s,'r-')
+    pl.show(block=True)
+
+    
+  Note that:
+    o keyword for step in <func> has to be exactly <tau>
+    o the function <func> has to return ndarray of functions (NOT list!)
+    o init can be tuple, list or array
+ -----------------------------------------------------------------------------
+                                               Last revision: 10 Oct 2014
+"""
    def __init__(self):
+       """happy birthday!"""
        self.__gfc    = None
        self.__ndim   = None
        self.__result = None
        pass
 
    def __call__(self):
+       """return the nd-array of time-dependent variables"""
        return self.get()
 
-   def set(self,func,tau,init=None):
+   def set(self,func,tau,init):
        """set an array of g-functions!"""
        self.__gfc = func
        self.__tau = tau
@@ -632,6 +739,7 @@ class RungeKutta:
        return
 
    def get(self):
+       """return the nd-array of time-dependent variables"""
        return self.__result
 
    def eval(self,n_pass,**kwargs):
@@ -639,7 +747,7 @@ class RungeKutta:
        y = zeros((n_pass,self.__ndim),float64)
        # initial conditions
        y[0] = self.__init
-       #
+       # proceed with time
        for i in xrange(1,n_pass):
            ti = self.__tau*i
            a = y[i-1]
