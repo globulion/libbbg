@@ -24,37 +24,44 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          
 __version__ = '3.3.1'
 
-import re, gentcf, orbloc, PyQuante, clemtp, \
-       scipy.optimize, scipy.integrate
-from numpy import transpose, zeros, dot, \
-                  float64, shape, array, \
-                  sqrt, ceil, tensordot, \
-                  cross, sum, where    , \
-                  concatenate, average , \
-                  exp, linalg, sign    , \
-                  arctan2, meshgrid    , \
-                  logical_and, fft     , \
-                  roll, real, mgrid    , \
-                  int64, amax, vectorize, \
-                  arange, log, linspace
-from math import exp as mexp   ,\
-                 sqrt as msqrt ,\
-                 pi as mPi
-from numpy.linalg import svd, det, norm
-from dma   import DMA
-from units import *
-from re_templates import *
-import copy, os, math
+import re, gentcf, orbloc, PyQuante, clemtp,  \
+       scipy.optimize, scipy.integrate, numpy,\
+       math, numpy.linalg, dma, units, re_templates,\
+       copy, os, math, scitools.all, matplotlib.font_manager,\
+       pylab, scitools.numpyutils, scipy.interpolate,\
+       letters, fourier.ft
+
+uAtom = units.Atom
+uUNITS= units.UNITS
+#from numpy import transpose, zeros, dot, \
+#                  float64, shape, array, \
+#                  sqrt, ceil, tensordot, \
+#                  cross, sum, where    , \
+#                  concatenate, average , \
+#                  exp, linalg, sign    , \
+#                  arctan2, meshgrid    , \
+#                  logical_and, fft     , \
+#                  roll, real, mgrid    , \
+#                  int64, amax, vectorize, \
+#                  arange, log, linspace
+#from math import exp as mexp   ,\
+#                 sqrt as msqrt ,\
+#                 pi as mPi
+#from numpy.linalg import svd, det, norm
+#from dma   import DMA
+#from units import *
+#from re_templates import *
+#import copy, os, math
 #if bool(os.environ.get('__IMPORT_EASYVIZ__')):
-from scitools.all import *
-from matplotlib.font_manager import FontProperties as FP
-from pylab import plt, Line2D, subplots, rcParams
-from scitools.numpyutils import seq
-from scipy.interpolate import RectBivariateSpline as RBS, \
-                              interp1d as I1D,            \
-                              interp2d as I2D
-from letters import greek as let_greek
-from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+#from scitools.all import *
+#from matplotlib.font_manager import FontProperties as FP
+#from pylab import plt, Line2D, subplots, rcParams
+#from scitools.numpyutils import seq
+#from scipy.interpolate import RectBivariateSpline as RBS, \
+#                              interp1d as I1D,            \
+#                              interp2d as I2D
+#from letters import greek as let_greek
+#from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
 
 def ft_1d(f,t,dt,n=None,algorithm='fft',cunit=None):
     """\
@@ -110,23 +117,23 @@ Notes:
     uconv = 1.000
     if cunit is not None:
        try:
-         if   cunit.lower() == 'ang' : uconv = 2.00*mPi
-         elif cunit.lower() == 'cm-1': uconv = UNITS.HzToCmRec
+         if   cunit.lower() == 'ang' : uconv = 2.00*math.pi
+         elif cunit.lower() == 'cm-1': uconv = units.UNITS.HzToCmRec
          elif cunit.lower() == 'hz'  : pass
        except TypeError:
-         uconv = float64(cunit)
+         uconv = numpy.float64(cunit)
     #
     nf = len(f)
     ht = t/(nf-1)
     # Fast Fourier Transform (Cooley-Tukey)
     if algorithm.lower()=='fft':
        # prepare the data points
-       N  = array([ 2**i for i in range(4,30) ], int)
+       N  = numpy.array([ 2**i for i in range(4,30) ], int)
        if n is None:                         
           if not nf in N:
-             np = N[where(N>nf)][0]
-             fr = zeros(np,float64)
-             fi = zeros(np,float64)
+             np = N[numpy.where(N>nf)][0]
+             fr = numpy.zeros(np,numpy.float64)
+             fi = numpy.zeros(np,numpy.float64)
              fr[:nf] = f_real.copy()
              if f_imag is not None: 
                 fi[:nf] = f_imag.copy()
@@ -136,7 +143,7 @@ Notes:
              if f_imag is not None:
                 fi = f_imag.copy()
              else: 
-                fi = zeros(np,float64)
+                fi = numpy.zeros(np,numpy.float64)
           #
        else:
           nf = len(f)
@@ -145,21 +152,21 @@ Notes:
           merror = " The number of points <n=%i> is smaller than the size of input data: %i!" % (n,nf)
           assert n >= nf, merror
           np = n
-          fr = zeros(np,float64)
-          fi = zeros(np,float64)
+          fr = numpy.zeros(np,numpy.float64)
+          fi = numpy.zeros(np,numpy.float64)
           fr[:nf] = f_real.copy()
           if f_imag is not None:
              fi[:nf] = f_imag.copy()
        #
-       m = int(log2(np))
+       m = int(numpy.log2(np))
        # do the FFT
        v_max = 1./(2.*ht)  # Hz
        v_res = 1./ (np*ht) # Hz
-       v     = linspace(0,np,np) / (ht*np)  # Hz
+       v     = numpy.linspace(0,np,np) / (ht*np)  # Hz
 
-       gr,gi = libbbg_fft(fr,fi,m) 
-       gr/= msqrt(np)
-       gi/= msqrt(np)
+       gr,gi = fourier.ft.fft(fr,fi,m) 
+       gr/= math.sqrt(np)
+       gi/= math.sqrt(np)
           
     # Direct Discrete Fourier Transform
     elif algorithm.lower()=='dft':
@@ -173,27 +180,27 @@ Notes:
                 fi = f_imag.copy()
           else: 
              np = n
-             fr = zeros(np,float64)
-             fi = zeros(np,float64)
+             fr = numpy.zeros(np,numpy.float64)
+             fi = numpy.zeros(np,numpy.float64)
              fr[:nf] = f_real.copy()
              if f_imag is not None:
                 fi[:nf] = f_imag.copy()
        else:
           np = nf
           fr = f_real.copy()
-          fi = zeros(np,float64)
+          fi = numpy.zeros(np,numpy.float64)
           if f_imag is not None:
              fi = f_imag.copy()
        #
        v_max = 1./(2.*ht)  # Hz
        v_res = 1./ (np*ht) # Hz
-       v     = linspace(0,np,np) / (ht*np)  # Hz
+       v     = numpy.linspace(0,np,np) / (ht*np)  # Hz
 
-       gr = zeros(np,float64)
-       gi = zeros(np,float64)
-       gr,gi = libbbg_dft(fr,fi,gr,gi) 
-       gr/= msqrt(np)
-       gi/= msqrt(np)
+       gr = numpy.zeros(np,numpy.float64)
+       gi = numpy.zeros(np,numpy.float64)
+       gr,gi = fourier.ft.dft(fr,fi,gr,gi) 
+       gr/= math.sqrt(np)
+       gi/= math.sqrt(np)
 
     # bad algorithm request
     else:
@@ -215,9 +222,9 @@ def resol(t,dt):
 """
     m = int(t/dt)
     df= 1./(dt*m) *1.0e+12  # Hz
-    df*=UNITS.HzToCmRec * 2.*mPi
+    df*= units.UNITS.HzToCmRec * 2.*math.pi
     #
-    fm= 1./(2.*dt) * 1.0e+12 * UNITS.HzToCmRec * 2.*mPi
+    fm= 1./(2.*dt) * 1.0e+12 * units.UNITS.HzToCmRec * 2.*math.pi
     print " Max: %10.1f [cm-1], Resolution: %10.1f [cm-1] " % (fm,df)
     return
 
@@ -229,7 +236,7 @@ def ParseLmocFromGamessEfpFile(efp_file):
     f.close()
 
     # search for section with LMOCs
-    sec = re.compile(' STOP',re.DOTALL)
+    sec = re.compile(' STOP', re.DOTALL)
     s = re.split(sec,text)
 
     lmoc_text = s[5]
@@ -238,16 +245,16 @@ def ParseLmocFromGamessEfpFile(efp_file):
     k = re_real + '.*'
     templ = 'CT.* '+ 3*k + '\n'
 
-    l = re.findall(templ,lmoc_text)
+    l = re.findall(templ, lmoc_text)
 
     LMOC = []
     for i in l:
         LMOC.append(i.split()[1:])
-    LMOC = array(LMOC,float64)
+    LMOC = numpy.array(LMOC,numpy.float64)
 
     return LMOC
 
-class MDOut(UNITS):
+class MDOut(units.UNITS):
    """
  Represents MD output file containing basic information
  about the trajectory, i.e. time, temperatures and so on.
@@ -328,9 +335,9 @@ class MDOut(UNITS):
        p = self.__pattern[obs]
        m = re.findall(p, self.__text)
        if obs!='step':
-          m = array(m,float64)
+          m = numpy.array(m,numpy.float64)
        else:
-          m = array(m,int)
+          m = numpy.array(m,int)
        return m
 
    def _write_report(self,obs,x,y):
@@ -435,7 +442,7 @@ text_to_list(text,delimiter=',') = [3 56 6 -1 33]
 """
     if '-' in text:
        start,end = text.split('-')
-       rang = arange(dtype(start),dtype(end)+1,dt)
+       rang = numpy.arange(dtype(start),dtype(end)+1,dt)
     else:
        rang = text.split(delimiter)
        rang = map(dtype,rang)
@@ -450,16 +457,16 @@ as compared with MOLDEN for a test NMA molecule"""
     P1 = A[1]-A[0]
     P2 = A[2]-A[1]
     P3 = A[3]-A[2]
-    N1 = cross(P1,P2)
-    N2 = cross(P2,P3)
-    N1/= msqrt(sum(N1*N1))
-    N2/= msqrt(sum(N2*N2))
-    P2/= msqrt(sum(P2*P2))
-    M1 = cross(N1,P2)
+    N1 = numpy.cross(P1,P2)
+    N2 = numpy.cross(P2,P3)
+    N1/= math.sqrt(sum(N1*N1))
+    N2/= math.sqrt(sum(N2*N2))
+    P2/= math.sqrt(sum(P2*P2))
+    M1 = numpy.cross(N1,P2)
     x = sum(N1*N2)
     y = sum(M1*N2)
-    angle = arctan2(y,x)
-    conv = 180./mPi
+    angle = numpy.arctan2(y,x)
+    conv = 180./math.pi
     if unit=='deg':angle*=conv
     return angle
 
@@ -486,18 +493,18 @@ npoints - numper of points for the numerical solution
 step - delta x for numerical integration
 """
     # initialize outputs
-    x = float64(linspace(x0,x0+(npoints-1)*step,npoints))
-    y = zeros(npoints,float64)
+    x = numpy.float64(numpy.linspace(x0,x0+(npoints-1)*step,npoints))
+    y = numpy.zeros(npoints,numpy.float64)
     y[0] = y0; y[1] = y1
     #
     H = step*step/12.0
-    if   isinstance(q,float64): Q = q*ones(npoints,float64)
-    elif isinstance(q,ndarray): Q = q
-    else:                       Q = q(x,**qarg)
+    if   isinstance(q,numpy.float64): Q = q*numpy.ones(npoints,numpy.float64)
+    elif isinstance(q,numpy.ndarray): Q = q
+    else:                             Q = q(x,**qarg)
     #
-    if   isinstance(s,float64): S = s*ones(npoints,float64)
-    elif isinstance(s,ndarray): S = s
-    else:                       S = s(x,**sarg)
+    if   isinstance(s,numpy.float64): S = s*numpy.ones(npoints,numpy.float64)
+    elif isinstance(s,numpy.ndarray): S = s
+    else:                             S = s(x,**sarg)
     # calculate all the coefficients
     ci1 = 1.0 +      H * Q
     ci  = 2.0 - 10.0*H * Q
@@ -528,14 +535,14 @@ npoints - numper of points for the numerical solution
 step - delta x for numerical integration
 """
     # initialize outputs
-    x = float64(linspace(x0,x0+(npoints-1)*step,npoints))
-    y = zeros(npoints,float64)
+    x = numpy.float64(numpy.linspace(x0,x0+(npoints-1)*step,npoints))
+    y = numpy.zeros(npoints,numpy.float64)
     y[0] = y0; y[1] = y1
     #
     H = step*step/12.0
-    if   isinstance(q,float64): Q = q*ones(npoints,float64)
-    elif isinstance(q,ndarray): Q = q
-    else:                       Q = q(x,**qarg)
+    if   isinstance(q,numpy.float64): Q = q*numpy.ones(npoints,numpy.float64)
+    elif isinstance(q,numpy.ndarray): Q = q
+    else:                             Q = q(x,**qarg)
     # calculate all the coefficients
     ci1 = 1.0 +      H * Q
     ci  = 2.0 - 10.0*H * Q
@@ -747,7 +754,7 @@ class RungeKutta:
 
    def set_init(self,init):
        """set the initial variables"""
-       self.__init = array(init,float64)
+       self.__init = numpy.array(init,numpy.float64)
        self.__ndim = len(init)
        return
 
@@ -757,7 +764,7 @@ class RungeKutta:
 
    def eval(self,n_pass,**kwargs):
        """evaluate the dynamic properties as time goes"""
-       y = zeros((n_pass,self.__ndim),float64)
+       y = numpy.zeros((n_pass,self.__ndim),numpy.float64)
        # initial conditions
        y[0] = self.__init
        # proceed with time
@@ -775,13 +782,13 @@ class RungeKutta:
 class Graph:
     "graph environment"
     fs = 20
-    font0 = FP()
+    font0 = matplotlib.font_manager.FontProperties()
     font1 = font0.copy()
     font1.set_family('sans-serif')
     font1.set_weight('bold')
     marker = 'o'
     
-class QMFile(UNITS):
+class QMFile(units.UNITS):
    """
 ---------------------------------------------------------
            Represents the following file formats: 
@@ -906,12 +913,12 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        n,m = xyz.shape
        # case where there is mismatch in number of columns
        if m+1==M:
-          xew = zeros((n,m+1),float64)
+          xew = numpy.zeros((n,m+1),numpy.float64)
           xew[:,:3] = xyz
           xyz = xew
        I = id
        # insert the structure
-       new = zeros((N+n,M),float64)
+       new = numpy.zeros((N+n,M),numpy.float64)
        new[:I] = self.__pos[:I]
        new[I:I+n] = xyz
        new[I+n:] = self.__pos[I:]
@@ -965,12 +972,12 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        """rotate the tensors by <rot> unitary matrix"""
        # transform the atomic position static and dynamic information
        if self.__pos   is not None:
-          self.__pos    = dot(self.__pos , rot)
+          self.__pos    = numpy.dot(self.__pos , rot)
        if self.__eigvec  is not None:
           print "Eigenvectors were not rotated!"
        #   self.__eigvec   = dot(self.__lvec, rot)
        if self.__pol is not None:
-          self.__pol = dot(transpose(rot),dot(self.__pol,rot))
+          self.__pol = numpy.dot(numpy.transpose(rot),numpy.dot(self.__pol,rot))
        return
    
    def scale_freq(self,s):
@@ -998,18 +1005,18 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
    
    def _func(self,func,w,n,sc):
        """phenomenological line shape function for FTIR spectra"""
-       x = linspace(self.__freq.min(),self.__freq.max(),n) * sc
-       s = zeros(len(x),float64)
+       x = numpy.linspace(self.__freq.min(),self.__freq.max(),n) * sc
+       s = numpy.zeros(len(x),numpy.float64)
        # Gaussian function
        if func=='g':
           for i in range(self.__nmodes):
               s+= self.__irints[i] * exp( -4.*log(2.) * (x-self.__freq[i])**2/w**2 )
-          s *= w * sqrt(mPi/4. * log(2.))
+          s *= w * numpy.sqrt(math.pi/4. * log(2.))
        # Lorenzian function
        if func=='l':
           for i in range(self.__nmodes):
               s+= self.__irints[i] / ( 4.0 * (x-self.__freq[i])**2 + w**2 )
-          s *= w * 2. / mPi
+          s *= w * 2. / math.pi
        return x, s
    
    def __call__(self,file,format=None,**kwargs):
@@ -1073,20 +1080,20 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
            line_spl = data[i].split() 
            coord.append(line_spl[:])   # it was [:4] instead of [:]
            atoms.append(line_spl[0])
-           coord[i][1:] = map(float64,coord[i][1:])
+           coord[i][1:] = map(numpy.float64,coord[i][1:])
            if units.lower()=='angstrom':
               for j in range(3):
                   coord[i][j+1]*= self.AngstromToBohr
             
-       data = [map(float64,[x for x in coord[y][1:]]) \
-                              for y in range( len(coord))]
-       data = array(data,dtype=float64)
+       data = [map(numpy.float64,[x for x in coord[y][1:]]) \
+                                    for y in range( len(coord))]
+       data = numpy.array(data,dtype=numpy.float64)
 
        Coords = []
        for i in range(n_atoms):
-           atom  = (Atom(coord[i][0]).atno, (coord[i][1], 
-                                             coord[i][2],
-                                             coord[i][3]) )
+           atom  = (uAtom(coord[i][0]).atno, (coord[i][1], 
+                                              coord[i][2],
+                                              coord[i][3]) )
            Coords.append(atom)
        Mol = None
        if mol:
@@ -1120,7 +1127,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
            atnos += line.split()
            line = file.readline()
            
-       atnos = array(atnos,dtype=int)
+       atnos = numpy.array(atnos,dtype=int)
        
        # search for atomic coordinates       
        querry = "Current cartesian coordinates"
@@ -1135,7 +1142,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
            coord += line.split()
            line = file.readline()
            
-       coord = array(coord,dtype=float64).reshape(n_atoms,3)
+       coord = numpy.array(coord,dtype=numpy.float64).reshape(n_atoms,3)
 
        # create Molecule object
        Coords = []
@@ -1155,7 +1162,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
 
    def _open_dma(self,file,**kwargs):
        """open dma file"""
-       dma = DMA(file=file)
+       dma = dma.DMA(file=file)
        self.__dma = dma
        self.__pos = dma.get_pos()
        return
@@ -1179,14 +1186,14 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
            if querry in line: break
            line = file.readline()
        line = file.readline()
-       chg = float64(line.split()[2])
-       mult= float64(line.split()[5])
+       chg = numpy.float64(line.split()[2])
+       mult= numpy.float64(line.split()[5])
        line = file.readline()
        if oniom: 
           line = file.readline()
           line = file.readline()
        while len(line)>2:
-           atom = Atom(line.split()[0])
+           atom = uAtom(line.split()[0])
            atoms.append(atom)
            line = file.readline()
        ### search for atomic positions
@@ -1198,9 +1205,9 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        for i in range(4): line = file.readline()
        for i in range(len(atoms)):
            line = file.readline()
-           xyz  = array(line.split()[3:],float64)
+           xyz  = numpy.array(line.split()[3:],numpy.float64)
            pos.append(xyz)
-       pos = array(pos,float64) * self.AngstromToBohr
+       pos = numpy.array(pos,numpy.float64) * self.AngstromToBohr
        
        self.__nmodes = len(atoms) * 3 - 6
        self.__n3 = len(atoms) * 3
@@ -1210,8 +1217,8 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
           while True:
             if querry in line: break
             line = file.readline()
-          pol = array(line.split()[-6:],float64)
-          self.__pol = zeros((3,3),float64)
+          pol = numpy.array(line.split()[-6:],numpy.float64)
+          self.__pol = numpy.zeros((3,3),numpy.float64)
           self.__pol[0,0] = pol[0]
           self.__pol[0,1] = pol[1]
           self.__pol[1,0] = pol[1]
@@ -1230,50 +1237,50 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
           while True: 
             if querry in line: break 
             line = file.readline()
-          redmss = zeros(n,float64)
-          freqs  = zeros(n,float64)
-          irints = zeros(n,float64)
-          forcec = zeros(n,float64)
-          eigvec = zeros((self.__n3,n),float64)
-          modelP = zeros(n,float64)
-          realP  = zeros(n,float64)
+          redmss = numpy.zeros(n,numpy.float64)
+          freqs  = numpy.zeros(n,numpy.float64)
+          irints = numpy.zeros(n,numpy.float64)
+          forcec = numpy.zeros(n,numpy.float64)
+          eigvec = numpy.zeros((self.__n3,n),numpy.float64)
+          modelP = numpy.zeros(n,numpy.float64)
+          realP  = numpy.zeros(n,numpy.float64)
           for j in range( n/5+bool(n%5) ):
               # frequencies
               freqs[(j*5):j*5+self.__dupa(j)] =\
-              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                               for x in range(self.__dupa(j)) ]
               # reduced masses
               line = file.readline()
               redmss[(j*5):j*5+self.__dupa(j)] =\
-              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                               for x in range(self.__dupa(j)) ]
               # force constants
               line = file.readline()
               forcec[(j*5):j*5+self.__dupa(j)] =\
-              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                               for x in range(self.__dupa(j)) ]
               if oniom: 
                  # Percent ModelSys
                  line = file.readline()
                  modelP[(j*5):j*5+self.__dupa(j)] =\
-                    [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                    [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                                     for x in range(self.__dupa(j)) ]
                  # Percent RealSys
                  line = file.readline()
                  realP [(j*5):j*5+self.__dupa(j)] =\
-                    [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                    [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                                     for x in range(self.__dupa(j)) ]
               # IR intensities
               line = file.readline()
               irints[(j*5):j*5+self.__dupa(j)] =\
-              [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                               for x in range(self.__dupa(j)) ]
               # Eigenvectors
               line = file.readline()
               line = file.readline()
               for i in range(self.__n3):
                   eigvec[i][(j*5):j*5+self.__dupa(j)] =\
-                  [ float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
+                  [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
                                                   for x in range(self.__dupa(j)) ]
                   if (i+1)==self.__n3:
                      for h in range(3): line = file.readline()
@@ -1354,13 +1361,13 @@ x,y - argument and wave-function values for these arguments
         "set the potential function and other parameters"
         self.__V = V
         self.__Vxr = lambda xr,guess: self.__V(xr,**kwargs) - guess
-        self.__x0 = float64(x0)
-        self.__xn = float64(xn)
+        self.__x0 = numpy.float64(x0)
+        self.__xn = numpy.float64(xn)
         self.__y0 = 0.000
-        self.__y1 = float64(y1)
+        self.__y1 = numpy.float64(y1)
         self.__np = np
         self.__step = (xn-x0)/np
-        self.__x = linspace(x0,xn,np+1)
+        self.__x = numpy.linspace(x0,xn,np+1)
         self.__v = V(self.__x,**kwargs)
         self.__match_center = match_center
         self.__fig1 = None
@@ -1401,11 +1408,11 @@ x,y - argument and wave-function values for these arguments
         axes12.legend(loc=2,numpoints=1,
                       prop={'size':20}).draw_frame(False)
                       
-        plt.xticks(fontsize=10, fontproperties=self.font1)
-        plt.yticks(fontsize=10, fontproperties=self.font1)
-        plt.draw()
-        plt.show()
-        plt.savefig(name)
+        pylab.plt.xticks(fontsize=10, fontproperties=self.font1)
+        pylab.plt.yticks(fontsize=10, fontproperties=self.font1)
+        pylab.plt.draw()
+        pylab.plt.show()
+        pylab.plt.savefig(name)
         return
     
     # protected
@@ -1446,7 +1453,7 @@ x,y - argument and wave-function values for these arguments
         # store the wave functions
         self.__yl = yl
         self.__yr = yr
-        self.__wfn = concatenate([yl[:-2],yr[1:]])
+        self.__wfn = numpy.concatenate([yl[:-2],yr[1:]])
         return f
 
     def _find_xr(self,guess):
@@ -1493,7 +1500,7 @@ line = file_obj.readline() is the desired line!
     data.close()
     return ind
 
-class VIB(UNITS):
+class VIB(units.UNITS):
     """
 Represents vibrational analysis tool
     """
@@ -1509,11 +1516,11 @@ Represents vibrational analysis tool
         """find normal modes doing tANDr-projection-out"""
         # transformation matrix
         self.__u = self._projout()
-        F = dot(transpose(self.__u),dot(self.hess,self.__u))
+        F = numpy.dot(numpy.transpose(self.__u),numpy.dot(self.hess,self.__u))
         #F = dot(self.__u,dot(self.hess,transpose(self.__u)))
-        E = linalg.eigh(F)[0]
+        E = numpy.linalg.eigh(F)[0]
         # frequencies
-        self.__freq = where(E>0.,
+        self.__freq = numpy.where(E>0.,
             sqrt( E)*self.HartreePerHbarToCmRec,
            -sqrt(-E)*self.HartreePerHbarToCmRec)
         # reduced masses and cartesian l-matrix
@@ -1534,9 +1541,9 @@ Represents vibrational analysis tool
     def _M(self):
         """M matrix"""
         N = len(self.mol.atoms)
-        M = zeros((N*3,N*3),dtype=float64)
+        M = numpy.zeros((N*3,N*3),dtype=numpy.float64)
         for i in xrange(N):
-            m = 1./sqrt(self.masses[i])
+            m = 1./numpy.sqrt(self.masses[i])
             M[3*i+0,3*i+0] = m
             M[3*i+1,3*i+1] = m
             M[3*i+2,3*i+2] = m
@@ -1544,19 +1551,19 @@ Represents vibrational analysis tool
     def _M1(self):
         """M^-1 matrix"""
         N = len(self.mol.atoms)
-        M = zeros((N*3,N*3),dtype=float64)
+        M = numpy.zeros((N*3,N*3),dtype=numpy.float64)
         for i in xrange(N):
-            m = sqrt(self.masses[i])
+            m = numpy.sqrt(self.masses[i])
             M[3*i+0,3*i+0] = m
             M[3*i+1,3*i+1] = m
             M[3*i+2,3*i+2] = m
         return M        
     def _redmass(self):
         """calculate reduced masses and cartesian l matrix"""
-        u_cart = dot(self._M(),self.__u)
-        redmass = 1./sum(u_cart**2,axis=0)*self.ElectronMassToAmu
+        u_cart = numpy.dot(self._M(),self.__u)
+        redmass = 1./numpy.sum(u_cart**2,axis=0)*self.ElectronMassToAmu
         # normalize u_cart
-        u_cart = u_cart/sqrt(sum(u_cart**2,axis=0))
+        u_cart = u_cart/sqrt(numpy.sum(u_cart**2,axis=0))
         return u_cart, redmass
     
     def _prepare(self):
@@ -1565,20 +1572,20 @@ Represents vibrational analysis tool
         for atom in self.mol.atoms:
             coords.append(atom.pos())
             masses.append(atom.mass())
-        self.masses = array(masses,dtype=float64)*self.AmuToElectronMass
-        self.coords = array(coords,dtype=float64)
+        self.masses = numpy.array(masses,dtype=numpy.float64)*self.AmuToElectronMass
+        self.coords = numpy.array(coords,dtype=numpy.float64)
         return
     def _weight(self):
         """weight hessian"""
         M = self._M()
-        self.hess = dot(M,dot(self.hess,M))
+        self.hess = numpy.dot(M,numpy.dot(self.hess,M))
         return
     def _weight_old(self):
         """weight Hessian"""
         for i in xrange(len(self.mol.atoms)):
-            mi = 1./sqrt(self.masses[i])
+            mi = 1./numpy.sqrt(self.masses[i])
             for j in xrange(len(self.mol.atoms)):
-                mj = 1./sqrt(self.masses[j])
+                mj = 1./numpy.sqrt(self.masses[j])
                 mij = mi*mj
                 self.hess[3*i+0,3*j+0] *= mij
                 self.hess[3*i+1,3*j+1] *= mij
@@ -1593,13 +1600,13 @@ Represents vibrational analysis tool
         return
     def _rcom(self):
         """calculate center of mass"""
-        return sum(self.coords*self.masses[:,newaxis],axis=0)/sum(self.masses)
+        return numpy.sum(self.coords*self.masses[:,numpy.newaxis],axis=0)/sum(self.masses)
     def _r(self):
         """translate all coordinates to R_COM"""
         return self.coords - self._rcom()
     def _I(self):
         """moment of inertia tensor"""
-        I = zeros((3,3),float64)
+        I = numpy.zeros((3,3),numpy.float64)
         r = self._r()
         for i in xrange(len(self.coords)):
             x,y,z = r[i]
@@ -1618,27 +1625,27 @@ Represents vibrational analysis tool
         """translational vectors"""
         D1 = []; D2 = []; D3 = []
         for i in xrange(len(self.coords)):
-            m = sqrt(self.masses[i])
+            m = numpy.sqrt(self.masses[i])
             v1 = [m,0,0]
             v2 = [0,m,0]
             v3 = [0,0,m]
             D1+=v1; D2+=v2; D3+=v3
-        D1 = self._norm(array(D1,float64))
-        D2 = self._norm(array(D2,float64))
-        D3 = self._norm(array(D3,float64))
+        D1 = self._norm(numpy.array(D1,numpy.float64))
+        D2 = self._norm(numpy.array(D2,numpy.float64))
+        D3 = self._norm(numpy.array(D3,numpy.float64))
         return D1,D2,D3
     def _vec_r(self):
         """rotational vectors"""
         D4 = []; D5 = []; D6 = []
-        X = linalg.eigh(self._I())[1]
+        X = numpy.linalg.eigh(self._I())[1]
         X1,X2,X3 = X
         r = self._r()
         for i in xrange(len(self.coords)):
-            m = sqrt(self.masses[i])
+            m = numpy.sqrt(self.masses[i])
             ri = r[i]
-            P1 = dot(ri,X1)
-            P2 = dot(ri,X2)
-            P3 = dot(ri,X3)
+            P1 = numpy.dot(ri,X1)
+            P2 = numpy.dot(ri,X2)
+            P3 = numpy.dot(ri,X3)
             d4 = [(P2*X[0,2]-P3*X[0,1])/m,
                   (P2*X[1,2]-P3*X[1,1])/m,
                   (P2*X[2,2]-P3*X[2,1])/m]
@@ -1653,20 +1660,20 @@ Represents vibrational analysis tool
             #d2 = (cross(P,X2)/m).tolist()
             #d3 = (cross(P,X3)/m).tolist()
             D4+=d4; D5+=d5; D6+=d6
-        D4 = self._norm(array(D4,float64))
-        D5 = self._norm(array(D5,float64))
-        D6 = self._norm(array(D6,float64))
+        D4 = self._norm(numpy.array(D4,numpy.float64))
+        D5 = self._norm(numpy.array(D5,numpy.float64))
+        D6 = self._norm(numpy.array(D6,numpy.float64))
         return D4,D5,D6
     def _norm(self,u):
         """normalize vector u"""
-        return u/sqrt(dot(u,u))
+        return u/numpy.sqrt(numpy.dot(u,u))
     def _gs(self,u,v):
         """Gram-Schmidt ortogonalization of vector v wrt u"""
-        puv = dot(v,u)/dot(u,u)*u
+        puv = numpy.dot(v,u)/numpy.dot(u,u)*u
         return v-puv
     def _pre_diag(self):
         """diagonalize Hessian matrix"""
-        return linalg.eigh(self.hess)[1]
+        return numpy.linalg.eigh(self.hess)[1]
     def _projout(self):
         """project out translations and rotations"""
         U = self._pre_diag()
@@ -1684,7 +1691,7 @@ Represents vibrational analysis tool
             #u[i] = self._norm(vec)
         return U
     
-class Peak2DIR(UNITS):
+class Peak2DIR(units.UNITS):
     """
 Represent a 2DIR peak in the spectrum of signals
 
@@ -1738,20 +1745,20 @@ Notes:
                  wy_max=2000.0 , wy_min=0.0   ,):
         
         self.ToCmRec = 1.e-12*self.SpeedOfLight*100.0
-        self.FromAngToCmRec = self.ToCmRec*2.*mPi
-        dt *= 2.*mPi
+        self.FromAngToCmRec = self.ToCmRec*2.*math.pi
+        dt *= 2.*math.pi
         self.__nTw = None
         
         self.__t_max_1D    = 60.0
         self.__n_points_1D = 2**10
-        self.__time_1D     = linspace(0.,self.__t_max_1D,self.__n_points_1D) * 2.*mPi
+        self.__time_1D     = numpy.linspace(0.,self.__t_max_1D,self.__n_points_1D) * 2.*math.pi
         self.__dt_1D       = self.__time_1D[1]-self.__time_1D[0]
         
         ### range of calculation
-        self.freq  = fft.fftshift( fft.fftfreq(n_points,
+        self.freq  = numpy.fft.fftshift( numpy.fft.fftfreq(n_points,
                                                d=dt*self.ToCmRec) ) + w_cent
-        self.__kx = where(logical_and(self.freq<wx_max, self.freq>wx_min))[0]
-        self.__ky = where(logical_and(self.freq<wy_max, self.freq>wy_min))[0]
+        self.__kx = numpy.where(numpy.logical_and(self.freq<wx_max, self.freq>wx_min))[0]
+        self.__ky = numpy.where(numpy.logical_and(self.freq<wy_max, self.freq>wy_min))[0]
         self.X = self.freq.copy()[self.__kx]
         self.Y = self.freq.copy()[self.__ky]
         
@@ -1761,16 +1768,16 @@ Notes:
             self.__nTw = len(Tw)
             
             ### simulation grid
-            self.sim_grid = Grid3D(xmin=0.0,xmax=t_max*2.*mPi,
-                                   ymin=0.0,ymax=t_max*2.*mPi,
+            self.sim_grid = Grid3D(xmin=0.0,xmax=t_max*2.*math.pi,
+                                   ymin=0.0,ymax=t_max*2.*math.pi,
                                    zmin=0  ,zmax=self.__nTw-1,
                                    dx=dt,dy=dt,dz=1.)
             self.sim_grid.newaxis(2,Tw)
             
             ### experimental data
-            Z = zeros((self.Y.shape[0],self.X.shape[0],self.__nTw),float64)
+            Z = numpy.zeros((self.Y.shape[0],self.X.shape[0],self.__nTw),numpy.float64)
             for i in xrange(self.__nTw):
-                exp_grid = RBS(y,x,z[:,:,i])
+                exp_grid = scipy.interpolate.RectBivariateSpline(y,x,z[:,:,i])
                 Z[:,:,i] = exp_grid(self.Y,self.X)
             self.Z = Z
             self.Z/= self.Z.max()
@@ -1779,9 +1786,9 @@ Notes:
         except TypeError:
             
             ### simulation grid
-            self.exp_grid = RBS(y,x,z)
-            self.sim_grid = Grid2D(xmin=0.0,xmax=t_max*2.*mPi,
-                                   ymin=0.0,ymax=t_max*2.*mPi,
+            self.exp_grid = scipy.interpolate.RectBivariateSpline(y,x,z)
+            self.sim_grid = Grid2D(xmin=0.0,xmax=t_max*2.*math.pi,
+                                   ymin=0.0,ymax=t_max*2.*math.pi,
                                    dx=dt,dy=dt)
         
             ### experimental data
@@ -1831,7 +1838,7 @@ n_points     - number of time points (should be a power of 2).
 """
         self.__t_max_1D    = t_max
         self.__n_points_1D = n_points
-        self.__time_1D     = linspace(0.,self.__t_max_1D,self.__n_points_1D) * 2.*mPi
+        self.__time_1D     = numpy.linspace(0.,self.__t_max_1D,self.__n_points_1D) * 2.*math.pi
         self.__dt_1D       = self.__time_1D[1]-self.__time_1D[0]
         return
     
@@ -1852,13 +1859,13 @@ w_01_1D      - experimental center frequency (now it is useless)
         assert 1.0>thresh>0.4, "Threshold has to be between 0.4 and 1.0"
         self.__ftir_threshold = thresh
         ### frequency range
-        freq_1d        = fft.fftshift( fft.fftfreq(self.__n_points_1D,
+        freq_1d        = numpy.fft.fftshift( numpy.fft.fftfreq(self.__n_points_1D,
                                              d=self.__dt_1D*self.ToCmRec) ) + self.w_cent
-        self.__k_1D    = where(logical_and(freq_1d<w_max, freq_1d>w_min))[0]
+        self.__k_1D    = numpy.where(numpy.logical_and(freq_1d<w_max, freq_1d>w_min))[0]
         self.__freq_1D = freq_1d.copy()[self.__k_1D]
         self.__w_01_1D = w_01_1D
         ### interpolate the data
-        f = I1D(freq,ftir)
+        f = scipy.interpolate.interp1d(freq,ftir)
         self.__ftir = f(self.__freq_1D)
         return
         
@@ -1891,13 +1898,13 @@ w_01_1D      - experimental center frequency (now it is useless)
                peak   = self._r1_no_exch(w_01,anh,delta_1,delta_2,tau_1,tau_2,T1,T2)
 
             peaks.append(peak)
-        return array(peaks,dtype=float64)
+        return numpy.array(peaks,dtype=numpy.float64)
 
     def get_r2(self):
         """return R^2 coefficient of fitting"""
-        data_av = average(self.Z)
-        sse = sum((self.func(**self.args)-self.Z)**2)
-        sst = sum((self.Z-data_av)**2)
+        data_av = numpy.average(self.Z)
+        sse = numpy.sum((self.func(**self.args)-self.Z)**2)
+        sst = numpy.sum((self.Z-data_av)**2)
         return 1.0 - sse/sst
     
     def get_ftir(self,normalize=False):
@@ -1951,7 +1958,7 @@ normalize (default: False)
     def _residsq(self,params,opts):
         """square residual function for optimization"""
         self.__update_args(params,opts)
-        return sum((self.Z - self.func(**self.args))**2.)
+        return numpy.sum((self.Z - self.func(**self.args))**2.)
     
     ### Response Functions
     def __response_1D(self, t, w_01, mu_01, Delta, tau, T1, T2):
@@ -1963,10 +1970,10 @@ normalize (default: False)
             G=0.
             for i in range(2):
                 G+= tau[i]*Delta[i] * \
-          ( exp(-t/tau[i])*tau[i] - tau[i] + t ) 
+          ( numpy.exp(-t/tau[i])*tau[i] - tau[i] + t ) 
             G += t/T2
             return G
-        r = mu_01 * mu_01 * exp(-g(t) -t/(Tor*3.) -t/(T1*2.) -1.j*w_off*t)
+        r = mu_01 * mu_01 * numpy.exp(-g(t) -t/(Tor*3.) -t/(T1*2.) -1.j*w_off*t)
         #r*= pop_ratio[n]
         R+= r       
         return R 
@@ -1981,11 +1988,11 @@ normalize (default: False)
             G=0.
             for i in range(2):
                 G+= tau[i]*Delta[i] * \
-          ( exp(-t/tau[i])*tau[i] - tau[i] + t ) 
+          ( numpy.exp(-t/tau[i])*tau[i] - tau[i] + t ) 
             G += t/T2 + t/(2.*T1) + t/(3.*10000000.0)
             return G
         #
-        M = exp(-Tw/T1) * (1.0 + 0.8 * exp(-Tw/10000000.0))
+        M = numpy.exp(-Tw/T1) * (1.0 + 0.8 * numpy.exp(-Tw/10000000.0))
         RR = 0.0; NR = 0.0
         
         mu_01_2= mu_01*mu_01
@@ -2003,18 +2010,18 @@ normalize (default: False)
         #M =1
         # --- Rephasing
         # R1 and R2
-        RR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(-t1+t3))*M*2.0*\
-             exp(-gt1+gTw-gt3-gt1Tw-gTwt3+gt1Twt3)
+        RR+= mu_01_2*mu_01_2*numpy.exp(-1.j*w_off*(-t1+t3))*M*2.0*\
+             numpy.exp(-gt1+gTw-gt3-gt1Tw-gTwt3+gt1Twt3)
         # R3
-        RR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(-t1+t3)-anh*t3))*M*\
-             exp(-gt1+gTw-gt3-gt1Tw-gTwt3+gt1Twt3)
+        RR-= mu_01_2*mu_12_2*numpy.exp(-1.j*(w_off*(-t1+t3)-anh*t3))*M*\
+             numpy.exp(-gt1+gTw-gt3-gt1Tw-gTwt3+gt1Twt3)
         # --- Nonrephasing
         # R4 and R5
-        NR+= mu_01_2*mu_01_2*exp(-1.j*w_off*(t1+t3))*M*2.0*\
-             exp(-gt1-gTw-gt3+gt1Tw+gTwt3-gt1Twt3)
+        NR+= mu_01_2*mu_01_2*numpy.exp(-1.j*w_off*(t1+t3))*M*2.0*\
+             numpy.exp(-gt1-gTw-gt3+gt1Tw+gTwt3-gt1Twt3)
         # R6
-        NR-= mu_01_2*mu_12_2*exp(-1.j*(w_off*(t1+t3)-anh*t3))*M*\
-             exp(-gt1-gTw-gt3+gt1Tw+gTwt3-gt1Twt3)
+        NR-= mu_01_2*mu_12_2*numpy.exp(-1.j*(w_off*(t1+t3)-anh*t3))*M*\
+             numpy.exp(-gt1-gTw-gt3+gt1Tw+gTwt3-gt1Twt3)
         #
         #try: print real(RR[:,:,0])
         #except: pass
@@ -2023,12 +2030,12 @@ normalize (default: False)
     
     def _ftir_constr(self, *args):
         """constraint for FTIR spectrum"""
-        data_av = average(self.__ftir)
+        data_av = numpy.average(self.__ftir)
         _args = self.args.copy()
         _args.update({'normalize':True,'w_01':self.__w_01_1D})
         sim_dat = self._spectrum_1D(**_args)[1][self.__k_1D]
-        sse = sum((sim_dat-self.__ftir)**2)
-        sst = sum((self.__ftir-data_av)**2)
+        sse = numpy.sum((sim_dat-self.__ftir)**2)
+        sst = numpy.sum((self.__ftir-data_av)**2)
         r2 = 1.0 - sse/sst
         return r2 - self.__ftir_threshold
     
@@ -2040,13 +2047,13 @@ normalize (default: False)
         #    t_max    = self.__t_max_1D
         #    n_points = self.__n_points_1D
 
-        #time_1D = linspace(0.,t_max,n_points) * 2.*mPi
+        #time_1D = linspace(0.,t_max,n_points) * 2.*math.pi
         #dt = time_1D[1]-time_1D[0]
         spectrum = self.__response_1D( self.__time_1D, w_01, mu_01, 
-                                      array([delta_1,delta_2]), 
-                                      array([tau_1,tau_2]), T1, T2)
-        ftir = fft.fftshift(fft.fft(spectrum))
-        freq = fft.fftshift(fft.fftfreq(self.__n_points_1D,d=self.__dt_1D*self.ToCmRec)) + self.w_cent
+                                      numpy.array([delta_1,delta_2]), 
+                                      numpy.array([tau_1,tau_2]), T1, T2)
+        ftir = numpy.fft.fftshift(numpy.fft.fft(spectrum))
+        freq = numpy.fft.fftshift(numpy.fft.fftfreq(self.__n_points_1D,d=self.__dt_1D*self.ToCmRec)) + self.w_cent
         data_f = real(ftir)[::-1]
         data_f-= data_f.min()
         if normalize: data_f/=data_f.max()
@@ -2058,22 +2065,22 @@ normalize (default: False)
         ### signal in time-domain
         rr, nr = self.sim_grid.eval(self.__response_3D, 
                                     # assumed parameters
-                                    Tw=self.Tw, mu_01=1., mu_12=msqrt(2.),
+                                    Tw=self.Tw, mu_01=1., mu_12=math.sqrt(2.),
                                     # optimizing parameters
                                     w_01=w_01, 
                                     anh=anh, 
-                                    Delta=array([delta_1,delta_2]), 
-                                    tau=array([tau_1,tau_2]), 
+                                    Delta=numpy.array([delta_1,delta_2]), 
+                                    tau=numpy.array([tau_1,tau_2]), 
                                     T1=T1, T2=T2, )
         #print rr
         ### rephasing and non-rephasing spectras (2D FFT)
-        data_rr_f = fft.fftshift( fft.fft2(rr,s=(self.__n_points,self.__n_points)) )
-        data_nr_f = fft.fftshift( fft.fft2(nr,s=(self.__n_points,self.__n_points)) )
+        data_rr_f = numpy.fft.fftshift( numpy.fft.fft2(rr,s=(self.__n_points,self.__n_points)) )
+        data_nr_f = numpy.fft.fftshift( numpy.fft.fft2(nr,s=(self.__n_points,self.__n_points)) )
         data_rr_f = data_rr_f[:,::-1]
-        data_rr_f = roll(data_rr_f,1,axis=1)
+        data_rr_f = numpy.roll(data_rr_f,1,axis=1)
         
         ### total signal
-        data_f = real(data_rr_f + data_nr_f)
+        data_f = numpy.real(data_rr_f + data_nr_f)
         
         data_f = data_f[self.__kx,:]
         data_f = data_f[:,self.__ky]
@@ -2089,41 +2096,41 @@ normalize (default: False)
         #self.__response_3D_f = vectorize(self.__response_3D)
         rr, nr = self.sim_grid.eval(self.__response_3D, 
                                     # assumed parameters
-                                    mu_01=1., mu_12=msqrt(2.),
+                                    mu_01=1., mu_12=math.sqrt(2.),
                                     # optimizing parameters
                                     w_01=w_01, 
                                     anh=anh, 
-                                    Delta=array([delta_1,delta_2]), 
-                                    tau=array([tau_1,tau_2]), 
+                                    Delta=numpy.array([delta_1,delta_2]), 
+                                    tau=numpy.array([tau_1,tau_2]), 
                                     T1=T1, T2=T2, )
         #print rr[:,:,0]
         ### rephasing and non-rephasing spectras (2D FFT)
-        #data_rr_f = zeros((self.__n_points,self.__n_points,self.__nTw),complex64)
+        #data_rr_f = numpy.zeros((self.__n_points,self.__n_points,self.__nTw),numpy.complex64)
         #data_nr_f = data_rr_f.copy()
         
         #for i in range(self.__nTw):
-        #    data_rr_f[:,:,i] = fft.fftshift( fft.fft2(rr[:,:,i],s=(self.__n_points,self.__n_points)) )
-        #    data_nr_f[:,:,i] = fft.fftshift( fft.fft2(nr[:,:,i],s=(self.__n_points,self.__n_points)) )
+        #    data_rr_f[:,:,i] = numpy.fft.fftshift( numpy.fft.fft2(rr[:,:,i],s=(self.__n_points,self.__n_points)) )
+        #    data_nr_f[:,:,i] = numpy.fft.fftshift( numpy.fft.fft2(nr[:,:,i],s=(self.__n_points,self.__n_points)) )
         
-        data_rr_f = fft.fftshift( fft.fft2(rr,axes=(0,1),s=(self.__n_points,self.__n_points)), axes=(0,1))
-        data_nr_f = fft.fftshift( fft.fft2(nr,axes=(0,1),s=(self.__n_points,self.__n_points)), axes=(0,1))
+        data_rr_f = numpy.fft.fftshift( numpy.fft.fft2(rr,axes=(0,1),s=(self.__n_points,self.__n_points)), axes=(0,1))
+        data_nr_f = numpy.fft.fftshift( numpy.fft.fft2(nr,axes=(0,1),s=(self.__n_points,self.__n_points)), axes=(0,1))
         data_rr_f = data_rr_f[:,::-1,:]
         #for i in range(3):
         #      data_rr_f[:,:,i] = data_rr_f[:,::-1,i]
-        #    data_rr_f[:,:,i] = roll(data_rr_f[:,:,i],1,axis=1)
-        data_rr_f = roll(data_rr_f,1,axis=1)
+        #    data_rr_f[:,:,i] = numpy.roll(data_rr_f[:,:,i],1,axis=1)
+        data_rr_f = numpy.roll(data_rr_f,1,axis=1)
         
         ### total signal
-        data_f = real(data_rr_f + data_nr_f)
+        data_f = numpy.real(data_rr_f + data_nr_f)
         
         data_f = data_f[self.__kx,:,:]
         data_f = data_f[:,self.__ky,:]
         data_f/= data_f[:,:,0].max()
         #for i in range(1):
         #    data_f[:,:,i]/=data_f[:,:,i].max()
-        #max_vals = amax(amax(data_f,1),0)
+        #max_vals = numpy.amax(amax(data_f,1),0)
         #data_f/= max_vals
-        data_f = transpose(data_f,(1,0,2))
+        data_f = numpy.transpose(data_f,(1,0,2))
         #for i in range(self.__nTw):
         #    print data_f[:,:,i].max()
         #print self.sim_grid.zcoorv
@@ -2174,8 +2181,8 @@ normalize (default: False)
            # ... function types ...
            if self.__func == 'r':
               l1 = " %6s"%('Peak'.rjust(6))
-              l2 = " %6s"%(('%s'%let_greek.omega+'_01').rjust(6))
-              l3 = " %6s"%(let_greek.Delta.rjust(6))
+              l2 = " %6s"%(('%s'%letters.greek.omega+'_01').rjust(6))
+              l3 = " %6s"%(letters.greek.Delta.rjust(6))
               l4 = " %6s"%('Peak'.rjust(6))
               l5 = " %6s"%('Peak'.rjust(6))
               l6 = " %6s"%('Peak'.rjust(6))
@@ -2312,7 +2319,7 @@ Notes:
                sigmaG= self.param[4*i+2]
                value = 0.5346 * sigmaL + math.sqrt(0.2166 * sigmaL**2. + sigmaG**2.)
                fwhm.append(value)
-        return array(fwhm,float64)
+        return numpy.array(fwhm,numpy.float64)
                
     def get_peaks(self):
         peaks = []
@@ -2347,11 +2354,11 @@ Notes:
                A     = self.param[4*i+3]
                peak  = self._voigt1(x_0,sigmaL,sigmaG,A)
             peaks.append(peak)
-        return array(peaks,dtype=float64)
+        return numpy.array(peaks,dtype=numpy.float64)
 
     def get_r2(self):
         """return R^2 coefficient of fitting"""
-        data_av = average(self.y)
+        data_av = numpy.average(self.y)
         sse = sum((self.func(**self.args)-self.y)**2)
         sst = sum((self.y-data_av)**2)
         return 1 - sse/sst
@@ -2396,29 +2403,29 @@ Notes:
     def _residsq(self,params,opts):
         """square residual function for optimization"""
         self.__update_args(params,opts)
-        return sum((self.y - self.func(**self.args))**2.)
+        return numpy.sum((self.y - self.func(**self.args))**2.)
     
     ### Normal distribution
 
     def _normal(self,xo_1,sigma_1,A_1):
         """single Gaussian distribution"""
         return (A_1/(sigma_1*math.sqrt(2*math.pi)))\
-               * exp(-(self.x-xo_1)**2/(2*sigma_1**2))
+               * numpy.exp(-(self.x-xo_1)**2/(2*sigma_1**2))
                
     ### pure Gaussian profiles
                            
     def _gauss1(self,xo_1,sigma_1,A_1):
         """single Gaussian distribution"""
         return A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
 
     def _gauss2(self,xo_1,sigma_1,A_1,
                      xo_2,sigma_2,A_2):
         """bimodal gaussian distribution"""
         g1 = A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
         g2 = A_2/sigma_2 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
         return A_1*g1 + A_2*g2
 
     def _gauss3(self,xo_1,sigma_1,A_1,
@@ -2426,11 +2433,11 @@ Notes:
                      xo_3,sigma_3,A_3):
         """trimodal gaussian distribution"""
         g1 = A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
         g2 = A_2/sigma_2 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
         g3 = A_3/sigma_3 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_3**2.)*(self.x-xo_3)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_3**2.)*(self.x-xo_3)**2.)
         return A_1*g1 + A_2*g2 + A_3*g3
 
     def _gauss4(self,xo_1,sigma_1,A_1,
@@ -2439,13 +2446,13 @@ Notes:
                      xo_4,sigma_4,A_4):
         """trimodal gaussian distribution"""
         g1 = A_1/sigma_1 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_1**2.)*(self.x-xo_1)**2.)
         g2 = A_2/sigma_2 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_2**2.)*(self.x-xo_2)**2.)
         g3 = A_3/sigma_3 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_3**2.)*(self.x-xo_3)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_3**2.)*(self.x-xo_3)**2.)
         g4 = A_4/sigma_4 * math.sqrt(4.*math.log(2.)/math.pi) * \
-               exp(-4.*math.log(2.)/(sigma_4**2.)*(self.x-xo_4)**2.)
+               numpy.exp(-4.*math.log(2.)/(sigma_4**2.)*(self.x-xo_4)**2.)
 
         return A_1*g1 + A_2*g2 + A_3*g3 + A_4*g4
 
@@ -2487,17 +2494,17 @@ Notes:
     def _lg11(self,xo_1,sigma_1,A_1,m_1):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
-              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
         return A_1 * lg1
     
     def _lg12(self,xo_1,sigma_1,A_1,m_1,
                    xo_2,sigma_2,A_2,m_2):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
-              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
               
         lg2 = m_2*2./math.pi * sigma_2/(4.*(self.x-xo_2)**2. + sigma_2**2.) + \
-              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
         return A_1 * lg1 + A_2 * lg2
 
     def _lg13(self,xo_1,sigma_1,A_1,m_1,
@@ -2505,13 +2512,13 @@ Notes:
                    xo_3,sigma_3,A_3,m_3,):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
-              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
               
         lg2 = m_2*2./math.pi * sigma_2/(4.*(self.x-xo_2)**2. + sigma_2**2.) + \
-              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
 
         lg3 = m_3*2./math.pi * sigma_3/(4.*(self.x-xo_3)**2. + sigma_3**2.) + \
-              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_3**2.)*(self.x-xo_3)**2.)/sigma_3
+              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_3**2.)*(self.x-xo_3)**2.)/sigma_3
         return A_1 * lg1 + A_2 * lg2 + A_3 * lg3
     
     def _lg14(self,xo_1,sigma_1,A_1,m_1,
@@ -2520,16 +2527,16 @@ Notes:
                    xo_4,sigma_4,A_4,m_4,):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigma_1/(4.*(self.x-xo_1)**2. + sigma_1**2.) + \
-              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_1**2.)*(self.x-xo_1)**2.)/sigma_1
               
         lg2 = m_2*2./math.pi * sigma_2/(4.*(self.x-xo_2)**2. + sigma_2**2.) + \
-              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_2**2.)*(self.x-xo_2)**2.)/sigma_2
 
         lg3 = m_3*2./math.pi * sigma_3/(4.*(self.x-xo_3)**2. + sigma_3**2.) + \
-              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_3**2.)*(self.x-xo_3)**2.)/sigma_3
+              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_3**2.)*(self.x-xo_3)**2.)/sigma_3
               
         lg4 = m_4*2./math.pi * sigma_4/(4.*(self.x-xo_4)**2. + sigma_4**2.) + \
-              (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigma_4**2.)*(self.x-xo_4)**2.)/sigma_4
+              (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigma_4**2.)*(self.x-xo_4)**2.)/sigma_4
         return A_1 * lg1 + A_2 * lg2 + A_3 * lg3 + A_4 * lg4
 
     ### pseudo-Voigt-2 profiles
@@ -2537,17 +2544,17 @@ Notes:
     def _lg21(self,xo_1,sigmaL_1,sigmaG_1,A_1,m_1):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigmaL_1/(4.*(self.x-xo_1)**2. + sigmaL_1**2.) + \
-              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
         return A_1 * lg1
 
     def _lg22(self,xo_1,sigmaL_1,sigmaG_1,A_1,m_1,
                    xo_2,sigmaL_2,sigmaG_2,A_2,m_2):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigmaL_1/(4.*(self.x-xo_1)**2. + sigmaL_1**2.) + \
-              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
               
         lg2 = m_2*2./math.pi * sigmaL_2/(4.*(self.x-xo_2)**2. + sigmaL_2**2.) + \
-              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_2**2.)*(self.x-xo_2)**2.)/sigmaG_2
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigmaG_2**2.)*(self.x-xo_2)**2.)/sigmaG_2
         return A_1 * lg1 + A_2 * lg2
 
     def _lg23(self,xo_1,sigmaL_1,sigmaG_1,A_1,m_1,
@@ -2570,16 +2577,16 @@ Notes:
                    xo_4,sigmaL_4,sigmaG_4,A_4,m_4):
         """single Lorenzian distribution"""
         lg1 = m_1*2./math.pi * sigmaL_1/(4.*(self.x-xo_1)**2. + sigmaL_1**2.) + \
-              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
+              (1.-m_1)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigmaG_1**2.)*(self.x-xo_1)**2.)/sigmaG_1
               
         lg2 = m_2*2./math.pi * sigmaL_2/(4.*(self.x-xo_2)**2. + sigmaL_2**2.) + \
-              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_2**2.)*(self.x-xo_2)**2.)/sigmaG_2
+              (1.-m_2)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigmaG_2**2.)*(self.x-xo_2)**2.)/sigmaG_2
 
         lg3 = m_3*2./math.pi * sigmaL_3/(4.*(self.x-xo_3)**2. + sigmaL_3**2.) + \
-              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_3**2.)*(self.x-xo_3)**2.)/sigmaG_3
+              (1.-m_3)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigmaG_3**2.)*(self.x-xo_3)**2.)/sigmaG_3
               
         lg4 = m_4*2./math.pi * sigmaL_4/(4.*(self.x-xo_4)**2. + sigmaL_4**2.) + \
-              (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*exp( (-4.*math.log(2.)/sigmaG_4**2.)*(self.x-xo_4)**2.)/sigmaG_4
+              (1.-m_4)*math.sqrt(4.*math.log(2.)/math.pi)*numpy.exp( (-4.*math.log(2.)/sigmaG_4**2.)*(self.x-xo_4)**2.)/sigmaG_4
         return A_1 * lg1 + A_2 * lg2 + A_3 * lg3 + A_4 * lg4
 
     ### pure Voigt profiles
@@ -2591,14 +2598,14 @@ Notes:
         return a*2.*math.log(2.)/math.pi**(3./2.) * wl/wg**2 * A/(B+C)
 
     def _voigt1(self,xo_1,sigmaL_1,sigmaG_1,A_1):
-        y = zeros(len(self.x),dtype=float64)
+        y = numpy.zeros(len(self.x),dtype=numpy.float64)
         for i in xrange(len(self.x)):
             y[i] = scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_1,sigmaL_1,sigmaG_1,A_1))[0]
         return y
     
     def _voigt2(self,xo_1,sigmaL_1,sigmaG_1,A_1,
                      xo_2,sigmaL_2,sigmaG_2,A_2):
-        y = zeros(len(self.x),dtype=float64)
+        y = numpy.zeros(len(self.x),dtype=numpy.float64)
         for i in xrange(len(self.x)):
             val = scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_1,sigmaL_1,sigmaG_1,A_1))[0]
             val+= scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_2,sigmaL_2,sigmaG_2,A_2))[0]
@@ -2731,7 +2738,7 @@ T =  [[ 1  6  8]         T'=  [[ 3 -4 -4]
 This is accomplished by run:
 T_prime = interchange(T,ind=[3, 7, 1, 4, 2, 5, 6])
 """
-    ind = array(ind)-1
+    ind = numpy.array(ind)-1
     B = T.copy()
     for i,index in enumerate(ind):
         B[i] = T[index]
@@ -2758,7 +2765,7 @@ Python-like!)"""
     # last range
     t.append(a[ids[-1]+1:])
     #
-    return concatenate(t)
+    return numpy.concatenate(t)
 
 def get_pmloca(natoms,mapi,sao,vecin,nae,
                maxit=1000,conv=1.0E-06,lprint=False,
@@ -2802,7 +2809,7 @@ lprint - whether print no of iteration or not after finish
        vecin = choose(vecin,freeze)
     # mapi in FORTRAN default indexes, nmos and no of elements
     # in triangular matrix (n2) for PM localizator matrix elements
-    mapi = array(mapi,int) + 1
+    mapi = numpy.array(mapi,int) + 1
     nmos = len(vecin)
     n2   = (nmos+1)*nmos/2
     #
@@ -2810,8 +2817,8 @@ lprint - whether print no of iteration or not after finish
                          maxit=maxit,cvgloc=conv,n2=n2,nae=nae,
                          lprint=lprint)
     #
-    tran = transpose(tran)
-    vecout = dot(tran,vecin)
+    tran = numpy.transpose(tran)
+    vecout = numpy.dot(tran,vecin)
     #
     return tran, vecout
 
@@ -2819,7 +2826,7 @@ def reorder(P,sim,axis=0):
     """Reorders the tensor according to <axis> (default is 0). 
 <sim> is the list of pairs from 'order' function. 
 In normal numbers (starting from 1...)"""
-    P_new = zeros(P.shape,dtype=float64)
+    P_new = numpy.zeros(P.shape,dtype=numpy.float64)
     if   axis==0:
          for i,j in sim:
              P_new[i-1] = P[j-1]
@@ -2841,8 +2848,8 @@ def order(R,P,start=0,lprint=1):
         r = 1.0E+100
         rads = []
         for j in range(len(P)-start):
-            r_ = sum(( R[i+start]-P[j+start])**2)
-            r__= sum((-R[i+start]-P[j+start])**2)
+            r_ = numpy.sum(( R[i+start]-P[j+start])**2)
+            r__= numpy.sum((-R[i+start]-P[j+start])**2)
             if r__<r_: r_=r__
             rads.append(r_)
             if r_<r:
@@ -2852,7 +2859,7 @@ def order(R,P,start=0,lprint=1):
         new_P[i+start] = P[J+start]
         rad.append(rads)
     for i in xrange(len(R)-start):
-        s = sum(sign(new_P[i])/sign(R[i]))
+        s = numpy.sum(numpy.sign(new_P[i])/numpy.sign(R[i]))
         if lprint: print "%10d %f" %(i+1,s)
         r_ = sum(( R[i+start]-new_P[i+start])**2)
         r__= sum((-R[i+start]-new_P[i+start])**2)
@@ -2966,9 +2973,9 @@ outfile- if save: provide the name of output
            print >> out, "%10i %13.5E" % ((i+1),r[i])
        out.close()
     # return results:
-    tcf = zeros((ndels,2),dtype=float64)
-    tcf[:,0] = linspace(1,ndels,ndels)
-    tcf[:,1] = array(r)
+    tcf = numpy.zeros((ndels,2),dtype=numpy.float64)
+    tcf[:,0] = numpy.linspace(1,ndels,ndels)
+    tcf[:,1] = numpy.array(r)
 
     return tcf
 
@@ -2978,10 +2985,10 @@ def DistanceRelationMatrix(xyz,threshold=1):
     You can then search for groups using: GROUPS(A_ij).groups"""
     
     K = len(xyz)
-    A_ij = zeros((K,K),dtype=bool)
+    A_ij = numpy.zeros((K,K),dtype=bool)
     for i in range(K):
         for j in range(i):
-            if sqrt(sum((xyz[i]-xyz[j])**2))<=threshold:
+            if numpy.sqrt(numpy.sum((xyz[i]-xyz[j])**2))<=threshold:
                A_ij[i,j] = True
                A_ij[j,i] = True
                
@@ -3030,7 +3037,7 @@ class SVDSuperimposer(object):
         "Return rms deviations between coords1 and coords2."
         diff=coords1-coords2
         l=coords1.shape[0]
-        return sqrt(sum(sum(diff*diff))/l)
+        return numpy.sqrt(numpy.sum(numpy.sum(diff*diff))/l)
 
     # Public methods
     
@@ -3063,19 +3070,19 @@ class SVDSuperimposer(object):
         coords=self.coords
         reference_coords=self.reference_coords
         # center on centroid
-        av1=sum(coords,axis=0)/self.n  
-        av2=sum(reference_coords,axis=0)/self.n    
+        av1=numpy.sum(coords,axis=0)/self.n  
+        av2=numpy.sum(reference_coords,axis=0)/self.n    
         coords=coords-av1
         reference_coords=reference_coords-av2
         # correlation matrix
-        a=dot(transpose(coords), reference_coords)
-        u, d, vt=svd(a)
-        self.rot=transpose(dot(transpose(vt), transpose(u)))
+        a=numpy.dot(numpy.transpose(coords), reference_coords)
+        u, d, vt=numpy.linalg.svd(a)
+        self.rot=numpy.transpose(numpy.dot(numpy.transpose(vt), numpy.transpose(u)))
         # check if we have found a reflection
-        if det(self.rot)<0:
+        if numpy.linalg.det(self.rot)<0:
             vt[2]=-vt[2]
-            self.rot=transpose(dot(transpose(vt), transpose(u)))
-        self.tran=av2-dot(av1, self.rot)
+            self.rot=numpy.transpose(numpy.dot(numpy.transpose(vt), numpy.transpose(u)))
+        self.tran=av2-numpy.dot(av1, self.rot)
 
     def get_transformed(self):
         "Get the transformed coordinate set."
@@ -3084,7 +3091,7 @@ class SVDSuperimposer(object):
         if self.rot is None:
             raise Exception("Nothing superimposed yet.")
         if self.transformed_coords is None:
-            self.transformed_coords=dot(self.coords, self.rot)+self.tran
+            self.transformed_coords=numpy.dot(self.coords, self.rot)+self.tran
         return self.transformed_coords
 
     def get_rotran(self):
@@ -3155,21 +3162,21 @@ ar     - return also array with only coordinates
        coord = []
        for i in range(n_atoms):
            coord.append(data[i].split()[:4])
-           coord[i][1:] = map(float64,coord[i][1:])
+           coord[i][1:] = map(numpy.float64,coord[i][1:])
            if units.lower()=='angstrom':
               for j in range(3):
-                  coord[i][j+1]*= UNITS.AngstromToBohr
+                  coord[i][j+1]*= uUNITS.AngstromToBohr
             
        if ar:
-           data = [map(float64,[x for x in coord[y][1:]]) \
+           data = [map(numpy.float64,[x for x in coord[y][1:]]) \
                                   for y in range( len(coord))]
-           data = array(data,dtype=float64)
+           data = numpy.array(data,dtype=numpy.float64)
        if mol:
            Coords = []
            for i in range(n_atoms):
-               atom  = (Atom(coord[i][0]).atno, (coord[i][1], 
-                                                 coord[i][2],
-                                                 coord[i][3]) )
+               atom  = (uAtom(coord[i][0]).atno, (coord[i][1], 
+                                                  coord[i][2],
+                                                  coord[i][3]) )
                Coords.append(atom)
            Mol = PyQuante.Molecule(name,Coords,units='Bohr',
                                    multiplicity=mult,charge=charge,
@@ -3198,7 +3205,7 @@ ar     - return also array with only coordinates
            atnos += line.split()
            line = file.readline()
            
-       atnos = array(atnos,dtype=int)
+       atnos = numpy.array(atnos,dtype=int)
        
        # search for atomic coordinates       
        querry = "Current cartesian coordinates"
@@ -3213,7 +3220,7 @@ ar     - return also array with only coordinates
            coord += line.split()
            line = file.readline()
            
-       coord = array(coord,dtype=float64).reshape(n_atoms,3)
+       coord = numpy.array(coord,dtype=numpy.float64).reshape(n_atoms,3)
 
        # create Molecule object
        if mol:
@@ -3243,9 +3250,9 @@ from dma distribution."""
         R=Rb-Ra[i] 
         Rab=sqrt(sum(R**2,axis=0))
         V+=qa[i]/Rab
-        V+=tensordot(Da[i],R,(0,0))/Rab**3 
-        V+=tensordot(R,tensordot(Qa[i],R,(1,0)),(0,0))/Rab**5 
-        V+=tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))/Rab**7 
+        V+=numpy.tensordot(Da[i],R,(0,0))/Rab**3 
+        V+=numpy.tensordot(R,numpy.tensordot(Qa[i],R,(1,0)),(0,0))/Rab**5 
+        V+=numpy.tensordot(R,numpy.tensordot(R,numpy.tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))/Rab**7 
     return V
 
 def Energy_density(dma,Rb,is_full=False):
@@ -3262,22 +3269,22 @@ if full - the dma object is turned into traceless object
     e2=0
     for i in range(len(Ra)):
         R=Rb-Ra[i]
-        Rab=sqrt(sum(R**2,axis=0))
+        Rab=numpy.sqrt(numpy.sum(R**2,axis=0))
         e2+=qa[i]**2/Rab**4
         #
-        e2+=3*(dot(Da[i],R))**2/Rab**8
+        e2+=3*(numpy.dot(Da[i],R))**2/Rab**8
         #
-        e2+=(dot(Da[i],Da[i]))**2 / Rab**6
+        e2+=(numpy.dot(Da[i],Da[i]))**2 / Rab**6
         #
-        t  =tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))
-        g  =tensordot(Qa[i],R,(0,0))
-        e2+=5*t**2/Rab**12 +  4*dot(g,g)/Rab**10
+        t  =numpy.tensordot(R,numpy.tensordot(Qa[i],R,(0,0)),(0,0))
+        g  =numpy.tensordot(Qa[i],R,(0,0))
+        e2+=5*t**2/Rab**12 +  4*numpy.dot(g,g)/Rab**10
         #
-        t=tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))
+        t=numpy.tensordot(R,numpy.tensordot(R,numpy.tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))
         e2+= 7*t**2 / Rab**16
         #
-        t  =tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0))
-        g  =dot(t,t)
+        t  =numpy.tensordot(R,numpy.tensordot(Oa[i],R,(0,0)),(0,0))
+        g  =numpy.dot(t,t)
         e2+= 9*g / Rab**14
         
     return e2
@@ -3293,21 +3300,21 @@ if not is_full - the dma object is turned into traceless object
        dma.MAKE_FULL()
        dma.MakeTraceless()
     Ra,qa,Da,Qa,Oa = dma.DMA_FULL
-    field=zeros(3,dtype=float64)
+    field=numpy.zeros(3,dtype=numpy.float64)
     for i in range(len(Ra)):
         R=Rb-Ra[i] 
-        Rab=sqrt(sum(R**2,axis=0))
+        Rab=numpy.sqrt(numpy.sum(R**2,axis=0))
         field+= qa[i] * R / Rab**3
         
-        field+= 3 * R * dot(R,Da[i]) / Rab**5
+        field+= 3 * R * numpy.dot(R,Da[i]) / Rab**5
         field-= Da[i]/Rab**3
         
-        t  =tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))
+        t  =numpy.tensordot(R,numpy.tensordot(Qa[i],R,(0,0)),(0,0))
         field+= 5* t * R / Rab**7
-        field-= 2* tensordot(Qa[i],R,(0,0)) / Rab**5
+        field-= 2* numpy.tensordot(Qa[i],R,(0,0)) / Rab**5
         
-        c=tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0))
-        g=tensordot(R,c,(0,0))
+        c=numpy.tensordot(R,numpy.tensordot(Oa[i],R,(0,0)),(0,0))
+        g=numpy.tensordot(R,c,(0,0))
         field+= 7 * g * R / Rab**9
         field-= 3 * c / Rab**7
         
@@ -3350,8 +3357,8 @@ Gamess reads Stone's DMA analysis
          ZerothMoments = []
          Structure = []
          while line.split()!=[]:
-               ZerothMoments.append( float64( line.split()[2] ) )
-               Structure.append( array(line.split()[-3:],dtype=float64)  )
+               ZerothMoments.append( numpy.float64( line.split()[2] ) )
+               Structure.append( numpy.array( line.split()[-3:],dtype=numpy.float64)  )
                     
                line = data.readline()
          # ----------------------------------
@@ -3362,7 +3369,7 @@ Gamess reads Stone's DMA analysis
          for i in range(3): line = data.readline()
          FirstMoments = []
          while line.split()!=[]:
-               FirstMoments.append( map(float64, line.split()[1:]))
+               FirstMoments.append( map( numpy.float64, line.split()[1:]))
                line = data.readline()
          # ----------------------------------
          querry = " SECOND MOMENTS AT POINTS"
@@ -3372,7 +3379,7 @@ Gamess reads Stone's DMA analysis
          for i in range(3): line = data.readline()
          SecondMoments = []
          while line.split()!=[]:
-               SecondMoments.append( map( float64, line.split()[1:] ))
+               SecondMoments.append( map( numpy.float64, line.split()[1:] ))
                line = data.readline()
          # ----------------------------------
          querry = " THIRD MOMENTS AT POINTS"
@@ -3382,9 +3389,9 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          ThirdMoments = []
          while 'CPU' not in line.split():
-               A = map( float64, line.split()[1:] )
+               A = map( numpy.float64, line.split()[1:] )
                line = data.readline()
-               B = map( float64, line.split() )
+               B = map( numpy.float64, line.split() )
                ThirdMoments.append( A+B )
                line = data.readline()
 
@@ -3398,11 +3405,11 @@ Gamess reads Stone's DMA analysis
              ZerothMoments.pop(0)
              Structure.pop(0)
 
-         return DMA( q=array(ZerothMoments)   ,
-                     m=array(FirstMoments )   ,
-                     T=array(SecondMoments)   ,
-                     O=array(ThirdMoments )   ,
-                     pos=array(Structure)    )#,Structure
+         return DMA( q  =numpy.array(ZerothMoments)   ,
+                     m  =numpy.array(FirstMoments )   ,
+                     T  =numpy.array(SecondMoments)   ,
+                     O  =numpy.array(ThirdMoments )   ,
+                     pos=numpy.array(Structure)       )
 
     # -----------------------------------------------------------------------------
     elif type.lower() == 'coulomb' or type.lower() == 'c':
@@ -3418,7 +3425,7 @@ Gamess reads Stone's DMA analysis
          Structure = []
          Origin = []
          while line.split()!=[]:
-               ZerothMoments.append( float64( line.split()[0] ) )
+               ZerothMoments.append( numpy.float64( line.split()[0] ) )
                     
                line = data.readline()
          # ----------------------------------
@@ -3429,7 +3436,7 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          FirstMoments = []
          while line.split()!=[]:
-               FirstMoments.append( map(float64, line.split()[:]))
+               FirstMoments.append( map( numpy.float64, line.split()[:]))
                line = data.readline()
          # ----------------------------------
          querry = " Distributed second-order property"
@@ -3439,7 +3446,7 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          SecondMoments = []
          while line.split()!=[]:
-               SecondMoments.append( map( float64, line.split()[:] ))
+               SecondMoments.append( map( numpy.float64, line.split()[:] ))
                line = data.readline()
          # ----------------------------------
          querry = " Distributed third-order property"
@@ -3449,9 +3456,9 @@ Gamess reads Stone's DMA analysis
          for i in range(5): line = data.readline()
          ThirdMoments = []
          while '-----' not in line:
-               A = map( float64, line.split()[:] )
+               A = map( numpy.float64, line.split()[:] )
                line = data.readline()
-               B = map( float64, line.split()[:] )
+               B = map( numpy.float64, line.split()[:] )
                ThirdMoments.append( A+B )
                line = data.readline()
          # ----------------------------------
@@ -3478,11 +3485,11 @@ Gamess reads Stone's DMA analysis
             for i in range(3): line = data.readline()
             while line.split()!=[]:
                   coord = line.split()
-                  atoms.append(Atom(coord[0]))
-                  Structure.append( map( float64, coord[1:] ) )
+                  atoms.append(uAtom(coord[0]))
+                  Structure.append( map( numpy.float64, coord[1:] ) )
                   line = data.readline()
 
-         Structure = array(Structure,dtype=float64)                  
+         Structure = numpy.array(Structure,dtype=numpy.float64)                  
          
          querry = " Origins"
          origins = True
@@ -3497,18 +3504,18 @@ Gamess reads Stone's DMA analysis
             for i in range(3): line = data.readline()
             while line.split()!=[]:
                   coord = line.split()
-                  Origin.append( map( float64, coord[1:] ) )
+                  Origin.append( map( numpy.float64, coord[1:] ) )
                   line = data.readline()  
             
-            Origin = array(Origin   ,dtype=float64)
+            Origin = numpy.array(Origin   ,dtype=numpy.float64)
 
          else:
             Origin    = Structure.copy()
           
-         return DMA( q=array(ZerothMoments)   ,
-                     m=array(FirstMoments )   ,
-                     T=array(SecondMoments)   ,
-                     O=array(ThirdMoments )   ,
+         return DMA( q=numpy.array(ZerothMoments)   ,
+                     m=numpy.array(FirstMoments )   ,
+                     T=numpy.array(SecondMoments)   ,
+                     O=numpy.array(ThirdMoments )   ,
                      atoms=atoms              ,
                      pos=Structure            ,
                      origin=Origin,
@@ -3526,7 +3533,7 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          Structure = []
          while ('Atomic Center' in line or 'Ghost Center' in line):
-               Structure.append( array(line.split()[-3:],dtype=float64)  )
+               Structure.append( numpy.array(line.split()[-3:],dtype=numpy.float64)  )
                line = data.readline()
 
          # seek for charges!
@@ -3537,12 +3544,12 @@ Gamess reads Stone's DMA analysis
          for i in range(2): line = data.readline()
          ZerothMoments = []
          for i in range(len(Structure)):
-             ZerothMoments.append( float64( line.split()[-1] ) )    
+             ZerothMoments.append( numpy.float64( line.split()[-1] ) )    
              line = data.readline()
         
-         Result = DMA(nfrag=len(Structure))
-         Result.pos = array(Structure) * UNITS.AngstromToBohr
-         Result.DMA[0] = array(ZerothMoments)
+         Result = dma.DMA(nfrag=len(Structure))
+         Result.pos = numpy.array(Structure) * units.UNITS.AngstromToBohr
+         Result.DMA[0] = numpy.array(ZerothMoments)
          
          return Result#, array(Structure) * UNITS.AngstromToBohr
 
@@ -3561,20 +3568,20 @@ def ParseDMAFromGamessEfpFile(f):
     while not l.startswith(' STOP'):
       STR.append(l.split()[1:4])
       l = d.readline()
-    STR = array(STR,float64)
+    STR = numpy.array(STR,numpy.float64)
     # MONOPOLES
     l = d.readline();l = d.readline()
     while not l.startswith(' STOP'):
        a,b,c = l.split()
-       chg.append(float64(b)+float64(c))
+       chg.append(numpy.float64(b)+numpy.float64(c))
        l = d.readline()
-    chg = array(chg,float64)
+    chg = numpy.array(chg,numpy.float64)
     # DIPOLES
     l = d.readline();l = d.readline()
     while not l.startswith(' STOP'):
         dip.append(l.split()[1:])
         l = d.readline()
-    dip = array(dip,float64)
+    dip = numpy.array(dip,numpy.float64)
     # QUADRUPOLES
     l = d.readline();l = d.readline()
     while not l.startswith(' STOP'):
@@ -3583,7 +3590,7 @@ def ParseDMAFromGamessEfpFile(f):
          q+= l.split()
          qad.append(q)
          l = d.readline()
-    qad = array(qad,float64)
+    qad = numpy.array(qad,numpy.float64)
     # OCTUPOLES
     l = d.readline();l = d.readline()
     while not l.startswith(' STOP'):
@@ -3594,7 +3601,7 @@ def ParseDMAFromGamessEfpFile(f):
          q+= l.split()
          oct.append(q)
          l = d.readline()
-    oct = array(oct,float64)
+    oct = numpy.array(oct,numpy.float64)
     return STR, chg, dip, qad, oct
 
 def ParseDistributedPolarizabilitiesFromGamessEfpFile(f):
@@ -3629,8 +3636,8 @@ def ParseDistributedPolarizabilitiesFromGamessEfpFile(f):
       l = d.readline()
       N+=1
 
-    STR=array(STR,float64).reshape(N,3)
-    A = array(A,float64).reshape(N,3,3)
+    STR=numpy.array(STR,numpy.float64).reshape(N,3)
+    A = numpy.array(A,numpy.float64).reshape(N,3,3)
     return STR,A
 
 def ParsePolDerFromFchk(f):
@@ -3646,7 +3653,7 @@ def ParsePolDerFromFchk(f):
       A+= l.split()
       l = d.readline()
 
-    A = array(A,float64).reshape(N,3,3)
+    A = numpy.array(A,numpy.float64).reshape(N,3,3)
     return A
 
 def ParseVecFromFchk(file):
@@ -3676,7 +3683,7 @@ def ParseVecFromFchk(file):
     for i in range(g(N*M)):
         C+= line.split()
         line = data.readline()
-    C = array(C,dtype=float64).reshape(N,M)
+    C = numpy.array(C,dtype=numpy.float64).reshape(N,M)
     data.close()
     return C
 
@@ -3702,11 +3709,11 @@ def ParseFockFromGamessLog(file,interpol=False):
 
     g = lambda n: n/5+bool(n%5)
     fock = []
-    fock = zeros((nbasis,nbasis),dtype=float64)
+    fock = numpy.zeros((nbasis,nbasis),dtype=numpy.float64)
     for i in xrange(g(nbasis)):
         line = data.readline()
         line = data.readline()
-        nxses= array(line.split(),int)-1
+        nxses= numpy.array(line.split(),int)-1
         line = data.readline()
 
         for j in xrange(nbasis-i*5):
@@ -3720,7 +3727,7 @@ def ParseFockFromGamessLog(file,interpol=False):
                 fock[nx,ny] = v
                 fock[ny,nx] = v
     data.close()
-    fock = array(fock,dtype=float64)
+    fock = numpy.array(fock,dtype=numpy.float64)
     return fock
 
 def ParseDmatFromFchk(file,basis_size):
@@ -3739,18 +3746,18 @@ def ParseDmatFromFchk(file,basis_size):
     for i in range(int(ceil(N/5.))): 
         dmat+=[x for x in line.split()] 
         line = data.readline()
-    #dmat = array(dmat,dtype=float64)
+    #dmat = numpy.array(dmat,dtype=numpy.float64)
         
     # construct explicit 2D density matrix
-    P = zeros((basis_size,basis_size),dtype=float64)
+    P = numpy.zeros((basis_size,basis_size),dtype=numpy.float64)
     #I = 0
     for i in range(basis_size):
         for j in range(i+1):
-            P[i,j] = float64(dmat.pop(0))#dmat[I]
+            P[i,j] = numpy.float64(dmat.pop(0))#dmat[I]
             P[j,i] = P[i,j] #dmat[I]
             #I += 1
     data.close()
-    return array(P)
+    return numpy.array(P)
 
 def ParseFCFromFchk(file):
     """parses cartesian force constants from Gaussian fchk file"""
@@ -3775,8 +3782,8 @@ def ParseFCFromFchk(file):
         line = data.readline()
     data.close()
     
-    FC = array(FC,float64)
-    H = zeros((N*3,N*3),dtype=float64)
+    FC = numpy.array(FC,numpy.float64)
+    H = numpy.zeros((N*3,N*3),dtype=numpy.float64)
     I = 0
     for i in xrange(N*3):
         for j in xrange(i+1):
@@ -3804,7 +3811,7 @@ def ParseDipoleDerivFromFchk(file):
         line = data.readline()
     data.close()
     M = N/9
-    fd = array(fd,float64).reshape(M*3,3)
+    fd = numpy.array(fd,numpy.float64).reshape(M*3,3)
     return fd
 
 def Parse_EDS_InteractionEnergies(file):
@@ -3818,10 +3825,10 @@ def Parse_EDS_InteractionEnergies(file):
          'DE\\(HF\\)']
          
     for term in E:
-        querry+= '\s*%s\s+(%s).*\n' % (term,re_real_e)
+        querry+= '\s*%s\s+(%s).*\n' % (term,re_templates.re_real_e)
     querry = re.compile(querry,re.DOTALL)
     match = re.search(querry,data)
-    energies = array(match.groups(),dtype=float64)    
+    energies = numpy.array(match.groups(),dtype=numpy.float64)    
     
     return energies
 
@@ -3837,17 +3844,17 @@ def ParseEFPInteractionEnergies(file):
          'DISPERSION ENERGY','CHARGE TRANSFER ENRGY','FINAL EFP ENERGY',]
          
     for term in E:
-        querry+= '\s*%s\s+=\s+(%s).*\n' % (term,re_real)
+        querry+= '\s*%s\s+=\s+(%s).*\n' % (term,re_templates.re_real)
     querry = re.compile(querry,re.DOTALL)
     match = re.search(querry,data)
-    energies = array(match.groups(),dtype=float64)
+    energies = numpy.array(match.groups(), dtype=numpy.float64)
     
     return energies
 
 def CalcStep(step,reduced_mass):
     """return step in Angstroms when given step in normal coordinate unit [Bohr*me-1/2] 
     and reduced mass [AMU]"""
-    return step * UNITS.BohrToAngstrom / sqrt(UNITS.AmuToElectronMass*reduced_mass)
+    return step * units.UNITS.BohrToAngstrom / numpy.sqrt(units.UNITS.AmuToElectronMass*reduced_mass)
 
 def CalculateCAMM(basis='6-311++G**'): 
     """calculates CAMMs from density matrix from GAUSSIAN09
@@ -3856,8 +3863,7 @@ def CalculateCAMM(basis='6-311++G**'):
        2) type ./diff 
        3) the files .camm are creating!!! """
        
-    from sys import argv
-    import os, glob
+    import os, glob, sys
        
     pliki_fchk  = glob.glob('./*_.fchk')
     pliki_fchk.sort()
@@ -3871,7 +3877,7 @@ def CalculateCAMM(basis='6-311++G**'):
     for i,file_log in enumerate(pliki_log):
         #dma, fragment = ParseDMA( file_log, 'gaussian' )
         dma = ParseDMA( file_log, 'gaussian' )
-        fragment = array(dma.pos)
+        fragment = numpy.array(dma.pos)
         
         frag_file = open('slv.frags','r')
         frag_names = []
@@ -3884,15 +3890,15 @@ def CalculateCAMM(basis='6-311++G**'):
         ### create Molecule object
         structure = []
         for j in range(len(fragment)):
-            structure.append( (UNITS.atomic_numbers[frag_names[j]],
-                                fragment[j]) ) 
-        molecule = Molecule('mol',
-                            structure,
-                            multiplicity=1,
-                            charge=0,
-                            units='Bohr')
+            structure.append( (units.UNITS.atomic_numbers[frag_names[j]],
+                                                            fragment[j]) ) 
+        molecule = PyQuante.Molecule('mol',
+                                      structure,
+                                      multiplicity=1,
+                                      charge=0,
+                                      units='Bohr')
                             
-        basis_size = len(Ints.getbasis(molecule,'6-311++G**'))
+        basis_size = len(PyQuante.Ints.getbasis(molecule,'6-311++G**'))
         print " - basis size= ",basis_size
         dmat = ParseDmatFromFchk(pliki_fchk[i],basis_size)
        
@@ -3908,28 +3914,28 @@ def CalculateCAMM(basis='6-311++G**'):
         CAMM.__printMMMs__()
         #CAMM.__printCAMMs__()
        
-        result = DMA(nfrag=len(structure))
+        result = dma.DMA(nfrag=len(structure))
         result.DMA[0][:] = CAMM.Mon
         #
         result.DMA[1][:] = CAMM.Dip
         #
-        result.DMA[2][:,0] = array(CAMM.Quad)[:,0,0]
-        result.DMA[2][:,1] = array(CAMM.Quad)[:,1,1]
-        result.DMA[2][:,2] = array(CAMM.Quad)[:,2,2]
-        result.DMA[2][:,3] = array(CAMM.Quad)[:,0,1]
-        result.DMA[2][:,4] = array(CAMM.Quad)[:,0,2]
-        result.DMA[2][:,5] = array(CAMM.Quad)[:,1,2]
+        result.DMA[2][:,0] = numpy.array(CAMM.Quad)[:,0,0]
+        result.DMA[2][:,1] = numpy.array(CAMM.Quad)[:,1,1]
+        result.DMA[2][:,2] = numpy.array(CAMM.Quad)[:,2,2]
+        result.DMA[2][:,3] = numpy.array(CAMM.Quad)[:,0,1]
+        result.DMA[2][:,4] = numpy.array(CAMM.Quad)[:,0,2]
+        result.DMA[2][:,5] = numpy.array(CAMM.Quad)[:,1,2]
         #
-        result.DMA[3][:,0] = array(CAMM.Oct)[:,0,0,0]
-        result.DMA[3][:,1] = array(CAMM.Oct)[:,1,1,1]
-        result.DMA[3][:,2] = array(CAMM.Oct)[:,2,2,2]
-        result.DMA[3][:,3] = array(CAMM.Oct)[:,0,0,1]
-        result.DMA[3][:,4] = array(CAMM.Oct)[:,0,0,2]
-        result.DMA[3][:,5] = array(CAMM.Oct)[:,0,1,1]
-        result.DMA[3][:,6] = array(CAMM.Oct)[:,1,1,2]
-        result.DMA[3][:,7] = array(CAMM.Oct)[:,0,2,2]
-        result.DMA[3][:,8] = array(CAMM.Oct)[:,1,2,2]
-        result.DMA[3][:,9] = array(CAMM.Oct)[:,0,1,2]
+        result.DMA[3][:,0] = numpy.array(CAMM.Oct)[:,0,0,0]
+        result.DMA[3][:,1] = numpy.array(CAMM.Oct)[:,1,1,1]
+        result.DMA[3][:,2] = numpy.array(CAMM.Oct)[:,2,2,2]
+        result.DMA[3][:,3] = numpy.array(CAMM.Oct)[:,0,0,1]
+        result.DMA[3][:,4] = numpy.array(CAMM.Oct)[:,0,0,2]
+        result.DMA[3][:,5] = numpy.array(CAMM.Oct)[:,0,1,1]
+        result.DMA[3][:,6] = numpy.array(CAMM.Oct)[:,1,1,2]
+        result.DMA[3][:,7] = numpy.array(CAMM.Oct)[:,0,2,2]
+        result.DMA[3][:,8] = numpy.array(CAMM.Oct)[:,1,2,2]
+        result.DMA[3][:,9] = numpy.array(CAMM.Oct)[:,0,1,2]
         #
         #print result
         out = open(file_log[:-4]+'.camm','w')
@@ -4005,31 +4011,31 @@ def DMAMadrixMultiply(matrix,dma_list):
     positions = dma_list[0].pos
     # number of centers
     K = len(dma_list[0][0])
-    charges = zeros((N ,K  ),dtype=float64)
-    dipoles = zeros((3 ,N,K),dtype=float64)
-    qdrples = zeros((6 ,N,K),dtype=float64)
-    octples = zeros((10,N,K),dtype=float64)
-    for i,dma in enumerate(dma_list):
-        charges[i,:]   = dma.DMA[0]
-        dipoles[:,i,:] = transpose(dma.DMA[1])
-        qdrples[:,i,:] = transpose(dma.DMA[2])
-        octples[:,i,:] = transpose(dma.DMA[3])
+    charges = numpy.zeros((N ,K  ),dtype=numpy.float64)
+    dipoles = numpy.zeros((3 ,N,K),dtype=numpy.float64)
+    qdrples = numpy.zeros((6 ,N,K),dtype=numpy.float64)
+    octples = numpy.zeros((10,N,K),dtype=numpy.float64)
+    for i,dmai in enumerate(dma_list):
+        charges[i,:]   = dmai.DMA[0]
+        dipoles[:,i,:] = transpose(dmai.DMA[1])
+        qdrples[:,i,:] = transpose(dmai.DMA[2])
+        octples[:,i,:] = transpose(dmai.DMA[3])
  
     ### TRANSFORMATION!    
-    charges = dot(matrix,charges)
-    dipoles = dot(matrix,dipoles)
-    qdrples = dot(matrix,qdrples)
-    octples = dot(matrix,octples)
+    charges = numpy.dot(matrix,charges)
+    dipoles = numpy.dot(matrix,dipoles)
+    qdrples = numpy.dot(matrix,qdrples)
+    octples = numpy.dot(matrix,octples)
     
     result = []
     for i in range(len(matrix)):
-        dma = DMA(nfrag=K)
-        dma.DMA[0] = charges[i]
-        dma.DMA[1] = transpose(dipoles[i])
-        dma.DMA[2] = transpose(qdrples[i])
-        dma.DMA[3] = transpose(octples[i])
-        dma.pos = positions
-        result.append( dma )
+        dmai = dma.DMA(nfrag=K)
+        dmai.DMA[0] = charges[i]
+        dmai.DMA[1] = numpy.transpose(dipoles[i])
+        dmai.DMA[2] = numpy.transpose(qdrples[i])
+        dmai.DMA[3] = numpy.transpose(octples[i])
+        dmai.pos = positions
+        result.append( dmai )
         
     return result
 
@@ -4061,62 +4067,64 @@ QO = 0 ; OQ = 0
 OO = 0 ;
 qH = 0 ; Hq = 0
 #
+Tensordot = numpy.tensordot
+Dot = numpy.dot
 for i in xrange(len(Ra)):
          for j in xrange(len(Rb)):
             R    = Rb[j]-Ra[i]
-            Rab=sqrt(sum(R**2,axis=0))
+            Rab=numpy.sqrt(numpy.sum(R**2,axis=0))
             if (Rab < threshold and Rab !=0):
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
              #if not hash:
-             qD  +=  -qa[i]*tensordot(Db[j],R,(0,0))/Rab**3                                         # qa - Db  | R2
-             Dq  +=  +qb[j]*tensordot(Da[i],R,(0,0))/Rab**3                                         # qb - Da  | R2
-             DD  +=-3*tensordot(Da[i],R,(0,0))*tensordot(Db[j],R,(0,0))/Rab**5                      # Da - Db  | R3
-             DD  +=   tensordot(Da[i],Db[j],(0,0))/Rab**3                                           # Da - Db  | R3
-             qQ  +=   qa[i]*tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                      # qa - Qb  | R3
-             Qq  +=   qb[j]*tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                      # qb - Qa  | R3
-             DQ  +=-2*tensordot(Da[i],tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                        # Da - Qb  | R4
-             QD  += 2*tensordot(Db[j],tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                        # Db - Qa  | R4
-             DQ  += 5*tensordot(Da[i],R,(0,0))*tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))/Rab**7   # Da - Qb  | R4
-             QD  +=-5*tensordot(Db[j],R,(0,0))*tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))/Rab**7   # Db - Qa  | R4
-             qO  +=  -qa[i]*tensordot(R,tensordot(R,tensordot(Ob[j],R,(0,0)),(0,0)),(0,0))/Rab**7   # qa - Ob  | R4
-             Oq  +=   qb[j]*tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))/Rab**7   # qb - Oa  | R4
-             QQ  += (35.)/(3.)* (tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0)) *
-                                 tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))  ) / Rab**9            # Qa - Qb  | R5
-             OD  +=-7*(tensordot(Db[j],R,(0,0)) *
-                       tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Db - Oa  | R5
-             DO  +=-7*(tensordot(Da[i],R,(0,0)) *
-                       tensordot(R,tensordot(R,tensordot(Ob[j],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Da - Ob  | R5
-             QQ  +=-(20.)/(3.) * tensordot(tensordot(R,Qa[i],(0,0)),
-                                           tensordot(R,Qb[j],(0,0)),(0,0)) / Rab**7                 # Qa - Qb  | R5
-             QQ  +=(2.)/(3.)  * tensordot(Qa[i],Qb[j])  / Rab**5                                    # Qa - Qb  | R5
-             OD  +=3 * tensordot(R,tensordot(R,tensordot(Oa[i],Db[j],(0,0)),(0,0)),(0,0)) / Rab**7  # Db - Oa  | R5
-             DO  +=3 * tensordot(R,tensordot(R,tensordot(Ob[j],Da[i],(0,0)),(0,0)),(0,0)) / Rab**7  # Da - Ob  | R5
+             qD  +=  -qa[i]*Tensordot(Db[j],R,(0,0))/Rab**3                                         # qa - Db  | R2
+             Dq  +=  +qb[j]*Tensordot(Da[i],R,(0,0))/Rab**3                                         # qb - Da  | R2
+             DD  +=-3*Tensordot(Da[i],R,(0,0))*Tensordot(Db[j],R,(0,0))/Rab**5                      # Da - Db  | R3
+             DD  +=   Tensordot(Da[i],Db[j],(0,0))/Rab**3                                           # Da - Db  | R3
+             qQ  +=   qa[i]*Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                      # qa - Qb  | R3
+             Qq  +=   qb[j]*tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                      # qb - Qa  | R3
+             DQ  +=-2*Tensordot(Da[i],Tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                        # Da - Qb  | R4
+             QD  += 2*Tensordot(Db[j],Tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                        # Db - Qa  | R4
+             DQ  += 5*Tensordot(Da[i],R,(0,0))*Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))/Rab**7   # Da - Qb  | R4
+             QD  +=-5*Tensordot(Db[j],R,(0,0))*Tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0))/Rab**7   # Db - Qa  | R4
+             qO  +=  -qa[i]*Tensordot(R,Tensordot(R,Tensordot(Ob[j],R,(0,0)),(0,0)),(0,0))/Rab**7   # qa - Ob  | R4
+             Oq  +=   qb[j]*Tensordot(R,Tensordot(R,Tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))/Rab**7   # qb - Oa  | R4
+             QQ  += (35.)/(3.)* (Tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0)) *
+                                 Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))  ) / Rab**9            # Qa - Qb  | R5
+             OD  +=-7*(Tensordot(Db[j],R,(0,0)) *
+                       Tensordot(R,Tensordot(R,Tensordot(Oa[i],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Db - Oa  | R5
+             DO  +=-7*(Tensordot(Da[i],R,(0,0)) *
+                       Tensordot(R,Tensordot(R,Tensordot(Ob[j],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Da - Ob  | R5
+             QQ  +=-(20.)/(3.) * Tensordot(Tensordot(R,Qa[i],(0,0)),
+                                           Tensordot(R,Qb[j],(0,0)),(0,0)) / Rab**7                 # Qa - Qb  | R5
+             QQ  +=(2.)/(3.)  * Tensordot(Qa[i],Qb[j])  / Rab**5                                    # Qa - Qb  | R5
+             OD  +=3 * Tensordot(R,Tensordot(R,Tensordot(Oa[i],Db[j],(0,0)),(0,0)),(0,0)) / Rab**7  # Db - Oa  | R5
+             DO  +=3 * Tensordot(R,Tensordot(R,Tensordot(Ob[j],Da[i],(0,0)),(0,0)),(0,0)) / Rab**7  # Da - Ob  | R5
              ### The remaining terms with hexadecapoles are not implemented yet
-             #Eint+= qb[j] * tensordot(R,tensordot(R,tensordot(R,tensordot(R,Ha[i],
+             #Eint+= qb[j] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Ha[i],
              #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Ha - qb  | R5
-             #Eint+= qa[i] * tensordot(R,tensordot(R,tensordot(R,tensordot(R,Hb[j],
+             #Eint+= qa[i] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Hb[j],
              #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Hb - qj  | R5
              ### these are implemented already !
-             #OQ  += 2* tensordot(tensordot(Oa[i],Qb[j],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qb - Oa  | R6
-             #QO  +=-2* tensordot(tensordot(Ob[j],Qa[i],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qa - Ob  | R6
-             #OQ  +=-14*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)) ,                      # Qb - Oa  | R6
-             #                    tensordot(R,Qb[j],(0,0)) ,(0,0)) / Rab**9                          
-             #QO  += 14*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)) ,                      # Qa - Ob  | R6
-             #                    tensordot(R,Qa[i],(0,0)) ,(0,0)) / Rab**9
-             #OQ  +=( 21*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
-             #         * tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))) / Rab**11
-             #QO  +=(-21*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
-             #         * tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))) / Rab**11   
-             #OO  +=(2.)/(5.)*tensordot(Oa[i],Ob[j],((0,1,2),(0,1,2))) / Rab**7                      # Ob - Oa  | R7
-             #OO  +=(-42./5.)*tensordot(tensordot(R,Oa[i],(0,0)),
-             #                          tensordot(R,Ob[j],(0,0)),
+             #OQ  += 2* Tensordot(Tensordot(Oa[i],Qb[j],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qb - Oa  | R6
+             #QO  +=-2* Tensordot(Tensordot(Ob[j],Qa[i],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qa - Ob  | R6
+             #OQ  +=-14*Tensordot(Tensordot(R,Tensordot(Oa[i],R,(1,0)),(0,0)) ,                      # Qb - Oa  | R6
+             #                    Tensordot(R,Qb[j],(0,0)) ,(0,0)) / Rab**9                          
+             #QO  += 14*Tensordot(Tensordot(R,Tensordot(Ob[j],R,(1,0)),(0,0)) ,                      # Qa - Ob  | R6
+             #                    Tensordot(R,Qa[i],(0,0)) ,(0,0)) / Rab**9
+             #OQ  +=( 21*Tensordot(Tensordot(R,Tensordot(Oa[i],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
+             #         * Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))) / Rab**11
+             #QO  +=(-21*Tensordot(Tensordot(R,Tensordot(Ob[j],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
+             #         * Tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0))) / Rab**11   
+             #OO  +=(2.)/(5.)*Tensordot(Oa[i],Ob[j],((0,1,2),(0,1,2))) / Rab**7                      # Ob - Oa  | R7
+             #OO  +=(-42./5.)*Tensordot(Tensordot(R,Oa[i],(0,0)),
+             #                          Tensordot(R,Ob[j],(0,0)),
              #                          ((0,1),(0,1))) / Rab**9                                      # Ob - Oa  | R7
-             #OO  +=(189.)/(5.)*tensordot(
-             #                            tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),
-             #                            tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),
+             #OO  +=(189.)/(5.)*Tensordot(
+             #                            Tensordot(Tensordot(R,Oa[i],(0,0)),R,(0,0)),
+             #                            Tensordot(Tensordot(R,Ob[j],(0,0)),R,(0,0)),
              #                            (0,0)) /Rab**11
-             #OO  +=-(231./5.)*(tensordot(tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),R,(0,0)) *
-             #                  tensordot(tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),R,(0,0)) ) /\
+             #OO  +=-(231./5.)*(Tensordot(Tensordot(Tensordot(R,Oa[i],(0,0)),R,(0,0)),R,(0,0)) *
+             #                  Tensordot(Tensordot(Tensordot(R,Ob[j],(0,0)),R,(0,0)),R,(0,0)) ) /\
              #                  Rab**13
              
              Eint = qq + qD + Dq + qQ + Qq + qO + Oq + DD + DQ + QD + DO + OD + QQ + QO + OQ + OO
@@ -4148,7 +4156,7 @@ dma1 and dma2 are the objects of the class DMA. Calculations are
 in atomic units and a respective interaction energy is in 
 a.u. as well. Uses FORTRAN subroutine CLEMTP"""
     
-    converter=UNITS.HartreePerHbarToCmRec
+    converter=units.UNITS.HartreePerHbarToCmRec
     #
     dma1=DMA1.copy()
     dma2=DMA2.copy()
@@ -4208,7 +4216,7 @@ dma1 and dma2 are the objects of the class DMA. Calculations are
 in atomic units and a respective interaction energy is in 
 a.u. as well."""
     
-    converter=UNITS.HartreePerHbarToCmRec
+    converter=units.UNITS.HartreePerHbarToCmRec
     #
     dma1=DMA1.copy()
     dma2=DMA2.copy()
@@ -4220,7 +4228,7 @@ a.u. as well."""
     for i in xrange(len(Ra)):
          for j in xrange(len(Rb)):
              R    = Rb[j]-Ra[i]
-             Rab=sqrt(sum(R**2,axis=0))
+             Rab  = numpy.sqrt(numpy.sum(R**2,axis=0))
              qq  +=   qa[i]*qb[j]/Rab 
     #
     qq *= converter
@@ -4262,7 +4270,7 @@ dma1 and dma2 are the objects of the class DMA. Calculations are
 in atomic units and a respective interaction energy is in 
 a.u. as well. """
 
-    converter=UNITS.HartreePerHbarToCmRec
+    converter=units.UNITS.HartreePerHbarToCmRec
     #
     dma1=DMA1.copy()
     dma2=DMA2.copy()
@@ -4288,60 +4296,61 @@ a.u. as well. """
     OO = 0 ;
     qH = 0 ; Hq = 0
     #
+    Tensordot = numpy.tensordot
     for i in xrange(len(Ra)):
          for j in xrange(len(Rb)):
              R    = Rb[j]-Ra[i]
-             Rab=sqrt(sum(R**2,axis=0))
+             Rab=numpy.sqrt(numpy.sum(R**2,axis=0))
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
-             qD  +=  -qa[i]*tensordot(Db[j],R,(0,0))/Rab**3                                         # qa - Db  | R2
-             Dq  +=  +qb[j]*tensordot(Da[i],R,(0,0))/Rab**3                                         # qb - Da  | R2
-             DD  +=-3*tensordot(Da[i],R,(0,0))*tensordot(Db[j],R,(0,0))/Rab**5                      # Da - Db  | R3
-             DD  +=   tensordot(Da[i],Db[j],(0,0))/Rab**3                                           # Da - Db  | R3
-             qQ  +=   qa[i]*tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                      # qa - Qb  | R3
-             Qq  +=   qb[j]*tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                      # qb - Qa  | R3
-             DQ  +=-2*tensordot(Da[i],tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                        # Da - Qb  | R4
-             QD  += 2*tensordot(Db[j],tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                        # Db - Qa  | R4
-             DQ  += 5*tensordot(Da[i],R,(0,0))*tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))/Rab**7   # Da - Qb  | R4
-             QD  +=-5*tensordot(Db[j],R,(0,0))*tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))/Rab**7   # Db - Qa  | R4
-             qO  +=  -qa[i]*tensordot(R,tensordot(R,tensordot(Ob[j],R,(0,0)),(0,0)),(0,0))/Rab**7   # qa - Ob  | R4
-             Oq  +=   qb[j]*tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))/Rab**7   # qb - Oa  | R4
-             QQ  += (35.)/(3.)* (tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0)) *
-                                 tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))  ) / Rab**9            # Qa - Qb  | R5
-             OD  +=-7*(tensordot(Db[j],R,(0,0)) *
-                       tensordot(R,tensordot(R,tensordot(Oa[i],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Db - Oa  | R5
-             DO  +=-7*(tensordot(Da[i],R,(0,0)) *
-                       tensordot(R,tensordot(R,tensordot(Ob[j],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Da - Ob  | R5
-             QQ  +=-(20.)/(3.) * tensordot(tensordot(R,Qa[i],(0,0)),
-                                           tensordot(R,Qb[j],(0,0)),(0,0)) / Rab**7                 # Qa - Qb  | R5
-             QQ  +=(2.)/(3.)  * tensordot(Qa[i],Qb[j])  / Rab**5                                    # Qa - Qb  | R5
-             OD  +=3 * tensordot(R,tensordot(R,tensordot(Oa[i],Db[j],(0,0)),(0,0)),(0,0)) / Rab**7  # Db - Oa  | R5
-             DO  +=3 * tensordot(R,tensordot(R,tensordot(Ob[j],Da[i],(0,0)),(0,0)),(0,0)) / Rab**7  # Da - Ob  | R5
+             qD  +=  -qa[i]*Tensordot(Db[j],R,(0,0))/Rab**3                                         # qa - Db  | R2
+             Dq  +=  +qb[j]*Tensordot(Da[i],R,(0,0))/Rab**3                                         # qb - Da  | R2
+             DD  +=-3*Tensordot(Da[i],R,(0,0))*Tensordot(Db[j],R,(0,0))/Rab**5                      # Da - Db  | R3
+             DD  +=   Tensordot(Da[i],Db[j],(0,0))/Rab**3                                           # Da - Db  | R3
+             qQ  +=   qa[i]*Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                      # qa - Qb  | R3
+             Qq  +=   qb[j]*Tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                      # qb - Qa  | R3
+             DQ  +=-2*Tensordot(Da[i],Tensordot(Qb[j],R,(0,0)),(0,0))/Rab**5                        # Da - Qb  | R4
+             QD  += 2*Tensordot(Db[j],Tensordot(Qa[i],R,(0,0)),(0,0))/Rab**5                        # Db - Qa  | R4
+             DQ  += 5*Tensordot(Da[i],R,(0,0))*Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))/Rab**7   # Da - Qb  | R4
+             QD  +=-5*Tensordot(Db[j],R,(0,0))*Tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0))/Rab**7   # Db - Qa  | R4
+             qO  +=  -qa[i]*Tensordot(R,Tensordot(R,Tensordot(Ob[j],R,(0,0)),(0,0)),(0,0))/Rab**7   # qa - Ob  | R4
+             Oq  +=   qb[j]*Tensordot(R,Tensordot(R,Tensordot(Oa[i],R,(0,0)),(0,0)),(0,0))/Rab**7   # qb - Oa  | R4
+             QQ  += (35.)/(3.)* (Tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0)) *
+                                 Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))  ) / Rab**9            # Qa - Qb  | R5
+             OD  +=-7*(Tensordot(Db[j],R,(0,0)) *
+                       Tensordot(R,Tensordot(R,Tensordot(Oa[i],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Db - Oa  | R5
+             DO  +=-7*(Tensordot(Da[i],R,(0,0)) *
+                       Tensordot(R,Tensordot(R,Tensordot(Ob[j],R,(0,0)),(0,0)),(0,0)) ) / Rab**9    # Da - Ob  | R5
+             QQ  +=-(20.)/(3.) * Tensordot(Tensordot(R,Qa[i],(0,0)),
+                                           Tensordot(R,Qb[j],(0,0)),(0,0)) / Rab**7                 # Qa - Qb  | R5
+             QQ  +=(2.)/(3.)  * Tensordot(Qa[i],Qb[j])  / Rab**5                                    # Qa - Qb  | R5
+             OD  +=3 * Tensordot(R,Tensordot(R,Tensordot(Oa[i],Db[j],(0,0)),(0,0)),(0,0)) / Rab**7  # Db - Oa  | R5
+             DO  +=3 * Tensordot(R,Tensordot(R,Tensordot(Ob[j],Da[i],(0,0)),(0,0)),(0,0)) / Rab**7  # Da - Ob  | R5
              ### The remaining terms with hexadecapoles are not implemented yet
-             #Eint+= qb[j] * tensordot(R,tensordot(R,tensordot(R,tensordot(R,Ha[i],
+             #Eint+= qb[j] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Ha[i],
              #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Ha - qb  | R5
-             #Eint+= qa[i] * tensordot(R,tensordot(R,tensordot(R,tensordot(R,Hb[j],
+             #Eint+= qa[i] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Hb[j],
              #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Hb - qj  | R5
              ### these are implemented already !
-             OQ  += 2* tensordot(tensordot(Oa[i],Qb[j],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qb - Oa  | R6
-             QO  +=-2* tensordot(tensordot(Ob[j],Qa[i],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qa - Ob  | R6
-             OQ  +=-14*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)) ,                      # Qb - Oa  | R6
-                                 tensordot(R,Qb[j],(0,0)) ,(0,0)) / Rab**9                          
-             QO  += 14*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)) ,                      # Qa - Ob  | R6
-                                 tensordot(R,Qa[i],(0,0)) ,(0,0)) / Rab**9
-             OQ  +=( 21*tensordot(tensordot(R,tensordot(Oa[i],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
-                      * tensordot(R,tensordot(Qb[j],R,(0,0)),(0,0))) / Rab**11
-             QO  +=(-21*tensordot(tensordot(R,tensordot(Ob[j],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
-                      * tensordot(R,tensordot(Qa[i],R,(0,0)),(0,0))) / Rab**11   
-             OO  +=(2.)/(5.)*tensordot(Oa[i],Ob[j],((0,1,2),(0,1,2))) / Rab**7                      # Ob - Oa  | R7
-             OO  +=(-42./5.)*tensordot(tensordot(R,Oa[i],(0,0)),
-                                       tensordot(R,Ob[j],(0,0)),
+             OQ  += 2* Tensordot(Tensordot(Oa[i],Qb[j],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qb - Oa  | R6
+             QO  +=-2* Tensordot(Tensordot(Ob[j],Qa[i],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qa - Ob  | R6
+             OQ  +=-14*Tensordot(Tensordot(R,Tensordot(Oa[i],R,(1,0)),(0,0)) ,                      # Qb - Oa  | R6
+                                 Tensordot(R,Qb[j],(0,0)) ,(0,0)) / Rab**9                          
+             QO  += 14*Tensordot(Tensordot(R,Tensordot(Ob[j],R,(1,0)),(0,0)) ,                      # Qa - Ob  | R6
+                                 Tensordot(R,Qa[i],(0,0)) ,(0,0)) / Rab**9
+             OQ  +=( 21*Tensordot(Tensordot(R,Tensordot(Oa[i],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
+                      * Tensordot(R,Tensordot(Qb[j],R,(0,0)),(0,0))) / Rab**11
+             QO  +=(-21*Tensordot(Tensordot(R,Tensordot(Ob[j],R,(1,0)),(0,0)),R,(0,0))              # Qb - Oa  | R6
+                      * Tensordot(R,Tensordot(Qa[i],R,(0,0)),(0,0))) / Rab**11   
+             OO  +=(2.)/(5.)*Tensordot(Oa[i],Ob[j],((0,1,2),(0,1,2))) / Rab**7                      # Ob - Oa  | R7
+             OO  +=(-42./5.)*Tensordot(Tensordot(R,Oa[i],(0,0)),
+                                       Tensordot(R,Ob[j],(0,0)),
                                        ((0,1),(0,1))) / Rab**9                                      # Ob - Oa  | R7
-             OO  +=(189.)/(5.)*tensordot(
-                                         tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),
-                                         tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),
+             OO  +=(189.)/(5.)*Tensordot(
+                                         Tensordot(Tensordot(R,Oa[i],(0,0)),R,(0,0)),
+                                         Tensordot(Tensordot(R,Ob[j],(0,0)),R,(0,0)),
                                          (0,0)) /Rab**11                                            # Oa - Ob  | R7
-             OO  +=-(231./5.)*(tensordot(tensordot(tensordot(R,Oa[i],(0,0)),R,(0,0)),R,(0,0)) *
-                               tensordot(tensordot(tensordot(R,Ob[j],(0,0)),R,(0,0)),R,(0,0)) ) /\
+             OO  +=-(231./5.)*(Tensordot(Tensordot(Tensordot(R,Oa[i],(0,0)),R,(0,0)),R,(0,0)) *
+                               Tensordot(Tensordot(Tensordot(R,Ob[j],(0,0)),R,(0,0)),R,(0,0)) ) /\
                                Rab**13                                                              # Oa - Ob  | R7
              
              Eint = qq + qD + Dq + qQ + Qq + qO + Oq + DD + DQ + QD + DO + OD + QQ + QO + OQ + OO
@@ -4423,10 +4432,10 @@ def FrequencyShiftPol(solvent,solpol,point):
     
     field = ElectricField(solvent,point,is_full=True)
     print field
-    shift = tensordot(field,tensordot(solpol,field,(0,0)),(0,0))
+    shift = numpy.tensordot(field,numpy.tensordot(solpol,field,(0,0)),(0,0))
     shift*= -1./2.
     
-    return shift * UNITS.HartreePerHbarToCmRec
+    return shift * units.UNITS.HartreePerHbarToCmRec
 
 def FrequencyShift(solute=0,solvent=0,solute_structure=0):
     """calculates frequency shift of solute (MCHO instance)
@@ -4439,14 +4448,14 @@ def FrequencyShift(solute=0,solvent=0,solute_structure=0):
     new.set_structure(pos=solute_structure,equal=True)
     A,B,C,D,E = Emtp(new,solvent.copy())
     #A,B,C,D,E = Emtp_charges(new,solvent.copy())
-    result = array([A,B,C,D,E])
+    result = numpy.array([A,B,C,D,E])
     # switch to cm-1
-    # result  *= UNITS.HartreePerHbarToCmRec
+    # result  *= units.UNITS.HartreePerHbarToCmRec
     return result
 
 class Allign:
     """represents alligning function"""
-    def __init__(self,xyz=zeros(3),atid=[],vec=[],axes=(0,1,2),dma=0):
+    def __init__(self,xyz=numpy.zeros(3),atid=[],vec=[],axes=(0,1,2),dma=0):
         self.xyz=xyz
         self.atid=atid
         self.vec=vec
@@ -4456,7 +4465,7 @@ class Allign:
         self.rot,self.rms = RotationMatrix(initial=self.initial,final=self.final)
         if abs(self.rms)>0.0001: print " Warning! Not orthogonal set! (rms=%f)"%self.rms
         if dma: self.__dma_alligned = self.allignDMA(dma); print " DMA is alligned!\n"
-        self.xyz=dot(self.xyz,self.rot)
+        self.xyz=numpy.dot(self.xyz,self.rot)
 
     def allignDMA(self,dma):
         dma_copy=dma.copy()
@@ -4468,12 +4477,12 @@ class Allign:
         return self.__dma_alligned, self.xyz
     
     def __allign(self):
-        axes=identity(3,dtype=float64)[[self.axes]]
+        axes=numpy.identity(3,dtype=numpy.float64)[[self.axes]]
         if self.vec:
-           init = zeros((3,3),dtype=float64)
+           init = numpy.zeros((3,3),dtype=numpy.float64)
            for c in [0,1,2]: 
                init[self.axes[c]] = self.vec[c]
-               init[self.axes[c]]/=sqrt(sum(init[self.axes[c]]**2))
+               init[self.axes[c]]/=numpy.sqrt(numpy.sum(init[self.axes[c]]**2))
         
            self.initial=init
         elif self.atid:
@@ -4482,16 +4491,16 @@ class Allign:
               P2 = self.xyz[self.atid[1]-1]
               X,Y,Z = P2-P1
               y=z=1.0; x = - (Y+Z)/X
-              P3 = array([x,y,z]); P3/= norm(P3)
+              P3 = array([x,y,z]); P3/= numpy.linalg.norm(P3)
            else:
              P1 = self.xyz[self.atid[0]-1]
              P2 = self.xyz[self.atid[1]-1]
              P3 = self.xyz[self.atid[2]-1]
            C = P2 - P1
-           B = cross(C,P3 - P1)
-           A = cross(B,C)
+           B = numpy.cross(C,P3 - P1)
+           A = numpy.cross(B,C)
            
-           self.initial=array([A,B,C])
+           self.initial=numpy.array([A,B,C])
            for c in [0,1,2]: 
                self.initial[c]/=sqrt(sum(self.initial[c]**2))
         self.final=axes          
@@ -4500,13 +4509,13 @@ class ModifyStruct(object):
     """structure modifier"""
     def __init__(self,xyz):
         self.xyz = xyz
-        self.ring = zeros((1,3),dtype=float64)
+        self.ring = numpy.zeros((1,3),dtype=numpy.float64)
         self.n_atoms = len(xyz)
         self.rings = []
         
     def write(self,name,units='angs'):
         ring = self.ring.copy()
-        if units=='angs': ring*= UNITS.BohrToAngstrom
+        if units=='angs': ring*= units.UNITS.BohrToAngstrom
         out = open(name,'w')
         out.write('%d\n\n' % len(ring))
         for i in range(len(ring)):
@@ -4520,12 +4529,12 @@ class ModifyStruct(object):
         p3 - punkt określający oś horyzontalną (chyba 'x'). Numery atomów
         są normalne (zaczynąją się od 1)."""
         new, center, rot = self.__makeAxes(p1-1,p2-1,p3-1,scale)
-        obw = zeros((n,3),dtype=float64)
+        obw = numpy.zeros((n,3),dtype=numpy.float64)
         for i in range(n):
-            obw[i,0] = r  * cos(2*pi*i/n)
-            obw[i,1] = r  * sin(2*pi*i/n)
-        obw = dot(obw,rot) + array([center])
-        self.ring = concatenate((self.ring,obw),axis=0)
+            obw[i,0] = r  * numpy.cos(2*pi*i/n)
+            obw[i,1] = r  * numpy.sin(2*pi*i/n)
+        obw = numpy.dot(obw,rot) + numpy.array([center])
+        self.ring = numpy.concatenate((self.ring,obw),axis=0)
         self.rings.append(obw)
         return 
     
@@ -4543,9 +4552,9 @@ where i and j is the atom ID (starting from 1)."""
                 point = 0.5 * (self.xyz[i[0]-1]+self.xyz[i[1]-1])
                 midBonds.append(point)
 
-        midBonds = array( midBonds,dtype=float64)
+        midBonds = numpy.array( midBonds, dtype=numpy.float64)
         #
-        self.ring = concatenate((self.ring, midBonds),axis=0)
+        self.ring = numpy.concatenate((self.ring, midBonds),axis=0)
         return
     
     def add(self,xyz):
@@ -4564,22 +4573,22 @@ where i and j is the atom ID (starting from 1)."""
            print "\n No groups found for thershold = %.5f a.u.\n" % threshold
         else:
            n_del = n_points - n_groups
-           ring = [zeros(3,dtype=float64)]
+           ring = [numpy.zeros(3,dtype=numpy.float64)]
            for group in g:
-               average_point = zeros(3,dtype=float64)
+               average_point = numpy.zeros(3,dtype=numpy.float64)
                for i in group:
                    average_point+=self.ring[i+1]
                average_point /= len(group)
                ring.append(average_point)
                #ring.append(self.ring[group[0]+1])
-           self.ring = array( ring, dtype=float64)
+           self.ring = numpy.array( ring, dtype=numpy.float64)
            print "\n %i points deleted for thershold = %.5f a.u.\n" % (n_del,threshold)
            
         return
     
     def reset(self):
         """resets previous changes"""
-        self.ring = zeros((1,3),dtype=float64)
+        self.ring = numpy.zeros((1,3),dtype=numpy.float64)
         self.rings = []
         return
     
@@ -4588,7 +4597,7 @@ where i and j is the atom ID (starting from 1)."""
         # case for determine P3 point automatically
         if p3<0:
            P1,P2 = self.xyz[(p1,p2),]
-           D = (P2-P1)/norm(P2-P1)
+           D = (P2-P1)/numpy.linalg.norm(P2-P1)
            X,Y,Z = D[:]
            if   X > 0.00001:
               y=1.0; z=0.0; x = -Y/X
@@ -4596,21 +4605,21 @@ where i and j is the atom ID (starting from 1)."""
               z=1.0; x=0.0; y = -Z/Y
            else:
               x=1.0; y=0.0; z = -X/Z
-           P3 = numpy.array([x,y,z]); P3/= norm(P3)
+           P3 = numpy.array([x,y,z]); P3/= numpy.linalg.norm(P3)
         # case, where P3 is provided
         else:
             P1,P2,P3 = self.xyz[(p1,p2,p3),]
 
         # determine the local axes
         c = P2 - P1
-        c/= norm(c)
-        b = cross(c,P3-P1)
-        b/= norm(b)
-        a = cross(b,c)
-        a/= norm(a)
+        c/= numpy.linalg.norm(c)
+        b = numpy.cross(c,P3-P1)
+        b/= numpy.linalg.norm(b)
+        a = numpy.cross(b,c)
+        a/= numpy.linalg.norm(a)
         
-        old = identity(3,dtype=float64)
-        new = array([a,b,c],dtype=float64)
+        old = numpy.identity(3,dtype=numpy.float64)
+        new = numpy.array([a,b,c],dtype=numpy.float64)
         
         rot, rms = RotationMatrix(initial=old,final=new)
 
@@ -4659,8 +4668,8 @@ class ROTATE:
     in one place."""
     
     def __init__(self,initial=0,final=0,object=None):
-        self.__initial=array(initial)
-        self.__final=array(final)
+        self.__initial=numpy.array(initial)
+        self.__final=numpy.array(final)
         self.__objects = []
         if object is not None: self.__objects.append(status(object))
         ### superimpose structures
@@ -4694,17 +4703,17 @@ class ROTATE:
               
               if object.object.__class__.__name__ == 'list':
               ### rotate the DMA list
-                for dma in object.object:
-                    dma.pos  =array(self.__initial)
-                    dma.origin  = array(self.__initial)
-                    dma.MAKE_FULL()
-                    dma.Rotate(self.__rot)
+                for dmai in object.object:
+                    dmai.pos  =numpy.array(self.__initial)
+                    dmai.origin  = numpy.array(self.__initial)
+                    dmai.MAKE_FULL()
+                    dmai.Rotate(self.__rot)
               elif object.object.__class__.__name__ == 'ndarray':
               ### rotate the eigenvectors
                   N,M = object.object.shape; N/=3
                   object.object = object.object.reshape(N,3,M)
-                  object.object = tensordot(object.object,self.__rot,(1,0))   # dimension: nstat,nmodes,3
-                  object.object = transpose(object.object,(0,2,1))            # dimension: nstat,3,nmodes
+                  object.object = numpy.tensordot(object.object,self.__rot,(1,0))   # dimension: nstat,nmodes,3
+                  object.object = numpy.transpose(object.object,(0,2,1))            # dimension: nstat,3,nmodes
                   object.object = object.object.reshape(N*3,M)                # dimension: nstat*3,nmodes
               elif object.object.__class__.__name__ == 'DMA':
               ### rotate the DMA object 
@@ -4720,10 +4729,10 @@ class Grid2D:
                  xmin=0, xmax=1, dx=0.5,
                  ymin=0, ymax=1, dy=0.5,):
         # coordinates in each space direction
-        nx = int64((xmax-xmin)/dx + 1)
-        ny = int64((ymax-ymin)/dy + 1)
+        nx = numpy.int64((xmax-xmin)/dx + 1)
+        ny = numpy.int64((ymax-ymin)/dy + 1)
         
-        x,y = mgrid[0:nx,0:ny]
+        x,y = numpy.mgrid[0:nx,0:ny]
         
         # store for convenience
         self.dx = dx; self.dy = dy
@@ -4732,15 +4741,15 @@ class Grid2D:
         
         # make 3D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
-        self.xcoorv = float64(x)*dx + xmin
-        self.ycoorv = float64(y)*dy + ymin
+        self.xcoorv = numpy.float64(x)*dx + xmin
+        self.ycoorv = numpy.float64(y)*dy + ymin
 
     def __init________(self,
                  xmin=0, xmax=1, dx=0.5,
                  ymin=0, ymax=1, dy=0.5):
         # coordinates in each space direction
-        self.xcoor = seq(xmin, xmax, dx)
-        self.ycoor = seq(ymin, ymax, dy)
+        self.xcoor = scitools.numpyutils.seq(xmin, xmax, dx)
+        self.ycoor = scitools.numpyutils.seq(ymin, ymax, dy)
         
         # store for convenience
         self.dx = dx;  self.dy = dy
@@ -4748,9 +4757,9 @@ class Grid2D:
         self.shape = (self.nx,self.ny)
         # make 2D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
-        ###self.xcoorv = self.xcoor[:, newaxis]
-        ###self.ycoorv = self.ycoor[newaxis, :]
-        self.ycoorv, self.xcoorv = meshgrid(self.ycoor,self.xcoor)
+        ###self.xcoorv = self.xcoor[:, numpy.newaxis]
+        ###self.ycoorv = self.ycoor[numpy.newaxis, :]
+        self.ycoorv, self.xcoorv = numpy.meshgrid(self.ycoor,self.xcoor)
     
     def eval(self,f,**kwargs):
         """Evaluate vectorized function f at each grid point"""
@@ -4761,11 +4770,11 @@ class Grid2D:
         # x-axis
         if   axis==0:
              self.xcoorv.fill(1.)
-             self.xcoorv*= val[:,newaxis]
+             self.xcoorv*= val[:,numpy.newaxis]
         # y-axis
         elif axis==1:
              self.ycoorv.fill(1.)
-             self.ycoorv*= val[newaxis,:]
+             self.ycoorv*= val[numpy.newaxis,:]
         else: raise IndexError
         return
     
@@ -4776,11 +4785,11 @@ class Grid3D:
                  ymin=0, ymax=1, dy=0.5,
                  zmin=0, zmax=1, dz=0.5):
         # coordinates in each space direction
-        nx = int64((xmax-xmin)/dx + 1)
-        ny = int64((ymax-ymin)/dy + 1)
-        nz = int64((zmax-zmin)/dz + 1)
+        nx = numpy.int64((xmax-xmin)/dx + 1)
+        ny = numpy.int64((ymax-ymin)/dy + 1)
+        nz = numpy.int64((zmax-zmin)/dz + 1)
         
-        x,y,z = mgrid[0:nx,0:ny,0:nz]
+        x,y,z = numpy.mgrid[0:nx,0:ny,0:nz]
         
         # store for convenience
         self.dx = dx; self.dy = dy; self.dz = dz
@@ -4789,9 +4798,9 @@ class Grid3D:
         
         # make 3D versions of the coordinate arrays
         # (needed for vectorized  function evaluators)
-        self.xcoorv = float64(x)*dx + xmin
-        self.ycoorv = float64(y)*dy + ymin
-        self.zcoorv = float64(z)*dz + zmin
+        self.xcoorv = numpy.float64(x)*dx + xmin
+        self.ycoorv = numpy.float64(y)*dy + ymin
+        self.zcoorv = numpy.float64(z)*dz + zmin
             
     def eval(self,f,**kwargs):
         """Evaluate vectorized function f at each grid point"""
@@ -4802,15 +4811,15 @@ class Grid3D:
         # x-axis
         if   axis==0:
              self.xcoorv.fill(1.)
-             self.xcoorv*= val[:,newaxis,newaxis]
+             self.xcoorv*= val[:,numpy.newaxis,numpy.newaxis]
         # y-axis
         elif axis==1:
              self.ycoorv.fill(1.)
-             self.ycoorv*= val[newaxis,:,newaxis]
+             self.ycoorv*= val[numpy.newaxis,:,numpy.newaxis]
         # z-axis
         elif axis==2:
              self.zcoorv.fill(1.)
-             self.zcoorv*= val[newaxis,newaxis,:]
+             self.zcoorv*= val[numpy.newaxis,numpy.newaxis,:]
         else: raise IndexError
         return
 
@@ -4889,7 +4898,7 @@ def PRINT(vec):
 def PRINTV(M,list1,list2,list3):
     """ print helper 3 """
     d = 6
-    L = len(transpose(M))
+    L = len(numpy.transpose(M))
 
     if L % d == 0:
        n = L / d
@@ -4904,7 +4913,7 @@ def PRINTV(M,list1,list2,list3):
                m = M[:,(b*d):-1]
 
            for u in range(len(m)):
-             for i in range(len(transpose(m))):
+             for i in range(len(numpy.transpose(m))):
                v = "%.6f" % m[u][i]
                print "%10s" % v.rjust(10),
              print
@@ -4928,7 +4937,7 @@ def PRINTV(M,list1,list2,list3):
            print
 
            for u in range(len(m)):
-             for i in range(len(transpose(m))):
+             for i in range(len(numpy.transpose(m))):
                v = "%.3f" % m[u][i]
                print "%15s" % v.rjust(15),
              t3 = "%s" % list3[u]
@@ -4960,7 +4969,7 @@ def PRINTV(M,list1,list2,list3):
            print
            
            for u in range(len(m)):
-             for i in range(len(transpose(m))):
+             for i in range(len(numpy.transpose(m))):
                v = "%.3f" % m[u][i] # oryginalna wersja: %.5E
                print "%15s" % v.rjust(15),
              t3 = "%4d" % round(list3[u],0)   # oryginalna wersja: "%s" % list3[u]
@@ -4979,7 +4988,7 @@ def PUPA(a):
 def PRINTL(M,list1="",list2=""):
     """ print helper 2 """
     d = 5
-    L = len(transpose(M))
+    L = len(numpy.transpose(M))
 
     if L % d == 0:
        n = L / d
@@ -4994,7 +5003,7 @@ def PRINTL(M,list1="",list2=""):
                m = M[:,(b*d):-1]
 
            for u in range(len(m)):
-             for i in range(len(transpose(m))):
+             for i in range(len(numpy.transpose(m))):
                v = "%12.6f" % m[u][i]
                print "%14s" % v.rjust(14),
              print
@@ -5020,7 +5029,7 @@ def PRINTL(M,list1="",list2=""):
            print
 
            for u in range(len(m)):
-             for i in range(len(transpose(m))):
+             for i in range(len(numpy.transpose(m))):
                v = "%.6e" % m[u][i]
                print "%10s" % v.rjust(10),
              print
@@ -5052,7 +5061,7 @@ def PRINTL(M,list1="",list2=""):
            print
 
            for u in range(len(m)):
-             for i in range(len(transpose(m))):
+             for i in range(len(numpy.transpose(m))):
                v = "%.6e" % m[u][i]
                print "%15s" % v.rjust(15),
              print
@@ -5064,8 +5073,8 @@ def Histogram(data=[],npoints=100,out="histogram.dat"):
     
     a = min(data)
     b = max(data)
-    X = linspace(a,b,npoints)
-    spacing = abs(b-a)/(npoints-1)
+    X = numpy.linspace(a,b,npoints)
+    spacing = numpy.abs(b-a)/(npoints-1)
     
     histogram = []
     for i in X:

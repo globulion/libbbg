@@ -5,12 +5,12 @@
 __all__=['FREQ',]
 __version__ = '2.2.1'
 
-from units     import *
-from numpy     import *
-from utilities import *
-import copy
+#from units     import *
+#from numpy     import *
+#from utilities import *
+import units, numpy, utilities, copy, math
 
-class FREQ(UNITS):
+class FREQ(units.UNITS):
       """
 -------------------------------------------------------------------
 Represents gaussian log file for anharmonic frequency calculations 
@@ -73,18 +73,18 @@ and changing to AU units (frequencies and reduced masses)"""
           assert not self._w, 'already mass-multiplied!'
           other = self.copy()
           # L-vectors
-          temp = sqrt(self.redmass*self.AmuToElectronMass)[newaxis,:]
+          temp = numpy.sqrt(self.redmass*self.AmuToElectronMass)[numpy.newaxis,:]
           other.L = temp * self.L
           # reduced masses
           other.redmass = self.redmass*self.AmuToElectronMass
           # frequencies
           other.freq = self.freq * self.CmRecToHz * self.HzToAuAngFreq
           # cubic anharmonic constants
-          temp = sqrt(self.redmass)[:,newaxis,newaxis,]
+          temp = numpy.sqrt(self.redmass)[:,numpy.newaxis,numpy.newaxis,]
           gijj = temp * self.K3
-          temp = sqrt(self.redmass)[newaxis,:,newaxis,]
+          temp = numpy.sqrt(self.redmass)[numpy.newaxis,:,numpy.newaxis,]
           gijj = temp * gijj
-          temp = sqrt(self.redmass)[newaxis,newaxis,:,]
+          temp = numpy.sqrt(self.redmass)[numpy.newaxis,numpy.newaxis,:,]
           gijj = temp * gijj
           other.K3 = gijj
           other._w = True
@@ -112,7 +112,7 @@ and changing to AU units (frequencies and reduced masses)"""
           line = data.readline()
           atoms = []
           for i in range(self.Natoms):
-              atoms.append( Atom(line.split()[0]) )
+              atoms.append( units.Atom(line.split()[0]) )
               line = data.readline()
           for i in atoms: print i
           return atoms
@@ -131,10 +131,10 @@ and changing to AU units (frequencies and reduced masses)"""
 
           freq = []
           for i in range(n):
-              freq.append( float64(line.split()[1]) )
+              freq.append( numpy.float64(line.split()[1]) )
               line = data.readline()
 
-          return array(freq)
+          return numpy.array(freq)
       
       def ReducedMasses(self):
           """withdraw reduced masses from Gaussian calculations 
@@ -150,11 +150,11 @@ and changing to AU units (frequencies and reduced masses)"""
           T = zeros(n)
           for j in range( n/5+bool(n%5) ):
               T[(j*5):j*5+self.dupa(j)] =\
-              [ float64(line.replace('D','E').split()[-self.dupa(j):][x])\
-                                              for x in range(self.dupa(j)) ]
+              [ numpy.float64(line.replace('D','E').split()[-self.dupa(j):][x])\
+                                                            for x in range(self.dupa(j)) ]
               for h in range(7+self.a): line = data.readline()
 
-          return array(T,dtype=float64)
+          return numpy.array(T,dtype=numpy.float64)
 
       def Trans(self):
           """withdraw transformation matrix"""
@@ -168,20 +168,20 @@ and changing to AU units (frequencies and reduced masses)"""
                 line = data.readline()
           line = data.readline()
           
-          T = zeros((self.a,n))
+          T = numpy.zeros((self.a,n))
           for j in range( n/5+bool(n%5) ):
               for i in range(self.a):
                   T[i][(j*5):j*5+self.dupa(j)] =\
-                  [ float64(line.replace('D','E').split()[-self.dupa(j):][x])\
-                                                  for x in range(self.dupa(j)) ]
+                  [ numpy.float64(line.replace('D','E').split()[-self.dupa(j):][x])\
+                                                                for x in range(self.dupa(j)) ]
                   if (i+1)==self.a:
                      for h in range(8): line = data.readline()
                   else: line = data.readline()
    
           #print "macierz L:"
           #from utilities import PRINTL
-          #print PRINTL(array(T,dtype=float64))
-          return array(T,dtype=float64)
+          #print PRINTL(numpy.array(T,dtype=numpy.float64))
+          return numpy.array(T,dtype=numpy.float64)
 
       def dupa(self,j):
           """some strange but extremely helpful utility:D"""
@@ -199,21 +199,21 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break
                 line = data.readline()
           line = data.readline()
-          T = zeros(self.a,dtype=int) # matrix with atom list
+          T = numpy.zeros(self.a,dtype=int) # matrix with atom list
           for i in range(self.a):
               T[i] = int( line.split()[1] ) - 1
               line = data.readline()
           
           #for o in self.Atoms : print o
           # weighted L-matrix
-          L = zeros((self.a,self.Nmodes))
+          L = numpy.zeros((self.a,self.Nmodes))
           for i in range(len(L)):
               for j in range(len(L[0])):
                   sumcia = 0
                   for k in range(len(L)):
                       sumcia += self.Atoms[T[k]].mass * self.AmuToElectronMass * self.L[k][j]**2
                   
-                  L[i][j] = self.L[i][j]/ sqrt(sumcia)
+                  L[i][j] = self.L[i][j]/ math.sqrt(sumcia)
 
           return L
 
@@ -222,23 +222,23 @@ and changing to AU units (frequencies and reduced masses)"""
           querry = " Coord Atom Element:"
           data = open(self.file)
           line = data.readline()
-          rrr = array(self.Trans())
+          rrr = numpy.array(self.Trans())
           while 1:
                 if querry in line: break
                 line = data.readline()
           line = data.readline()
-          T = zeros(self.a,dtype=int) # matrix with atom list
+          T = numpy.zeros(self.a,dtype=int) # matrix with atom list
           for i in range(self.a):
               T[i] = int( line.split()[1] ) - 1
               line = data.readline()
           # weighted L-matrix
-          L = zeros((self.a,self.Nmodes))
+          L = numpy.zeros((self.a,self.Nmodes))
           for i in range(len(L)):
               for j in range(len(L[0])): 
                   sumcia = 0
                   for k in range(len(L)):
                       sumcia += self.Atoms[T[k]].mass * self.AmuToElectronMass * self.L[k][j]**2
-                  L[i][j] = rrr[i][j] /sqrt(sumcia)#/ sqrt(self.mass[T[i]] * self.AmuToElectronMass )
+                  L[i][j] = rrr[i][j] /math.sqrt(sumcia)#/ sqrt(self.mass[T[i]] * self.AmuToElectronMass )
 
           return L
 
@@ -247,16 +247,16 @@ and changing to AU units (frequencies and reduced masses)"""
           COEs = []
           for mode in xrange(self.Nmodes):
               vec = self.L[:,mode].reshape(self.Natoms,3)
-              r_origin = zeros(3,dtype=float64)       
+              r_origin = numpy.zeros(3,dtype=numpy.float64)       
               for atom in xrange(self.Natoms):
                   r_origin+= sum(vec[atom]**2) * structure[atom] / sum(vec**2) #/ sum(vec**2,axis=0)
               COEs.append(r_origin)
-          COEs = array(COEs)
+          COEs = numpy.array(COEs)
           print " COE for each mode [in Angstrom]\n"
           for i in range(self.Nmodes):
               print (i+1), " mode      ",(COEs[i] * self.BohrToAngstrom)
               
-          return array(COEs)
+          return numpy.array(COEs)
           
       def Dipole(self,file):
           """withdraw dipole moment in cartesian coord in AU!"""
@@ -269,13 +269,13 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break
                 line = data.readline()
           line = data.readline()
-          T = zeros(3,dtype=float64)
+          T = numpy.zeros(3,dtype=numpy.float64)
 
           T[0] = line.split()[1]
           T[1] = line.split()[3]
           T[2] = line.split()[5]
 
-          return array(T,dtype=float64) * self.DebyeToBohrElectron
+          return numpy.array(T,dtype=numpy.float64) * self.DebyeToBohrElectron
         
       def Quadrupole(self,file):
           """withdraw dipole moment in cartesian coord in AU!"""
@@ -288,7 +288,7 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break
                 line = data.readline()
           line = data.readline()
-          T = zeros(6,dtype=float64)
+          T = numpy.zeros(6,dtype=numpy.float64)
 
           T[0] = line.split()[1]
           T[1] = line.split()[3]
@@ -300,7 +300,7 @@ and changing to AU units (frequencies and reduced masses)"""
           T[4] = line.split()[3]
           T[5] = line.split()[5]          
 
-          return array(T,dtype=float64) * self.DebyeToBohrElectron * self.AngstromToBohr
+          return numpy.array(T,dtype=numpy.float64) * self.DebyeToBohrElectron * self.AngstromToBohr
         
         
       def Octupole(self,file):
@@ -314,7 +314,7 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break
                 line = data.readline()
           line = data.readline()
-          T = zeros(10,dtype=float64)
+          T = numpy.zeros(10,dtype=numpy.float64)
 
           T[0] = line.split()[1]
           T[1] = line.split()[3]
@@ -333,7 +333,7 @@ and changing to AU units (frequencies and reduced masses)"""
           T[6] = line.split()[1]          
           T[9] = line.split()[3]          
           
-          return array(T,dtype=float64) * self.DebyeToBohrElectron * self.AngstromToBohr**2
+          return numpy.array(T,dtype=numpy.float64) * self.DebyeToBohrElectron * self.AngstromToBohr**2
 
       def Polarizability(self,file):
           """withdraw polarizability in AU"""
@@ -346,7 +346,7 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break
                 line = data.readline()
 
-          T = zeros((3,3),dtype=float64)
+          T = numpy.zeros((3,3),dtype=numpy.float64)
           T[0,0] = line.replace('D','E')[16:31]
           T[0,1] = line.replace('D','E')[31:46]
           T[1,1] = line.replace('D','E')[46:61]
@@ -359,7 +359,7 @@ and changing to AU units (frequencies and reduced masses)"""
           T[2,0] = T[0,2]
           T[2,1] = T[1,2]
 
-          return array(T,dtype=float64)
+          return numpy.array(T,dtype=numpy.float64)
         
       # ----------------------------------------------------------------------
       def Dipole_old(self,file):
@@ -375,12 +375,12 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break
                 line = data.readline()
 
-          T = zeros(3,dtype=float64)
+          T = numpy.zeros(3,dtype=numpy.float64)
           T[0] = line.replace('D','E')[16:31]
           T[1] = line.replace('D','E')[31:46]
           T[2] = line.replace('D','E')[46:61]
 
-          return array(T,dtype=float64)
+          return numpy.array(T,dtype=numpy.float64)
         
       def DipoleDeriv(self,file):
           """withdraw first derivs of dipole moment in cartesian coord. These derivatives 
@@ -395,27 +395,27 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break
                 line = data.readline()
 
-          T = zeros((self.a,3),dtype=float64)
+          T = numpy.zeros((self.a,3),dtype=numpy.float64)
           for i in range(self.a):
               T[i][0] = line.replace('D','E')[16:31]
               T[i][1] = line.replace('D','E')[31:46]
               T[i][2] = line.replace('D','E')[46:61]
               line = data.readline()
 
-          return array(T,dtype=float64)
+          return numpy.array(T,dtype=numpy.float64)
 
       def FDeriv(self,Print=1,Debye=0,divide=1):
           """ transforms derivatives of dipole moment wrt cartesians to wrt normal modes """
-          C = zeros((self.Nmodes,3),dtype=float64)
-          LT = transpose( self.Weight() )
+          C = numpy.zeros((self.Nmodes,3),dtype=numpy.float64)
+          LT = numpy.transpose( self.Weight() )
           for i in [0,1,2]:
-              C[:,i] = dot( LT, self.DipoleDeriv(self.file)[:,i]  )
+              C[:,i] = numpy.dot( LT, self.DipoleDeriv(self.file)[:,i]  )
 
           # divide by frequencies
           if divide:
              for x in [0,1,2]:
                  for A in range(self.Nmodes):
-                     C[A][x] /= sqrt(self.freq[A]  * self.CmRecToHartree )
+                     C[A][x] /= math.sqrt(self.freq[A]  * self.CmRecToHartree )
 
           if Debye: 
              for x in [0,1,2]:
@@ -424,14 +424,14 @@ and changing to AU units (frequencies and reduced masses)"""
 
 
           if Print:
-             y = arange(self.Nmodes)+1
+             y = numpy.arange(self.Nmodes)+1
              print " \n First Derivatives of Dipole Moment \n"
              if Debye:
                        print "                deriv units: Debye "
              else:     print "                deriv inits: AU    "
              print           "                frequencies given in [cm-1]"
              print
-             PRINTV(transpose(C),y,self.freq,["x","y","z"])
+             PRINTV(numpy.transpose(C),y,self.freq,["x","y","z"])
 
 
           return C # C_Aa
@@ -439,15 +439,15 @@ and changing to AU units (frequencies and reduced masses)"""
       def Intens_1(self,Print,Debye):
           """harmonic intensities of fundamental bands"""
           F = self.FDeriv(0,Debye,1)
-          ulazulahyta = zeros((self.Nmodes,3),dtype=float64)
+          ulazulahyta = numpy.zeros((self.Nmodes,3),dtype=numpy.float64)
           for cart in [0,1,2]:
               for mode in range(self.Nmodes):
                   ulazulahyta[mode][cart] = F[mode][cart]**2 * sqrt(2*pi) * 1./2. * self.freq[mode] * self.BohrElectronToDebye**2
 
-          intens = sum(ulazulahyta,axis=1)
+          intens = numpy.sum(ulazulahyta,axis=1)
 
           if Print:
-             y = arange(self.Nmodes)+1
+             y = numpy.arange(self.Nmodes)+1
              print " \n Fundamental Harmonic Intensities \n"
              if Debye:
                        print "                deriv units: Debye "
@@ -470,8 +470,8 @@ and changing to AU units (frequencies and reduced masses)"""
                 * quartic force constants : [Hartree*amu(-2  )*Bohr(-4)]
           """
           n = self.Nmodes
-          K3 = zeros((n,n,n)  ,dtype=float64)
-          #K4 = zeros((n,n,n,n),dtype=float64)
+          K3 = numpy.zeros((n,n,n)  ,dtype=numpy.float64)
+          #K4 = numpy.zeros((n,n,n,n),dtype=numpy.float64)
           data = open(self.file)
 
           querry = "CUBIC FORCE CONSTANTS IN NORMAL MODES"
@@ -487,10 +487,10 @@ and changing to AU units (frequencies and reduced masses)"""
                 i = int(list[0]) - 1
                 j = int(list[1]) - 1
                 k = int(list[2]) - 1
-                d = float64(list[3])
+                d = numpy.float64(list[3])
 
                 # transform to [Hartree*amu(-3/2)*Bohr(-3)]
-                d *= sqrt(self.freq[i] * self.freq[j] * self.freq[k])
+                d *= numpy.sqrt(self.freq[i] * self.freq[j] * self.freq[k])
                 d *= self.BohrToAngstrom**3
                 d /= self.ToRedCubForceConst * self.HartreeToAttoJoule
                 # 
@@ -515,7 +515,7 @@ and changing to AU units (frequencies and reduced masses)"""
           #      j = int(list[1]) - 1
           #      k = int(list[2]) - 1
           #      l = int(list[3]) - 1
-          #      d = float64(list[6])
+          #      d = numpy.float64(list[6])
 
           #      K4[i][j][k][l] = d
           #      K4[i][j][l][k] = d

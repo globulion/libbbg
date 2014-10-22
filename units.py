@@ -5,7 +5,7 @@
 __all__=['UNITS','Atom']
 __version__ = '3.0.1'
 
-from numpy import pi
+import numpy
 
 class Atom:
       """Represents an atom. Stores, its symbol, atomic number, mass and vdW radius
@@ -101,7 +101,7 @@ class UNITS:
       KgToAmu                = 1./1.66053878E-27
       ElectronMassToKg       = 9.1093800615056683E-31
       KgToElectronMass       = 1.0977695444125671E+30
-      CmRecToHz              = 2.99792458E+10 * 2 * pi
+      CmRecToHz              = 2.99792458E+10 * 2 * numpy.pi
       HzToCmRec              = 1./CmRecToHz
       CmToBohr               = 1.889725989E+08
       BohrToCm               = 5.291772086E-09
