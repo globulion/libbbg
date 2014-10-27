@@ -27,7 +27,7 @@ __version__ = '3.3.1'
 import re, gentcf, orbloc, PyQuante, clemtp,  \
        scipy.optimize, scipy.integrate, numpy,\
        math, numpy.linalg, dma, units, re_templates,\
-       copy, os, math, scitools.all, matplotlib.font_manager,\
+       copy, os, math, matplotlib.font_manager,\
        pylab, scitools.numpyutils, scipy.interpolate,\
        letters, fourier.ft
 
@@ -566,7 +566,7 @@ def secant(f,x,delta=1.e-6,max_iter=1000,**args):
     fx = f(x_old,**args)
     x_new = x_old - delta * fx / (fx-f(x-delta,**args))
     n_iter = 1
-    while fabs(x_new-x_old)>delta:
+    while math.fabs(x_new-x_old)>delta:
           x_old = x_new
           fx = f(x_old,**args)
           x_new = x_old - delta * fx / (fx-f(x_old-delta,**args))
