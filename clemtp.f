@@ -543,10 +543,10 @@ C
                OJYZZ = OCT(NJX10+8)
                OJXYZ = OCT(NJX10+9)
 C                                                        
-               RMN= DSQRT(RX*RX+RY*RY+RZ*RZ)
-               RMN3 = ONE/(RMN*RMN*RMN)
-               RMN5 = RMN3/(RMN*RMN)
-               RMN7 = RMN5/(RMN*RMN)
+               RMN  = ONE/DSQRT(RX*RX+RY*RY+RZ*RZ)
+               RMN3 = RMN*RMN*RMN
+               RMN5 = RMN3*(RMN*RMN)
+               RMN7 = RMN5*(RMN*RMN)
 C                                                        
 C              TENSORDOTS
 C                                                        
@@ -628,7 +628,7 @@ C
 C                                                        
 C              ACCUMULATE THE TERMS
 C                                                        
-               CC = CC + CI * CJ / RMN 
+               CC = CC + CI * CJ * RMN 
                CD = CD + S1 * CI * RMN3
                DC = DC + S2 * CJ * RMN3 
                CQ = CQ + S5 * CI * RMN5
@@ -685,7 +685,7 @@ C-----|--|---------|---------|---------|---------|---------|---------|--|------|
       SUBROUTINE SDMTPM(RDMA,NDMA,CHG,DIP,QAD,OCT,
      *                  CHGM,DIPM,QADM,OCTM,
      *                  REDMSS,FREQ,GIJJ,
-     *                  SHIFT,A,B,C,D,E,
+     *                  SHIFT,A,B,C,D,E,FI,
      *                  NMOLS,NDMAS,NDMAC,NMODES,MODE,LWRITE)
 C
 C -----------------------------------------------------------------------------
@@ -717,11 +717,12 @@ C
      &          OCT(NDMAS*10),NDMA(NMOLS),
      &          CHGM(NMODES*NDMAC),DIPM(NMODES*NDMAC*3),
      &          QADM(NMODES*NDMAC*6),OCTM(NMODES*NDMAC*10),
-     &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),GIVEC(NMODES)
+     &          REDMSS(NMODES),FREQ(NMODES),GIJJ(NMODES),GIVEC(NMODES),
+     &          FI(NMODES)
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
      &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00)
       LOGICAL LWRITE
-Cf2py INTENT(OUT) SHIFT,A,B,C,D,E
+Cf2py INTENT(OUT) SHIFT,A,B,C,D,E,FI
 C
       CC = ZERO
       CD = ZERO
@@ -744,6 +745,7 @@ C
       DO MM=1,NMODES
          FMM = FREQ(MM)
          GIVEC(MM) = GIJJ(MM) / (REDMSS(MM) * FMM * FMM )
+         FI(MM) = ZERO
       ENDDO
 C
       TMW = - TWO * REDMSS(MODE) * FREQ(MODE)
@@ -803,10 +805,10 @@ C
                RY = RDMA(NJY3) - RIY
                RZ = RDMA(NJZ3) - RIZ
 C                                                     
-               RMN= DSQRT(RX*RX+RY*RY+RZ*RZ)
-               RMN3 = ONE/(RMN*RMN*RMN)
-               RMN5 = RMN3/(RMN*RMN)
-               RMN7 = RMN5/(RMN*RMN)
+               RMN  = ONE/DSQRT(RX*RX+RY*RY+RZ*RZ)
+               RMN3 = RMN*RMN*RMN
+               RMN5 = RMN3*(RMN*RMN)
+               RMN7 = RMN5*(RMN*RMN)
 C
 C              --- ITERATE OVER NORMAL COORDINATES OF MOLECULE I ---
 C
@@ -922,18 +924,32 @@ C
 C                                                           
 C                 ACCUMULATE THE TERMS
 C                                                           
-                  CC = CC + CI * CJ / RMN * GIVECM
-                  CD = CD + S1 * CI * RMN3 * GIVECM
-                  DC = DC + S2 * CJ * RMN3 * GIVECM
-                  CQ = CQ + S5 * CI * RMN5 * GIVECM
-                  QC = QC + S6 * CJ * RMN5 * GIVECM
-                  CT = CT + S11 * CI * RMN7 * GIVECM
-                  TC = TC + S12 * CJ * RMN7 * GIVECM
-                  DD = DD + (S3 * RMN3 + THREE * S4 * RMN5) * GIVECM
-                  DQ = DQ + (TWO * S7 * RMN5 + FIVE * S9  * RMN7 ) 
-     &                                  * GIVECM
-                  QD = QD + (TWO * S8 * RMN5 + FIVE * S10 * RMN7 ) 
-     &                                  * GIVECM
+                  CCV = CI * CJ * RMN 
+                  CDV = S1 * CI * RMN3
+                  DCV = S2 * CJ * RMN3
+                  CQV = S5 * CI * RMN5
+                  QCV = S6 * CJ * RMN5
+                  CTV = S11 * CI * RMN7 
+                  TCV = S12 * CJ * RMN7 
+                  DDV = (S3 * RMN3 + THREE * S4 * RMN5) 
+                  DQV = (TWO * S7 * RMN5 + FIVE * S9  * RMN7 ) 
+                  QDV = (TWO * S8 * RMN5 + FIVE * S10 * RMN7 ) 
+C
+                  CC = CC + CCV * GIVECM
+                  CD = CD + CDV * GIVECM
+                  DC = DC + DCV * GIVECM
+                  CQ = CQ + CQV * GIVECM
+                  QC = QC + QCV * GIVECM
+                  CT = CT + CTV * GIVECM
+                  TC = TC + TCV * GIVECM
+                  DD = DD + DDV * GIVECM
+                  DQ = DQ + DQV * GIVECM
+                  QD = QD + QDV * GIVECM
+C
+C                 ACCUMULATE THE FORCES
+C
+                  FI(MM) = FI(MM) + CCV + CDV + DCV + CQV + QCV + CTV + 
+     &                              TCV + DDV + DQV + QDV
             ENDDO
          ENDDO
       ENDDO
