@@ -1521,8 +1521,8 @@ Represents vibrational analysis tool
         E = numpy.linalg.eigh(F)[0]
         # frequencies
         self.__freq = numpy.where(E>0.,
-            sqrt( E)*self.HartreePerHbarToCmRec,
-           -sqrt(-E)*self.HartreePerHbarToCmRec)
+            numpy.sqrt( E)*self.HartreePerHbarToCmRec,
+           -numpy.sqrt(-E)*self.HartreePerHbarToCmRec)
         # reduced masses and cartesian l-matrix
         self.__u_cart, self.__redmass = self._redmass()
         return
@@ -1558,12 +1558,13 @@ Represents vibrational analysis tool
             M[3*i+1,3*i+1] = m
             M[3*i+2,3*i+2] = m
         return M        
+
     def _redmass(self):
         """calculate reduced masses and cartesian l matrix"""
         u_cart = numpy.dot(self._M(),self.__u)
         redmass = 1./numpy.sum(u_cart**2,axis=0)*self.ElectronMassToAmu
         # normalize u_cart
-        u_cart = u_cart/sqrt(numpy.sum(u_cart**2,axis=0))
+        u_cart = u_cart/numpy.sqrt(numpy.sum(u_cart**2,axis=0))
         return u_cart, redmass
     
     def _prepare(self):
