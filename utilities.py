@@ -20,7 +20,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
          'text_to_list','QMFile','Emtp_charges','MDOut',
-         'ParseLmocFromGamessEfpFile','resol','ft_1d']
+         'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff']
          
 __version__ = '3.3.1'
 
@@ -62,6 +62,198 @@ uUNITS= units.UNITS
 #                              interp2d as I2D
 #from letters import greek as let_greek
 #from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+class FF_scheme(object):
+   """
+ ------------------------------------------------------------------------------
+ Finite differentiation scheme
+
+ Contains various displacement schemes for numerical differentiation
+ (generates the displacement coordinates)
+ ------------------------------------------------------------------------------
+                                                 Last revision: 5 Nov 2014
+"""
+   def __init__(self, step, scheme='3pt', DIM=3):
+       self._step   = step
+       self._scheme = scheme.lower()
+       self._DIM    = DIM
+       self._disp1 , self._disp2 = self._make()
+
+   # PUBLIC
+
+   def get(self):
+       return self._disp1, self._disp2
+
+   # PROTECTED
+
+   def _get_Ki(self, I):
+       """Get the principal index of first derivative displacement matrix"""
+       if self._scheme=='3pt':
+          return I*2
+
+   def _get_Kij(self, I, J):
+       """Get the principal index of second derivative displacement matrix"""
+       if self._scheme=='3pt':
+          S = I*(2*self._DIM-I-1)/2 + J - I - 1
+          return S*2
+
+   def _make(self):
+       """Generate the displacement vectors"""
+       k   = self._step
+       DIM = self._DIM
+       if self._scheme == '3pt':
+          disp1 = numpy.zeros((DIM* 2     , DIM), numpy.float64)
+          disp2 = numpy.zeros((DIM*(DIM-1), DIM), numpy.float64)
+          for i in range(DIM):
+              K = 2*i
+              disp1[K  ,i  ] =+k
+              disp1[K+1,i  ] =-k
+          I = 0
+          for i in range(DIM):
+              for j in range(i+1,DIM):
+                  K = 2*I
+                  disp2[K  ,i] =+k
+                  disp2[K  ,j] =+k
+                  disp2[K+1,i] =-k
+                  disp2[K+1,j] =-k
+                  I+=1
+          return disp1, disp2
+       else:
+          raise Exception('The scheme %s is not implemented!' % self._scheme)
+
+
+class diff(FF_scheme):
+   """
+ ------------------------------------------------------------------------------
+ Numerical Finite Difference Method
+
+ Calculates 1-st and 2-nd derivatives of a function f(x) at point x_0.
+ ------------------------------------------------------------------------------
+
+ Usage:
+   c = diff(func=None, step=0.001, scheme='3pt', DIM=3)
+   fder, sder = c.eval(x_0, symm=True)
+
+ where:
+   o func       function defining f(x). It should take x as a first argument
+                If function is None then you must provide function evaluations
+                for every displaced structure in eval (according to scheme pointity)
+   o step       differentiation step
+   o scheme     numerical scheme: 3pt - 3-point central method
+   o DIM        dimension of x_0 (number of variables)
+
+ Return:
+   o fder       numpy.ndarray of shape DIM
+   o sder       numpy.ndarray of shape DIM x DIM
+ ------------------------------------------------------------------------------
+                                                 Last revision: 5 Nov 2014
+"""
+   def __init__(self, func=None, step=0.001, scheme='3pt', DIM=3):
+       super(diff, self).__init__(step=step, scheme=scheme.lower(), DIM=DIM)
+       self.__func = func
+
+   def eval(self, x, symm=True):
+       """
+If func is not None:
+  Evaluate the derivatives of f(x). Usage: eval(x, symm=True) where x are arguments of f(x)
+  and if symm=True then do the symmetrization of the offdiagonal derivatives (default).
+
+If func is None:
+  then x means the set of function evaluations for an appropriate displaced
+  arguments (they must be consistet with this package pointity scheme conventions!).
+"""
+       if self.__func is not None: fder, sder = self._der(x)
+       else:                       fder, sder = self._der_ext(x)
+       return fder, sder
+
+   def _make_disp(self, x, disp):
+       """create the displaced arguments"""
+       n = len(disp)
+       x_disp = numpy.zeros( (n, self._DIM), numpy.float64 )
+       for i in range(n):
+           x_disp[i] = x.copy() + disp[i]
+       return x_disp
+
+   def _der(self, x, symm):
+       """calculate the derivatives - now only 3pt scheme is implemented"""
+       # make displaced coordinates
+       x_d1 = self._make_disp(x, self._disp1)
+       x_d2 = self._make_disp(x, self._disp2)
+       # initialize the derivatives
+       fder = numpy.zeros( self._DIM,             numpy.float64)
+       sder = numpy.zeros((self._DIM, self._DIM), numpy.float64)
+       # calculate first and diagonal second derivatives
+       for i in range(self._DIM):
+           Ki  = self._get_Ki(i)
+           f1 = self.__func( x_d1[Ki+0] ) - self.__func( x_d1[Ki+1] )
+           f1/= 2.*self._step
+           fder[i] = f1
+           f2 = self.__func( x_d1[Ki+0] ) + self.__func( x_d1[Ki+1] ) - 2.*self.__func( x )
+           f2/= self._step**2.0
+           sder[i,i] = f2
+           # calculate offdiagonal second derivatives
+           for j in range(self._DIM):
+             if i!=j:
+               Kj = self._get_Ki(j)
+               if i>j: 
+                  I = j
+                  J = i
+               else:
+                  I = i
+                  J = j
+               Kij = self._get_Kij(I,J)
+               f2 = self.__func( x_d2[Kij ]      ) + self.__func( x_d2[Kij+1]     ) \
+                  - self.__func( x_d1[Ki+0]      ) - self.__func( x_d1[Kj+0]      ) \
+                  - self.__func( x_d1[Ki+1]      ) - self.__func( x_d1[Kj+1]      ) \
+                  + 2.*self.__func( x )
+               f2/= 2.*self._step**2.
+               sder[i,j] = f2
+       # symmetrize the second derivatives
+       if symm:
+          tl = numpy.tril(sder,k=-1)
+          tu = numpy.triu(sder,k=+1).transpose()
+          av =(tl + tu)/2.0
+          sder = numpy.diag(sder.diagonal()) + av + (av.copy()).transpose()
+       return fder, sder
+
+   def _der_ext(self, f, symm):
+       """calculate the derivatives - now only 3pt scheme is implemented"""
+       # initialize the derivatives
+       fder = numpy.zeros( self._DIM,             numpy.float64)
+       sder = numpy.zeros((self._DIM, self._DIM), numpy.float64)
+       # calculate first and diagonal second derivatives
+       for i in range(self._DIM):
+           Ki  = self._get_Ki(i) + 1
+           f1 = f[Ki+0] - f[Ki+1]
+           f1/= 2.*self._step
+           fder[i] = f1
+           f2 = f[Ki+0] + f[Ki+1] - 2.*f[0]
+           f2/= self._step**2.0
+           sder[i,i] = f2
+           # calculate offdiagonal second derivatives
+           for j in range(self._DIM):
+             if i!=j:
+               Kj = self._get_Ki(j) + 1
+               if i>j: 
+                  I = j
+                  J = i
+               else:
+                  I = i
+                  J = j
+               Kij = self._get_Kij(I,J) + 1
+               f2 = f[Kij ] + f[Kij+1]     \
+                  - f[Ki+0] - f[Kj+0]      \
+                  - f[Ki+1] - f[Kj+1]      \
+                  + 2.*f[0]
+               f2/= 2.*self._step**2.
+               sder[i,j] = f2
+       # symmetrize the second derivatives
+       if symm:
+          tl = numpy.tril(sder,k=-1)
+          tu = numpy.triu(sder,k=+1).transpose()
+          av =(tl + tu)/2.0
+          sder = numpy.diag(sder.diagonal()) + av + (av.copy()).transpose()
+       return fder, sder
 
 def ft_1d(f,t,dt,n=None,algorithm='fft',cunit=None):
     """\
