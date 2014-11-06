@@ -147,7 +147,7 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line: break 
                 line = data.readline()
           
-          T = zeros(n)
+          T = numpy.zeros(n)
           for j in range( n/5+bool(n%5) ):
               T[(j*5):j*5+self.dupa(j)] =\
               [ numpy.float64(line.replace('D','E').split()[-self.dupa(j):][x])\
