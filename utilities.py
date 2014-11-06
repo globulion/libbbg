@@ -162,8 +162,8 @@ If func is None:
   then x means the set of function evaluations for an appropriate displaced
   arguments (they must be consistet with this package pointity scheme conventions!).
 """
-       if self.__func is not None: fder, sder = self._der(x)
-       else:                       fder, sder = self._der_ext(x)
+       if self.__func is not None: fder, sder = self._der(x, symm)
+       else:                       fder, sder = self._der_ext(x, symm)
        return fder, sder
 
    def _make_disp(self, x, disp):
@@ -434,7 +434,7 @@ def ParseLmocFromGamessEfpFile(efp_file):
     lmoc_text = s[5]
 
     # extract LMOCs
-    k = re_real + '.*'
+    k = re_templates.re_real + '.*'
     templ = 'CT.* '+ 3*k + '\n'
 
     l = re.findall(templ, lmoc_text)
@@ -3911,7 +3911,7 @@ def ParseFockFromGamessLog(file,interpol=False):
 
         for j in xrange(nbasis-i*5):
             line = data.readline()
-            line = re_dbl_fort_c.sub(r'\1E\2', line)
+            line = re_templates.re_dbl_fort_c.sub(r'\1E\2', line)
             ny = int(line.split()[0])-1
             values = line.split()[4:]
             for k in xrange(len(values)):
@@ -3936,7 +3936,7 @@ def ParseDmatFromFchk(file,basis_size):
 
     line = data.readline()
     dmat = []
-    for i in range(int(ceil(N/5.))): 
+    for i in range(int(numpy.ceil(N/5.))): 
         dmat+=[x for x in line.split()] 
         line = data.readline()
     #dmat = numpy.array(dmat,dtype=numpy.float64)
