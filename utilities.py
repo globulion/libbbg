@@ -163,7 +163,7 @@ If func is None:
   arguments (they must be consistet with this package pointity scheme conventions!).
 """
        if self.__func is not None: fder, sder = self._der(x, symm)
-       else:                       fder, sder = self._der_ext(x, symm)
+       else:                       fder, sder = self._der_ext(x[0],x[1], symm)
        return fder, sder
 
    def _make_disp(self, x, disp):
@@ -216,7 +216,7 @@ If func is None:
           sder = numpy.diag(sder.diagonal()) + av + (av.copy()).transpose()
        return fder, sder
 
-   def _der_ext(self, f, symm):
+   def _der_ext(self, f_d1, f_d2, symm):
        """calculate the derivatives - now only 3pt scheme is implemented"""
        # initialize the derivatives
        fder = numpy.zeros( self._DIM,             numpy.float64)
@@ -224,10 +224,10 @@ If func is None:
        # calculate first and diagonal second derivatives
        for i in range(self._DIM):
            Ki  = self._get_Ki(i) + 1
-           f1 = f[Ki+0] - f[Ki+1]
+           f1 = f_d1[Ki+0] - f_d1[Ki+1]
            f1/= 2.*self._step
            fder[i] = f1
-           f2 = f[Ki+0] + f[Ki+1] - 2.*f[0]
+           f2 = f_d1[Ki+0] + f_d1[Ki+1] - 2.*f_d1[0]
            f2/= self._step**2.0
            sder[i,i] = f2
            # calculate offdiagonal second derivatives
@@ -240,11 +240,11 @@ If func is None:
                else:
                   I = i
                   J = j
-               Kij = self._get_Kij(I,J) + 1
-               f2 = f[Kij ] + f[Kij+1]     \
-                  - f[Ki+0] - f[Kj+0]      \
-                  - f[Ki+1] - f[Kj+1]      \
-                  + 2.*f[0]
+               Kij = self._get_Kij(I,J)
+               f2 = f_d2[Kij ] + f_d2[Kij+1]     \
+                  - f_d1[Ki+0] - f_d1[Kj+0]      \
+                  - f_d1[Ki+1] - f_d1[Kj+1]      \
+                  + 2.*f_d1[0]
                f2/= 2.*self._step**2.
                sder[i,j] = f2
        # symmetrize the second derivatives
