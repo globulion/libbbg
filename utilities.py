@@ -3598,11 +3598,11 @@ Gamess reads Stone's DMA analysis
              ZerothMoments.pop(0)
              Structure.pop(0)
 
-         return DMA( q  =numpy.array(ZerothMoments)   ,
-                     m  =numpy.array(FirstMoments )   ,
-                     T  =numpy.array(SecondMoments)   ,
-                     O  =numpy.array(ThirdMoments )   ,
-                     pos=numpy.array(Structure)       )
+         return dma.DMA( q  =numpy.array(ZerothMoments)   ,
+                         m  =numpy.array(FirstMoments )   ,
+                         T  =numpy.array(SecondMoments)   , 
+                         O  =numpy.array(ThirdMoments )   ,
+                         pos=numpy.array(Structure)       )
 
     # -----------------------------------------------------------------------------
     elif type.lower() == 'coulomb' or type.lower() == 'c':
@@ -3705,14 +3705,14 @@ Gamess reads Stone's DMA analysis
          else:
             Origin    = Structure.copy()
           
-         return DMA( q=numpy.array(ZerothMoments)   ,
-                     m=numpy.array(FirstMoments )   ,
-                     T=numpy.array(SecondMoments)   ,
-                     O=numpy.array(ThirdMoments )   ,
-                     atoms=atoms              ,
-                     pos=Structure            ,
-                     origin=Origin,
-                     is_traceless=is_traceless )
+         return dma.DMA( q=numpy.array(ZerothMoments)   ,
+                         m=numpy.array(FirstMoments )   , 
+                         T=numpy.array(SecondMoments)   ,
+                         O=numpy.array(ThirdMoments )   ,
+                         atoms=atoms              ,
+                         pos=Structure            ,
+                         origin=Origin,
+                         is_traceless=is_traceless )
     # -----------------------------------------------------------------------------
     elif type.lower() == 'gaussian' or type.lower() == 'gau':
          data = open(file)

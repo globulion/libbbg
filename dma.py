@@ -206,7 +206,7 @@ Gamess reads Stone's DMA analysis
 
          else:
             Origin    = Structure.copy()
-          
+
          return DMA( q=array(ZerothMoments)   ,
                      m=array(FirstMoments )   ,
                      T=array(SecondMoments)   ,
@@ -362,7 +362,7 @@ mathematical operations:
                  q=0,m=0,T=0,O=0,
                  pos=zeros((1,3),dtype=float64),
                  origin=zeros((1,3),dtype=float64),
-                 atoms=[Atom('X')],
+                 atoms=None,
                  is_traceless=False):
                     
         if file is not None:
@@ -372,6 +372,8 @@ mathematical operations:
              m=zeros((nfrag,3),dtype=float64)
              T=zeros((nfrag,6),dtype=float64)
              O=zeros((nfrag,10),dtype=float64)
+             pos = zeros((nfrag,3),dtype=float64)
+             origin = zeros((nfrag,3),dtype=float64)
         if file is None:
            # DMA distribution in reduced format (GAMESS-like)
            self.DMA = [q,m,T,O]
@@ -386,8 +388,11 @@ mathematical operations:
            # number of distributed sites (fragments)
            self.nfrag = len(self.DMA[0])
            # atomic sites if any
-           if len(atoms)>1: self.atoms = atoms
-           else: self.atoms = atoms*self.nfrag
+           if atoms is None:
+              #if len(atoms)>1: self.atoms = [Atom('X')]
+              #else: self.atoms = [Atom('X')]*self.nfrag
+              self.atoms = [Atom('X')]*self.nfrag
+           else: self.atoms=atoms
            # if DMA FULL formatted memorial were created. Now it is not, so 'False'.
            self.full = False
            # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
@@ -401,7 +406,7 @@ mathematical operations:
         self.pos   = dma.get_pos()
         self.name  = dma.get_name()
         self.nfrag = len(dma[0])
-        self.atoms = [Atom('X')] * self.nfrag
+        self.atoms = dma.atoms
         self.full  = False
         self.traceless = False
         return
@@ -489,7 +494,7 @@ premute all moments, positions and origins using ind list
         return
                      
     def write(self, file, type='c'):
-        """writes  the DMA distribution in a file"""
+        """writes  the DMA distribution in a file or in a XYZ file (structure)"""
         newfile = open(file,'w')
         if type=='c' or type=='dma':
            log = ' SLV output file. All units in AU\n\n'
