@@ -18,18 +18,18 @@ print "Compiling extension module: ", f2py_cmd
 #failure, output = commands.getstatusoutput(f2py_cmd)
 
 # extension module specifications
-GENTCF = Extension(name='gentcf',
-                   sources=['gentcf.f'],)
-ORBLOC = Extension(name='orbloc',
-                   sources=['pmloca.f'],)
-CLEMTP = Extension(name='clemtp',
-                   sources=['clemtp.f'])
-CLPLTP = Extension(name='clpltp',
-                   sources=['clpltp.f'],
+GENTCF = Extension(name='libbbg.gentcf',
+                   sources=['libbbg/gentcf.f'],)
+ORBLOC = Extension(name='libbbg.orbloc',
+                   sources=['libbbg/pmloca.f'],)
+CLEMTP = Extension(name='libbbg.clemtp',
+                   sources=['libbbg/clemtp.f'])
+CLPLTP = Extension(name='libbbg.clpltp',
+                   sources=['libbbg/clpltp.f'],
                    library_dirs=['/usr/lib/lapack','/usr/lib/pyshared/python2.7/scipy/lib/lapack'],
                    libraries=['flapack.so',])
-FT_LIB = Extension(name='fourier.ft',
-                   sources=['fourier/ft.f'],)
+FT_LIB = Extension(name='libbbg.fourier.ft',
+                   sources=['libbbg/fourier/ft.f'],)
 #SOLPOL = Extension(name='solpol',
 #                   sources=['solpol.f'])
 
@@ -41,10 +41,11 @@ setup(name='LIBBBG',
       author='Bartosz Błasiak',
       author_email='globula@o2.pl',
       url='http://www.ex.no/pymod/m1',
-      packages=['letters','fourier',],
-      py_modules=['dma','gaussfreq','units',
-                  'utilities','utilities2',
-                  'dipderiv','re_templates','fourier',
-                  'mpfit','solpol','letters.greek','fourier.ft'],
+      packages=['libbbg'],
+#      packages=['letters','fourier',],
+#      py_modules=['dma','gaussfreq','units',
+#                  'utilities','utilities2',
+#                  'dipderiv','re_templates','fourier',
+#                  'mpfit','solpol','letters.greek','fourier.ft'],
       ext_modules=[GENTCF,ORBLOC,CLEMTP,FT_LIB],
      )
