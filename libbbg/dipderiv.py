@@ -4,7 +4,10 @@
 
 __all__=["DipDeriv"]
 
-from head import *
+import os
+from numpy import zeros, float64, array, transpose, dot
+from gaussfreq import FREQ
+from units import UNITS, Atom
 
 class DipDeriv(UNITS,FREQ):
     """dipole derivatives wrt normal mode class in helico representation"""

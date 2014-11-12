@@ -24,7 +24,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          
 __version__ = '3.3.1'
 
-import re, gentcf, orbloc, PyQuante, clemtp,  \
+import re, qm.gentcf, qm.orbloc.pmloca, PyQuante, qm.clemtp,  \
        scipy.optimize, scipy.integrate, numpy,\
        math, numpy.linalg, dma, units, re_templates,\
        copy, os, math, matplotlib.font_manager,\
@@ -3006,7 +3006,7 @@ lprint - whether print no of iteration or not after finish
     nmos = len(vecin)
     n2   = (nmos+1)*nmos/2
     #
-    tran = orbloc.pmloca(natoms=natoms,mapi=mapi,sao=sao,vecin=vecin,
+    tran = qm.orbloc.pmloca.pmloca(natoms=natoms,mapi=mapi,sao=sao,vecin=vecin,
                          maxit=maxit,cvgloc=conv,n2=n2,nae=nae,
                          lprint=lprint)
     #
@@ -3157,7 +3157,7 @@ outfile- if save: provide the name of output
          tcf file 
 """
     # compute tcf from data input file
-    r = gentcf.gentcf(file,nmax,nskip,norgns,lprint,ndels)
+    r = qm.gentcf.gentcf(file,nmax,nskip,norgns,lprint,ndels)
     r = r[:ndels]
     # write the tcf file on disk
     if save:
@@ -4363,7 +4363,7 @@ a.u. as well. Uses FORTRAN subroutine CLEMTP"""
     Ra,qa,Da,Qa,Oa = dma1.DMA_FULL
     Rb,qb,Db,Qb,Ob = dma2.DMA_FULL
     #
-    Eint,A,B,C,D,E,CC,CD,CQ,CO,DD,DQ=clemtp.clemtp(Ra,qa,Da,Qa,Oa,Rb,qb,Db,Qb,Ob)
+    Eint,A,B,C,D,E,CC,CD,CQ,CO,DD,DQ=qm.clemtp.clemtp(Ra,qa,Da,Qa,Oa,Rb,qb,Db,Qb,Ob)
     DO = 0; QQ = 0; QO = 0; OO = 0
     #
     Emtp.A = A
