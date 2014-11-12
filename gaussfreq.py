@@ -55,7 +55,7 @@ L_ij = dx_i/dQ_j          1/sqrt(electron mass)
           self.L_     = self.L_[:,::-1]
           self.dipole = self.Dipole(file)
 
-          self.K3 = self.K_34()                    # helico [cm-1]
+          self.K3, self.K4 = self.K_34()                    # helico [cm-1]
           self._w = False                          # if self.w()
 
       def copy(self):
@@ -87,6 +87,16 @@ and changing to AU units (frequencies and reduced masses)"""
           temp = numpy.sqrt(self.redmass)[numpy.newaxis,numpy.newaxis,:,]
           gijj = temp * gijj
           other.K3 = gijj
+          # quartic anharmonic constants
+          temp = numpy.sqrt(self.redmass)[:,numpy.newaxis,numpy.newaxis,numpy.newaxis]
+          gijkl= temp * self.K4
+          temp = numpy.sqrt(self.redmass)[numpy.newaxis,:,numpy.newaxis,numpy.newaxis]
+          gijkl= temp * self.K4
+          temp = numpy.sqrt(self.redmass)[numpy.newaxis,numpy.newaxis,:,numpy.newaxis]
+          gijkl= temp * self.K4
+          temp = numpy.sqrt(self.redmass)[numpy.newaxis,numpy.newaxis,numpy.newaxis,:]
+          gijkl= temp * self.K4
+          other.K4 = gijkl
           other._w = True
           return other
 
@@ -471,7 +481,7 @@ and changing to AU units (frequencies and reduced masses)"""
           """
           n = self.Nmodes
           K3 = numpy.zeros((n,n,n)  ,dtype=numpy.float64)
-          #K4 = numpy.zeros((n,n,n,n),dtype=numpy.float64)
+          K4 = numpy.zeros((n,n,n,n),dtype=numpy.float64)
           data = open(self.file)
 
           querry = "CUBIC FORCE CONSTANTS IN NORMAL MODES"
@@ -502,51 +512,51 @@ and changing to AU units (frequencies and reduced masses)"""
                 K3[j,k,i]    = d
                 line = data.readline()
 
-          #querry = "QUARTIC FORCE CONSTANTS IN NORMAL MODES"
-          #line = data.readline()
-          #while 1: 
-          #      if querry in line: break 
-          #      line = data.readline()
-          #for i in range(9): line = data.readline()
+          querry = "QUARTIC FORCE CONSTANTS IN NORMAL MODES"
+          line = data.readline()
+          while 1: 
+                if querry in line: break 
+                line = data.readline()
+          for i in range(9): line = data.readline()
 
-          #while line.split() != []:
-          #      list = line.split()
-          #      i = int(list[0]) - 1
-          #      j = int(list[1]) - 1
-          #      k = int(list[2]) - 1
-          #      l = int(list[3]) - 1
-          #      d = numpy.float64(list[6])
+          while line.split() != []:
+                list = line.split()
+                i = int(list[0]) - 1
+                j = int(list[1]) - 1
+                k = int(list[2]) - 1
+                l = int(list[3]) - 1
+                d = numpy.float64(list[6])
 
-          #      K4[i][j][k][l] = d
-          #      K4[i][j][l][k] = d
-          #      K4[i][k][j][l] = d
-          #      K4[i][k][l][j] = d
-          #      K4[i][l][j][k] = d
-          #      K4[i][l][k][j] = d
+                K4[i][j][k][l] = d
+                K4[i][j][l][k] = d
+                K4[i][k][j][l] = d
+                K4[i][k][l][j] = d
+                K4[i][l][j][k] = d
+                K4[i][l][k][j] = d
 
-          #      K4[j][k][l][i] = d
-          #      K4[j][k][i][l] = d
-          #      K4[j][l][k][i] = d
-          #      K4[j][l][i][k] = d
-          #      K4[j][i][k][l] = d
-          #      K4[j][i][l][k] = d
+                K4[j][k][l][i] = d
+                K4[j][k][i][l] = d
+                K4[j][l][k][i] = d
+                K4[j][l][i][k] = d
+                K4[j][i][k][l] = d
+                K4[j][i][l][k] = d
 
-          #      K4[k][l][i][j] = d
-          #      K4[k][l][j][i] = d
-          #      K4[k][i][l][j] = d
-          #      K4[k][i][j][l] = d
-          #      K4[k][j][l][i] = d
-          #      K4[k][j][i][l] = d
+                K4[k][l][i][j] = d
+                K4[k][l][j][i] = d
+                K4[k][i][l][j] = d
+                K4[k][i][j][l] = d
+                K4[k][j][l][i] = d
+                K4[k][j][i][l] = d
 
-          #      K4[l][i][j][k] = d
-          #      K4[l][i][k][j] = d
-          #      K4[l][j][i][k] = d
-          #      K4[l][j][k][i] = d
-          #      K4[l][k][i][j] = d
-          #      K4[l][k][j][i] = d
+                K4[l][i][j][k] = d
+                K4[l][i][k][j] = d
+                K4[l][j][i][k] = d
+                K4[l][j][k][i] = d
+                K4[l][k][i][j] = d
+                K4[l][k][j][i] = d
 
-          #      line = data.readline()
+                line = data.readline()
 
 
-          return K3#,K4
+          return K3 ,K4
  
