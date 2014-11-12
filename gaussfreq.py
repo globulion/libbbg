@@ -91,11 +91,11 @@ and changing to AU units (frequencies and reduced masses)"""
           temp = numpy.sqrt(self.redmass)[:,numpy.newaxis,numpy.newaxis,numpy.newaxis]
           gijkl= temp * self.K4
           temp = numpy.sqrt(self.redmass)[numpy.newaxis,:,numpy.newaxis,numpy.newaxis]
-          gijkl= temp * self.K4
+          gijkl= temp * gijkl
           temp = numpy.sqrt(self.redmass)[numpy.newaxis,numpy.newaxis,:,numpy.newaxis]
-          gijkl= temp * self.K4
+          gijkl= temp * gijkl
           temp = numpy.sqrt(self.redmass)[numpy.newaxis,numpy.newaxis,numpy.newaxis,:]
-          gijkl= temp * self.K4
+          gijkl= temp * gijkl
           other.K4 = gijkl
           other._w = True
           return other
