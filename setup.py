@@ -24,10 +24,10 @@ ORBLOC = Extension(name='libbbg.orbloc',
                    sources=['libbbg/pmloca.f'],)
 CLEMTP = Extension(name='libbbg.clemtp',
                    sources=['libbbg/clemtp.f'])
-CLPLTP = Extension(name='libbbg.clpltp',
-                   sources=['libbbg/clpltp.f'],
-                   library_dirs=['/usr/lib/lapack','/usr/lib/pyshared/python2.7/scipy/lib/lapack'],
-                   libraries=['flapack.so',])
+#CLPLTP = Extension(name='libbbg.clpltp',
+#                   sources=['libbbg/clpltp.f'],
+#                   library_dirs=['/usr/lib/lapack','/usr/lib/pyshared/python2.7/scipy/lib/lapack'],
+#                   libraries=['flapack.so',])
 FT_LIB = Extension(name='libbbg.fourier.ft',
                    sources=['libbbg/fourier/ft.f'],)
 #SOLPOL = Extension(name='solpol',
@@ -39,8 +39,8 @@ setup(name='LIBBBG',
       version='11.03a',
       description='Libraries for BBG packages',
       author='Bartosz Błasiak',
-      author_email='globula@o2.pl',
-      url='http://www.ex.no/pymod/m1',
+      author_email='blasiak.bartosz@gmail.com',
+      url='no-page-yet',
       packages=['libbbg'],
 #      packages=['letters','fourier',],
 #      py_modules=['dma','gaussfreq','units',
