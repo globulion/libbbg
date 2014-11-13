@@ -24,12 +24,12 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          
 __version__ = '3.3.1'
 
-import re, qm.gentcf, qm.orbloc.pmloca, PyQuante, qm.clemtp,  \
+import re, qm, PyQuante,  \
        scipy.optimize, scipy.integrate, numpy,\
        math, numpy.linalg, dma, units, re_templates,\
        copy, os, math, matplotlib.font_manager,\
        pylab, scitools.numpyutils, scipy.interpolate,\
-       letters, fourier.ft
+       letters, fourier
 
 uAtom = units.Atom
 uUNITS= units.UNITS
@@ -3006,7 +3006,7 @@ lprint - whether print no of iteration or not after finish
     nmos = len(vecin)
     n2   = (nmos+1)*nmos/2
     #
-    tran = qm.orbloc.pmloca.pmloca(natoms=natoms,mapi=mapi,sao=sao,vecin=vecin,
+    tran = qm.pmloca.pmloca(natoms=natoms,mapi=mapi,sao=sao,vecin=vecin,
                          maxit=maxit,cvgloc=conv,n2=n2,nae=nae,
                          lprint=lprint)
     #
