@@ -1,0 +1,80 @@
+#!/bin/bash
+#python setup.py install --prefix=$prefix
+
+usage()
+{
+cat << EOF
+LIBBBG installation script
+
+usage: $0 options
+
+OPTIONS:
+   -h      Show this message
+   -p      prefix (default \usr\local)
+   -x      exec_prefix (default \usr\local)
+   -v      Verbose
+
+NOTES:
+   if only prefix chosen, the exec_prefix will be the same as prefix
+EOF
+}
+
+# installation variables
+PREFIX=
+EXEC_PREFIX=
+VERBOSE=
+
+# gather options
+while getopts “hp:x:v” OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         p)
+             PREFIX=$OPTARG
+             ;;
+         x)
+             EXEC_PREFIX=$OPTARG
+             ;;
+         v)
+             VERBOSE=1
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
+# if prefix is not set, set it to /usr/local
+if [[ -z $PREFIX ]]
+then
+     EXEC_PREFIX=/usr/local
+fi
+
+# if exec-prefix is not set, set it up the same as prefix
+if [[ -z $EXEC_PREFIX ]]
+then
+     EXEC_PREFIX=$PREFIX
+fi
+
+if [[ -z $PREFIX ]] || [[ -z $EXEC_PREFIX ]]
+then
+     echo Nothing to do. Run with -h option
+     exit 1
+fi
+
+# install LIBBBG
+python setup.py install --prefix=$PREFIX --exec-prefix=$EXEC_PREFIX
+
+# copy the shared libraries
+export LIBBBG_LIB=$PREFIX/lib/python2.7/site-packages/libbbg/
+
+cp $LIBBBG_LIB/fourier/ft.so ./libbbg/fourier
+cp $LIBBBG_LIB/qm/clemtp.so ./libbbg/qm
+cp $LIBBBG_LIB/qm/pmloca.so ./libbbg/qm
+cp $LIBBBG_LIB/qm/gentcf.so ./libbbg/qm
+
+
