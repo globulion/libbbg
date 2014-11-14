@@ -77,4 +77,15 @@ cp $LIBBBG_LIB/qm/clemtp.so ./libbbg/qm
 cp $LIBBBG_LIB/qm/pmloca.so ./libbbg/qm
 cp $LIBBBG_LIB/qm/gentcf.so ./libbbg/qm
 
+echo --- INFO ---------------------------------------------------------------------------
+echo
+echo Modify your $HOME/.bashrc script adding the following line:
+echo
+echo export PYTHONPATH=$PREFIX/lib/python2.7/site-packages/:'$PYTHONPATH'
+echo
+echo Then, type in the terminal
+echo
+echo source $HOME/.bashrc
+echo
+echo ------------------------------------------------------------------------------------
 
