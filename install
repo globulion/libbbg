@@ -69,19 +69,14 @@ fi
 # install LIBBBG
 python setup.py install --prefix=$PREFIX --exec-prefix=$EXEC_PREFIX
 
-# copy the shared libraries
-export LIBBBG_LIB=$PREFIX/lib/python2.7/site-packages/libbbg/
-
-cp $LIBBBG_LIB/fourier/ft.so ./libbbg/fourier
-cp $LIBBBG_LIB/qm/clemtp.so ./libbbg/qm
-cp $LIBBBG_LIB/qm/pmloca.so ./libbbg/qm
-cp $LIBBBG_LIB/qm/gentcf.so ./libbbg/qm
+# the shared libraries
+export LIBBBG_LIB=$PREFIX/lib/python2.7/dist-packages/libbbg/
 
 echo --- INFO ---------------------------------------------------------------------------
 echo
 echo Modify your $HOME/.bashrc script adding the following line:
 echo
-echo export PYTHONPATH=$PREFIX/lib/python2.7/site-packages/:'$PYTHONPATH'
+echo export PYTHONPATH=$LIBBBG_LIB:'$PYTHONPATH'
 echo
 echo Then, type in the terminal
 echo
