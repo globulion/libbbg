@@ -261,6 +261,10 @@ def ft_1d(f,t,dt,n=None,algorithm='fft',cunit=None):
 Compute Discrete Fourier Transform of the time-domain signal f(t) 
 measured through t seconds and sampled every dt seconds.
 
+                      or
+
+Compute Discrete Inverse Fourier Transform of the frequency-domain signal f(w) 
+measured up to w Hz and sampled every dw Hz.
 ------------------------------------------------------------------------------
 
 Usage:
@@ -298,6 +302,14 @@ Notes:
 ------------------------------------------------------------------------------
                                                  Last revision:  9 Oct 2014
 """
+    if   algorithm.lower()=='fft' : ftfunc = fourier.ft.fft
+    elif algorithm.lower()=='ifft': ftfunc = fourier.ft.fftinv
+    elif algorithm.lower()=='dft' : ftfunc = fourier.ft.dft
+    elif algorithm.lower()=='idft': ftfunc = fourier.ft.dftinv
+    else: raise Exception('The algorighm %s is not implemented' % algorithm.lower())
+    # determine the type of Fourier Transform
+    if algorithm.lower().startswith('i'): inverse = True
+    else:                                 inverse = False
     # check if the data type is complex or purely real
     if 'complex' in str(type(f[0])):
        f_real = f.real.copy()
@@ -309,16 +321,19 @@ Notes:
     uconv = 1.000
     if cunit is not None:
        try:
-         if   cunit.lower() == 'ang' : uconv = 2.00*math.pi
-         elif cunit.lower() == 'cm-1': uconv = units.UNITS.HzToCmRec
-         elif cunit.lower() == 'hz'  : pass
+         if not inverse:
+            if   cunit.lower() == 'ang' : uconv = 2.00*math.pi          
+            elif cunit.lower() == 'cm-1': uconv = units.UNITS.HzToCmRec
+            elif cunit.lower() == 'hz'  : pass
+         else:
+            if   cunit.lower() == 'sec' : pass
        except TypeError:
          uconv = numpy.float64(cunit)
     #
     nf = len(f)
     ht = t/(nf-1)
     # Fast Fourier Transform (Cooley-Tukey)
-    if algorithm.lower()=='fft':
+    if algorithm.lower()[1:]=='fft':
        # prepare the data points
        N  = numpy.array([ 2**i for i in range(4,30) ], int)
        if n is None:                         
@@ -356,12 +371,12 @@ Notes:
        v_res = 1./ (np*ht) # Hz
        v     = numpy.linspace(0,np,np) / (ht*np)  # Hz
 
-       gr,gi = fourier.ft.fft(fr,fi,m) 
+       gr,gi = fffunc(fr,fi,m) 
        gr/= math.sqrt(np)
        gi/= math.sqrt(np)
           
     # Direct Discrete Fourier Transform
-    elif algorithm.lower()=='dft':
+    elif algorithm.lower()[1:]=='dft':
        if n is not None: 
           message = " Requested number of points <n=%d> is smaller than data size <%d> so n is ignored" % (n,nf)
           if n<nf: 
@@ -390,7 +405,7 @@ Notes:
 
        gr = numpy.zeros(np,numpy.float64)
        gi = numpy.zeros(np,numpy.float64)
-       gr,gi = fourier.ft.dft(fr,fi,gr,gi) 
+       gr,gi = ftfunc(fr,fi,gr,gi) 
        gr/= math.sqrt(np)
        gi/= math.sqrt(np)
 
