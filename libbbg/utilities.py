@@ -333,7 +333,7 @@ Notes:
     nf = len(f)
     ht = t/(nf-1)
     # Fast Fourier Transform (Cooley-Tukey)
-    if algorithm.lower()[1:]=='fft':
+    if algorithm.lower()[-3:]=='fft':
        # prepare the data points
        N  = numpy.array([ 2**i for i in range(4,30) ], int)
        if n is None:                         
@@ -371,12 +371,12 @@ Notes:
        v_res = 1./ (np*ht) # Hz
        v     = numpy.linspace(0,np,np) / (ht*np)  # Hz
 
-       gr,gi = fffunc(fr,fi,m) 
+       gr,gi = ftfunc(fr,fi,m) 
        gr/= math.sqrt(np)
        gi/= math.sqrt(np)
           
     # Direct Discrete Fourier Transform
-    elif algorithm.lower()[1:]=='dft':
+    elif algorithm.lower()[-3:]=='dft':
        if n is not None: 
           message = " Requested number of points <n=%d> is smaller than data size <%d> so n is ignored" % (n,nf)
           if n<nf: 

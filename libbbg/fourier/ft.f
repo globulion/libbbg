@@ -171,7 +171,7 @@ C
       PARAMETER (PI=3.141592653589793D+00)
 Cf2py INTENT(IN,OUT) FR,FI
 C
-      RNG = DFLOAT(NF)
+      RNG = DFLOAT(NG)
       X   = TWO*PI/RNG
       DO I=1,NG
          IM = I-1
