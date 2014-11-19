@@ -20,9 +20,10 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
          'text_to_list','QMFile','Emtp_charges','MDOut',
-         'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff']
+         'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
+         'calc_tcf','autocorr','crosscorr',]
          
-__version__ = '3.3.1'
+__version__ = '3.3.2'
 
 import re, qm, PyQuante,  \
        scipy.optimize, scipy.integrate, numpy,\
@@ -62,6 +63,17 @@ uUNITS= units.UNITS
 #                              interp2d as I2D
 #from letters import greek as let_greek
 #from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+def autocorr(x):
+    """Auto-correlation"""
+    result = numpy.correlate(x, x, mode='full')
+    return result[result.size/2:]
+
+def crosscorr(x,y):
+    """Cross-correlation"""
+    assert x.shape==y.shape, 'Shapes of input arrays are not the same!'
+    result = numpy.correlate(x, y, mode='full')
+    return result[result.size/2:]
 
 class FF_scheme(object):
    """
@@ -255,6 +267,18 @@ If func is None:
           sder = numpy.diag(sder.diagonal()) + av + (av.copy()).transpose()
        return fder, sder
 
+def calc_tcf(f,t_max,dt,n=None):
+    """Calculate the time autocorrelation function by using the Wiener-Khintchine theorem"""
+    # evaluate FFT of f(t)
+    v, gr, gi, v_max, v_res = ft_1d(f,t_max,dt=dt,n=n,algorithm='fft',cunit=None)
+    # evaluate the |g(w)|**2
+    g2 = gr*gr + gi*gi
+    # evaluate IFFT of g2(w)
+    N = numpy.where(v>v_max)[0][0]
+    #t, cr, ci, v_max, v_res = ft_1d(g2[:N],v[N],dt=dt,n=n,algorithm='ifft',cunit=None)
+    t, cr, ci, v_max, v_res = ft_1d(g2,v[-1],dt=dt,n=n,algorithm='ifft',cunit=None)
+    return t, cr, ci
+
 def ft_1d(f,t,dt,n=None,algorithm='fft',cunit=None):
     """\
 ------------------------------------------------------------------------------
@@ -323,7 +347,7 @@ Notes:
        try:
          if not inverse:
             if   cunit.lower() == 'ang' : uconv = 2.00*math.pi          
-            elif cunit.lower() == 'cm-1': uconv = units.UNITS.HzToCmRec
+            elif cunit.lower() == 'cm-1': uconv = units.UNITS.HzToCmRec*2.00*math.pi
             elif cunit.lower() == 'hz'  : pass
          else:
             if   cunit.lower() == 'sec' : pass
