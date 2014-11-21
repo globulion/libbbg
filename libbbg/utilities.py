@@ -1108,7 +1108,21 @@ Notes:
        if (units.lower()).startswith('angs'): self.__pos = pos * self.AngstromToBohr
        else: self.__pos = pos
        return 
-   
+  
+   def set_charges(self, chg):
+       """set the charges array"""
+       if   self.__pos.shape[1]==3:
+            chg = numpy.array(chg).reshape(1,len(chg))
+            self.__pos = numpy.hstack((self.__pos, chg.T))
+       elif self.__pos.shape[1]==4:
+            self.__pos[:,3] = chg
+       return
+
+   def set_misc(self, text):
+       """set the miscellaneum: text as a description"""
+       self.__misc = text
+       return
+ 
    def write(self,name='default.xyz'):
        """write the structure into the XYZ file"""
        f = open(name,'w')
