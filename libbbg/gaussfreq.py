@@ -256,10 +256,13 @@ and changing to AU units (frequencies and reduced masses)"""
           """calculates the center of squared eigenvector for each mode given the structure [in Bohr]"""
           COEs = []
           for mode in xrange(self.Nmodes):
-              vec = self.L[:,mode].reshape(self.Natoms,3)
+              vec = self.L_[:,mode].reshape(self.Natoms,3)
               r_origin = numpy.zeros(3,dtype=numpy.float64)       
               for atom in xrange(self.Natoms):
-                  r_origin+= sum(vec[atom]**2) * structure[atom] / sum(vec**2) #/ sum(vec**2,axis=0)
+                  #r_origin+= numpy.sum(vec[atom]**2,axis=0) * structure[atom] / numpy.sum(vec**2,axis=0) #/ sum(vec**2,axis=0)
+                  #r_origin+= numpy.sum(vec[atom]**2) * structure[atom]
+                  r_origin+= vec[atom]**2 * structure[atom]
+              #r_origin/= numpy.sum(vec**2)#,axis=0)
               COEs.append(r_origin)
           COEs = numpy.array(COEs)
           print " COE for each mode [in Angstrom]\n"

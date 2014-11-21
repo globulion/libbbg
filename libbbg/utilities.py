@@ -4777,8 +4777,8 @@ class ModifyStruct(object):
         new, center, rot = self.__makeAxes(p1-1,p2-1,p3-1,scale)
         obw = numpy.zeros((n,3),dtype=numpy.float64)
         for i in range(n):
-            obw[i,0] = r  * numpy.cos(2*pi*i/n)
-            obw[i,1] = r  * numpy.sin(2*pi*i/n)
+            obw[i,0] = r  * numpy.cos(2*math.pi*i/n)
+            obw[i,1] = r  * numpy.sin(2*math.pi*i/n)
         obw = numpy.dot(obw,rot) + numpy.array([center])
         self.ring = numpy.concatenate((self.ring,obw),axis=0)
         self.rings.append(obw)
