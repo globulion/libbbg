@@ -1045,6 +1045,9 @@ The numbers are normal numbers (not in Python convention)."""
         overall.DMA[3][0,7] = oct[0,2,2]
         overall.DMA[3][0,8] = oct[1,2,2]
         overall.DMA[3][0,9] = oct[0,1,2]
+
+        overall.MAKE_FULL()
+        overall.ChangeOrigin(new_origin_set=array([origin],float64) )
         
         #overall.DMA[1] *= UNITS.BohrElectronToDebye
         #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom
