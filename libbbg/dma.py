@@ -6,7 +6,7 @@ __all__ = ['DMA']
 
 from numpy import zeros, float64, trace, array,\
                   tensordot, shape, outer, dot,\
-                  transpose
+                  transpose, sqrt, sum, linalg
 from utilities2 import array_outer_product,    \
                        array_outer_product_1_2,\
                        array_outer_product_2_1,\
@@ -720,7 +720,74 @@ premute all moments, positions and origins using ind list
         #
         del self.DMA_FULL
         self.full = False
+       
+    def get_const(self, origin=array([0.,0.,0.]) ):
+        """
+ Calculate the invariants of total multipole moments
+ Returns the tuple of four invariant sets for charge, dipole, quadrupole
+ and octupole moments:
+
+ 1) charge invariant: 
+     total charge
+
+ 2) dipole invariant:
+     norm of a dipole vector
+
+ 3) quadrupole invariants:
+     trace(Q)
+     0.5 * (trace(Q)^2 - trace(Q^2))
+     det(Q)
+ 
+     where Q is quadrupole moment (primitive form)
+
+ 4) octupole invariants:
+     F1 = E_iik * E_ppk
+     F2 = E_ijj * E_iqq
+     F3 = E_ijk * E_ijk
+     F4 = E_ijk * E_kij
+     F5 = 0.5 * (e_kp * E_ijk * E_pji + e_ri * E_ijk * E_kjr)
+
+     where E is octupole moment (primitive form)
+     and e is 2-order antisymmetric (permutation) tensor
+
+ Notes:
+  1) invariants or 3-rd order Cartesian tensors:
+        from. F. Ahmad, Arch. Mech. 63, 4, pp383-392 Warszawa 2011
+        formulae on p.390 for F1-F5
+     """
+        eij = zeros((3, 3), float64)
+        eij[0,1] = eij[1,2] = eij[2,0] =  1.0
+        eij[1,0] = eij[2,1] = eij[0,2] = -1.0
         
+        eijk = zeros((3, 3, 3), float64)
+        eijk[0, 1, 2] = eijk[1, 2, 0] = eijk[2, 0, 1] =  1.0
+        eijk[0, 2, 1] = eijk[2, 1, 0] = eijk[1, 0, 2] = -1.0
+        tot = self.get_mult(origin)
+        tot.MAKE_FULL()
+        # invariants for dipole moment
+        mu  = sqrt(sum(tot.DMA_FULL[2][0]**2))
+        # invariants for quadrupole moment
+        tr = tot.DMA_FULL[3][0].trace()
+        tr2= (tot.DMA_FULL[3][0]**2).trace()
+        qad_1 = tr
+        qad_2 = 0.500*(tr*tr-tr2)
+        qad_3 = linalg.det(tot.DMA_FULL[3][0])
+        # invariants for octupole moment
+        # from. F. Ahmad, Arch. Mech. 63, 4, pp383-392 Warszawa 2011
+        # formulae from p.390 for F1-F5
+        oct = tot.DMA_FULL[4][0]
+        oct_1 = dot(oct.trace(axis1=0,axis2=1),oct.trace(axis1=0,axis2=1))
+        oct_2 = dot(oct.trace(axis1=1,axis2=2),oct.trace(axis1=1,axis2=2))
+        oct_3 = tensordot(oct,oct,((0,1,2),(0,1,2)))
+        oct_4 = tensordot(oct,oct,((0,1,2),(1,2,0)))
+        A_kp = tensordot(oct,oct,((0,1),(2,1)))
+        B_ri = tensordot(oct,oct,((1,2),(1,0)))
+        oct_5 = 0.5*(sum(eij*A_kp,axis=None) + sum(eij.transpose()*B_ri,axis=None))
+        #oct = 1./6. * (sum(tot.DMA_FULL[4][0]*eijk)) * eijk
+        qad = array([qad_1, qad_2, qad_3],float64)
+        oct = array([oct_1,oct_2,oct_3,oct_4,oct_5],float64)
+        return tot.DMA_FULL[1][0], mu, qad, oct
+ 
     def MakeTraceless(self):
         """turns ordinary full-formatted DMA_FULL into traceless 
         full-formatted DMA_FULL. The traceless form is taken to be
