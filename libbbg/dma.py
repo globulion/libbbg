@@ -768,7 +768,7 @@ premute all moments, positions and origins using ind list
         mu  = sqrt(sum(tot.DMA_FULL[2][0]**2))
         # invariants for quadrupole moment
         tr = tot.DMA_FULL[3][0].trace()
-        tr2= (tot.DMA_FULL[3][0]**2).trace()
+        tr2= (dot(tot.DMA_FULL[3][0],tot.DMA_FULL[3][0])).trace()
         qad_1 = tr
         qad_2 = 0.500*(tr*tr-tr2)
         qad_3 = linalg.det(tot.DMA_FULL[3][0])
