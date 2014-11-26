@@ -3981,7 +3981,8 @@ def ParseDmatFromFchk(file,basis_size):
         
     data = open(file)
     line = data.readline()
-    querry = "Total SCF Density"
+    #querry = "Total SCF Density"
+    querry = "Total MP2 Density"
     while 1:
         if querry in line: break
         line = data.readline()
@@ -4263,9 +4264,9 @@ def DMAMadrixMultiply(matrix,dma_list):
     octples = numpy.zeros((10,N,K),dtype=numpy.float64)
     for i,dmai in enumerate(dma_list):
         charges[i,:]   = dmai.DMA[0]
-        dipoles[:,i,:] = transpose(dmai.DMA[1])
-        qdrples[:,i,:] = transpose(dmai.DMA[2])
-        octples[:,i,:] = transpose(dmai.DMA[3])
+        dipoles[:,i,:] = numpy.transpose(dmai.DMA[1])
+        qdrples[:,i,:] = numpy.transpose(dmai.DMA[2])
+        octples[:,i,:] = numpy.transpose(dmai.DMA[3])
  
     ### TRANSFORMATION!    
     charges = numpy.dot(matrix,charges)
@@ -4470,22 +4471,20 @@ a.u. as well."""
     Ra,Rb = dma1.get_origin(),dma2.get_origin()
     qa,qb = dma1[0],dma2[0]
     #
-    qq = 0.0
-    for i in xrange(len(Ra)):
-         for j in xrange(len(Rb)):
-             R    = Rb[j]-Ra[i]
-             Rab  = numpy.sqrt(numpy.sum(R**2,axis=0))
-             qq  +=   qa[i]*qb[j]/Rab 
+    R = Ra[:,:,numpy.newaxis] - Rb.T[numpy.newaxis,:,:]
+    R = R*R; R = numpy.sum(R, axis=1)
+    R = numpy.sqrt(R)
+    qq = numpy.sum(numpy.outer(qa,qb)/R,axis=None)
     #
     qq *= converter
-    Emtp.A = qq
-    Emtp.B = qq
-    Emtp.C = qq
-    Emtp.D = qq
-    Emtp.E = qq
-    Emtp.F = 0
-    Emtp.G = 0
-    Emtp.H = 0
+    Emtp_charges.A = qq
+    Emtp_charges.B = qq
+    Emtp_charges.C = qq
+    Emtp_charges.D = qq
+    Emtp_charges.E = qq
+    Emtp_charges.F = 0
+    Emtp_charges.G = 0
+    Emtp_charges.H = 0
     #
     #Q = qq*converter
     #log = "\n" 
@@ -4506,7 +4505,7 @@ a.u. as well."""
     #log+= "%7s %19.2f      :\n"                  % ("O-O".rjust(6), 0)
     #log+= " "+"-"*32+":"+"-"*26+"\n"
     log = "\n"
-    Emtp.log = log
+    Emtp_charges.log = log
 
     return qq,qq,qq,qq,qq
     
