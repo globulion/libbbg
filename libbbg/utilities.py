@@ -21,7 +21,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
          'text_to_list','QMFile','Emtp_charges','MDOut',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
-         'calc_tcf','autocorr','crosscorr',]
+         'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk',]
          
 __version__ = '3.3.2'
 
@@ -3901,6 +3901,19 @@ def ParsePolDerFromFchk(f):
 
     A = numpy.array(A,numpy.float64).reshape(N,3,3)
     return A
+
+def ParseEnergyFromFchk(file,type='SCF'):
+    """parse total energies from g09 fchk given type='SCF' or 'MP2'"""
+    data = open(file)
+    line = data.readline()
+    ### look for energy
+    if   type.lower()=='scf': querry = "SCF Energy"
+    elif type.lower()=='mp2': querry = "MP2 Energy"
+    while querry not in line:
+          line = data.readline()
+    E = numpy.float64(line.split()[-1])
+    data.close()
+    return E
 
 def ParseVecFromFchk(file):
     """parse Ci\mu coeeficients from g09 fchk"""
