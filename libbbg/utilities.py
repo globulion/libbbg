@@ -3909,6 +3909,13 @@ def ParseEnergyFromFchk(file,type='SCF'):
     ### look for energy
     if   type.lower()=='scf': querry = "SCF Energy"
     elif type.lower()=='mp2': querry = "MP2 Energy"
+    elif type.lower()=='mp3': querry = "MP3 Energy"
+    elif type.lower()=='mp4': querry = "MP4 Energy"
+    elif type.lower()=='mp4d': querry = "MP4D Energy"
+    elif type.lower()=='mp4dq': querry = "MP4DQ Energy" 
+    elif type.lower()=='mp4sdq': querry = "MP4SDQ Energy"
+    elif type.lower()=='cc': querry = "Cluster Energy"
+    else: raise Exception(" Type <%s> is invalid" % type)
     while querry not in line:
           line = data.readline()
     E = numpy.float64(line.split()[-1])
@@ -3989,13 +3996,15 @@ def ParseFockFromGamessLog(file,interpol=False):
     fock = numpy.array(fock,dtype=numpy.float64)
     return fock
 
-def ParseDmatFromFchk(file,basis_size):
+def ParseDmatFromFchk(file,basis_size,type='SCF'):
     """parses density matrix from Gaussian fchk file"""
         
     data = open(file)
     line = data.readline()
-    #querry = "Total SCF Density"
-    querry = "Total MP2 Density"
+    if   type.lower()=='scf': querry = "Total SCF Density"
+    elif type.lower()=='mp2': querry = "Total MP2 Density"
+    elif type.lower()=='cc' : querry = "Total CC Density"
+    else: raise Exception(" Type <%s> is invalid" % type)
     while 1:
         if querry in line: break
         line = data.readline()
