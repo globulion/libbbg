@@ -4215,7 +4215,9 @@ def CalculateCAMM(basis='6-311++G**'):
 
 def RotationMatrix(initial=None,final=None):
     """returns rotation matrix and rms from SVD superposition of two structures.
-    The initial structure is rotated into final one"""
+    The initial structure is rotated into final one. The transformation is defined as follows:
+    final = numpy.dot(initial, rot) + transl
+    Returns: rot, rms"""
     sup = SVDSuperimposer()
     sup.set(final,initial)
     sup.run()
