@@ -670,8 +670,11 @@ text_to_list(text) = [2 3 4]
 
 text_to_list(text,delimiter=',') = [3 56 6 -1 33] 
 
+4) text = ' -0.44, 0.122, 23.4544, -335.2   '
+text_to_list(text,delimiter=',',dtype=float) = [-0.44, 0.122, 23.4544, -335.2]
+
 """
-    if '-' in text:
+    if (('-' in text and '.' not in text) or ('-' in text and ',' not in text)):
        start,end = text.split('-')
        rang = numpy.arange(dtype(start),dtype(end)+1,dt)
     else:
