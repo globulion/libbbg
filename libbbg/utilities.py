@@ -1199,6 +1199,10 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        """return Molecule object"""
        return self.__mol
 
+   def get_bfs(self):
+       """return Basis Set object"""
+       return self.__mol.get_bfs()
+
    def get_dma(self):
        """return DMA object"""
        return self.__dma
