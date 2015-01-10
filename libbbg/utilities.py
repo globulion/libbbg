@@ -4726,8 +4726,29 @@ def FrequencyShift(solute=0,solvent=0,solute_structure=0):
     return result
 
 class Allign:
-    """represents alligning function"""
-    def __init__(self,xyz=numpy.zeros(3),atid=[],vec=[],axes=(0,1,2),dma=0):
+    """
+ Rotates and translates the molecule to allign it with respect to the new user-specified global coordinate frame. 
+ 
+ Usage:
+
+ a = Allign(xyz, atid=[], vec=[], axes=(0,1,2), dma=None)
+ dma, xyz = a.get_transformed()
+
+ where:
+  - xyz       - ndarray of shape (natoms,3)
+  - atid      - tuple/list of shape (3): atomic indices (not-Python convention). They specify the coordinate system.
+                First atom : new origin 
+                Second atom: z-axis
+                Third atom : probably xz-plane
+                If atid(Third atom)<1: compute this axis orthogonal to the two previous ones. 
+  - vec       - ndarray of shape (3,3): alternative specification of coordinate system. 
+                Rows of vec determine the axes of new coordinate system so they should be orthogonal to each other.
+  - axes      - tuple/list of shape (3): type of allignment. Specifies the pivoting of the axes. 
+  - dma       - libbbg.dma.DMA object. If specified, this object will be also alligned to the new orientation.
+
+                                                                             Last Revision: 10 Jan 2015
+"""
+    def __init__(self,xyz=numpy.zeros(3),atid=[],vec=[],axes=(0,1,2),dma=None):
         self.xyz=xyz
         self.atid=atid
         self.vec=vec
@@ -4736,8 +4757,9 @@ class Allign:
         self.__allign() ### ---> init,final
         self.rot,self.rms = RotationMatrix(initial=self.initial,final=self.final)
         if abs(self.rms)>0.0001: print " Warning! Not orthogonal set! (rms=%f)"%self.rms
-        if dma: self.__dma_alligned = self.allignDMA(dma); print " DMA is alligned!\n"
-        self.xyz=numpy.dot(self.xyz,self.rot)
+        if dma is not None: self.__dma_alligned = self.allignDMA(dma); print " DMA is alligned!\n"
+        self.xyz=numpy.dot(self.xyz,self.rot)  # rotate
+        self.xyz-=self.xyz[self.atid[0]-1]     # translate
 
     def allignDMA(self,dma):
         dma_copy=dma.copy()
@@ -4763,7 +4785,7 @@ class Allign:
               P2 = self.xyz[self.atid[1]-1]
               X,Y,Z = P2-P1
               y=z=1.0; x = - (Y+Z)/X
-              P3 = array([x,y,z]); P3/= numpy.linalg.norm(P3)
+              P3 = numpy.array([x,y,z]); P3/= numpy.linalg.norm(P3)
            else:
              P1 = self.xyz[self.atid[0]-1]
              P2 = self.xyz[self.atid[1]-1]
@@ -4771,10 +4793,10 @@ class Allign:
            C = P2 - P1
            B = numpy.cross(C,P3 - P1)
            A = numpy.cross(B,C)
-           
+
            self.initial=numpy.array([A,B,C])
            for c in [0,1,2]: 
-               self.initial[c]/=sqrt(sum(self.initial[c]**2))
+               self.initial[c]/=numpy.sqrt(sum(self.initial[c]**2))
         self.final=axes          
 
 class ModifyStruct(object):
