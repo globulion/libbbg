@@ -1191,9 +1191,17 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        """return atoms"""
        return self.__atoms
 
+   def get_coord_list(self):
+       """return coord list containing atom symbols and position vectors"""
+       return self.__coord_list
+
    def get_mol(self):
        """return Molecule object"""
        return self.__mol
+
+   def get_bfs(self):
+       """return Basis Set object"""
+       return self.__mol.get_bfs()
 
    def get_dma(self):
        """return DMA object"""
@@ -1353,6 +1361,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        self.__pos = data
        self.__atoms = atoms
        self.__misc = misc
+       self.__coord_list = coord
        return
 
    def _open_fchk(self,file,units,name,mult,charge,method,basis):
