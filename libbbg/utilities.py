@@ -3506,7 +3506,7 @@ from dma distribution."""
     V=0
     for i in range(len(Ra)):
         R=Rb-Ra[i] 
-        Rab=sqrt(sum(R**2,axis=0))
+        Rab=numpy.sqrt(numpy.sum(R**2,axis=0))
         V+=qa[i]/Rab
         V+=numpy.tensordot(Da[i],R,(0,0))/Rab**3 
         V+=numpy.tensordot(R,numpy.tensordot(Qa[i],R,(1,0)),(0,0))/Rab**5 
@@ -4766,14 +4766,16 @@ class Allign:
         self.__allign() ### ---> init,final
         self.rot,self.rms = RotationMatrix(initial=self.initial,final=self.final)
         if abs(self.rms)>0.0001: print " Warning! Not orthogonal set! (rms=%f)"%self.rms
-        if dma is not None: self.__dma_alligned = self.allignDMA(dma); print " DMA is alligned!\n"
         self.xyz=numpy.dot(self.xyz,self.rot)  # rotate
-        self.xyz-=self.xyz[self.atid[0]-1]     # translate
+        self.trans = self.xyz[self.atid[0]-1]
+        self.xyz-=self.trans                   # translate
+        if dma is not None: self.__dma_alligned = self.allignDMA(dma); print " DMA is alligned!\n"
 
     def allignDMA(self,dma):
         dma_copy=dma.copy()
         dma_copy.MAKE_FULL()
         dma_copy.Rotate(self.rot)
+        dma_copy.translate(self.trans)
         return dma_copy
         
     def get_transformed(self):
