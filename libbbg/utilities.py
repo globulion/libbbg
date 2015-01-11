@@ -4766,16 +4766,17 @@ class Allign:
         self.__allign() ### ---> init,final
         self.rot,self.rms = RotationMatrix(initial=self.initial,final=self.final)
         if abs(self.rms)>0.0001: print " Warning! Not orthogonal set! (rms=%f)"%self.rms
-        self.xyz=numpy.dot(self.xyz,self.rot)  # rotate
-        self.trans = self.xyz[self.atid[0]-1]
-        self.xyz-=self.trans                   # translate
-        if dma is not None: self.__dma_alligned = self.allignDMA(dma); print " DMA is alligned!\n"
 
-    def allignDMA(self,dma):
+        self.xyz=numpy.dot(self.xyz,self.rot)  # rotate
+        self.trans = self.xyz.copy()[self.atid[0]-1]
+        self.xyz-=self.trans                   # translate
+        if dma is not None: self.__dma_alligned = self.allignDMA(dma,self.rot,-self.trans); print " DMA is alligned!\n"
+
+    def allignDMA(self,dma,rot,trans):
         dma_copy=dma.copy()
         dma_copy.MAKE_FULL()
-        dma_copy.Rotate(self.rot)
-        dma_copy.translate(self.trans)
+        dma_copy.Rotate(rot)
+        dma_copy.translate(trans)
         return dma_copy
         
     def get_transformed(self):
