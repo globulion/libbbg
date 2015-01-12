@@ -427,15 +427,15 @@ mathematical operations:
         """return number of distributed sites"""
         return self.nfrag
 
+    def get_natoms(self):
+        """return number of atoms"""
+        return len(self.pos)
+
     def get_charges    (self): return self[0]
     def get_dipoles    (self): return self[1]
     def get_quadrupoles(self): return self[2]
     def get_octupoles  (self): return self[3]
-
-    def get_natoms(self):
-        """return number of atoms"""
-        return len(self.pos)
-     
+    
     def set_name(self,name):
         """sets the name for the object""" 
         self.name = name
