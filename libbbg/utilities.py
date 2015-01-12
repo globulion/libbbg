@@ -1207,6 +1207,12 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        """return DMA object"""
        return self.__dma
 
+   def get_dmat(self):
+       """Return RHF density matrix"""
+       run = PyQuante.SCF(self.__mol,bfs=self.__mol.get_bfs())
+       run.iterate()
+       return run.dmat
+
    def get_misc(self):
        """return misc (e.g.: comment second line in XYZ file)"""
        return self.__misc
