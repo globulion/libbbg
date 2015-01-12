@@ -1456,6 +1456,195 @@ C
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
+      SUBROUTINE POTDMA(POINTS,NPOINTS,RDMA,NDMA,CHG,DIP,QAD,OCT,
+     *                  NMOLS,NDMAS)
+C
+C -----------------------------------------------------------------------------
+C
+C           ELECTROSTATIC POTENTIAL FROM DISTRIBUTED MULTIPOLE EXPANSION
+C
+C              Bartosz Błasiak                         12 Jan 2015
+C
+C -----------------------------------------------------------------------------
+C
+C   USAGE:
+C
+C   POINTS   - INPUT/OUTPUT:
+C              flattened array of size NPOINTS x 8. 3 first columns are      
+C              X, Y, Z coordinates of points at which potential is to be
+C              evaluated. Next 5 columns are arbitrary on input. On output they
+C              are replaced by potential values due to charges, dipoles,
+C              quadrupoles and octupoles (4 columns). The last column is the
+C              sum of the four contributions, i.e. the total potential.
+C  
+C   NPOINTS  - number of points 
+C
+C   NMOLS    - number of molecules in the system
+C
+C   NDMAS    - total number of distributed DMA points in the system
+C
+C   RDMA     - flattened array of size NDMAS x 3. 
+C
+C   NDMA     - integer array of size NMOLS. Contains the numbers of distri
+C              buted centers for each molecule
+C
+C   CHG      - array of size NDMAS. The list of charges in the system.
+C   
+C   DIP      - flattened array of size NDMAS x 3. List of distributed
+C              dipoles in the system
+C
+C   QAD      - flattened array of size NDMAS x 6. List of distributed
+C              quadrupoles in the system (only unique elements, see Notes)
+C
+C   OCT      - flattened array of size NDMAS x 10. List of distributed
+C              octupoles in the system (only uniqe elements, see Notes)
+C
+C   Notes:
+C     The reduced format of tensor storage is used:
+C
+C     CHG(i) .
+C            1
+C     DIP(i) X   Y   Z
+C            1   2   3
+C     QAD(i) XX  YY  ZZ  XY  XZ  YZ
+C            1   2   3   4   5   6
+C     OCT(i) XXX YYY ZZZ XXY XXZ XYY YYZ XZZ YZZ XYZ
+C            1   2   3   4   5   6   7   8   9
+C -----------------------------------------------------------------------------
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION RDMA(NDMAS*3),CHG(NDMAS),DIP(NDMAS*3),QAD(NDMAS*6),
+     &          OCT(NDMAS*10),NDMA(NMOLS),POINTS(NPOINTS*8)
+      PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
+     &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00)
+Cf2py INTENT(IN,OUT) POINTS
+C
+C
+C     --- LOOP OVER THE MOLECULES ---
+C
+      NMOLJ = 0
+      DO 190 J=1,NMOLS
+         NJ = NDMA(J)
+         NMOLJ = NMOLJ + NJ
+         DO N=1,NJ
+            NJX0 =   (NMOLJ-NJ) +    N       
+            NJX3 = 3*(NMOLJ-NJ) + 3*(N-1) + 1
+            NJX6 = 6*(NMOLJ-NJ) + 6*(N-1) + 1
+            NJX10=10*(NMOLJ-NJ) +10*(N-1) + 1
+C                                                     
+            NJY3 = NJX3 + 1
+            NJZ3 = NJY3 + 1
+C                                                     
+C           UNPACK FOR MOLECULE J
+C                                                     
+            CJ = CHG(NJX0)
+            DJX= DIP(NJX3)
+            DJY= DIP(NJY3)
+            DJZ= DIP(NJZ3)
+            QJXX = QAD(NJX6  )
+            QJYY = QAD(NJX6+1)
+            QJZZ = QAD(NJX6+2)
+            QJXY = QAD(NJX6+3)
+            QJXZ = QAD(NJX6+4)
+            QJYZ = QAD(NJX6+5)
+            OJXXX = OCT(NJX10  )
+            OJYYY = OCT(NJX10+1)
+            OJZZZ = OCT(NJX10+2)
+            OJXXY = OCT(NJX10+3)
+            OJXXZ = OCT(NJX10+4)
+            OJXYY = OCT(NJX10+5)
+            OJYYZ = OCT(NJX10+6)
+            OJXZZ = OCT(NJX10+7)
+            OJYZZ = OCT(NJX10+8)
+            OJXYZ = OCT(NJX10+9)
+C
+C           --- ITERATE OVER THE POINTS
+C
+            CW = ZERO
+            DW = ZERO
+            QW = ZERO
+            TW = ZERO
+C
+            DO IP=1,NPOINTS
+               NIX3 = 8*(IP-1) + 1
+               NIY3 = NIX3 + 1
+               NIZ3 = NIY3 + 1
+C
+               NIP1 = NIZ3 + 1
+               NIP2 = NIP1 + 1
+               NIP3 = NIP2 + 1
+               NIP4 = NIP3 + 1
+               NIP5 = NIP4 + 1
+C                                    
+C              UNPACK DISTANCES FOR POINT I
+C                                    
+               RIX = POINTS(NIX3)
+               RIY = POINTS(NIY3)
+               RIZ = POINTS(NIZ3)
+C
+               RX = RDMA(NJX3) - RIX
+               RY = RDMA(NJY3) - RIY
+               RZ = RDMA(NJZ3) - RIZ
+C                                                     
+               RMN  = ONE/DSQRT(RX*RX+RY*RY+RZ*RZ)
+               RMN3 = RMN*RMN*RMN
+               RMN5 = RMN3*(RMN*RMN)
+               RMN7 = RMN5*(RMN*RMN)
+C                                                     
+C              TENSORDOTS                                 
+C                                                        
+               S1 = DJX*RX+DJY*RY+DJZ*RZ
+C                                                        
+               S2 = (QJXX * RX * RX       +  
+     &               QJXY * RX * RY * TWO +  
+     &               QJXZ * RX * RZ * TWO +  
+     &               QJYY * RY * RY       +  
+     &               QJYZ * RY * RZ * TWO +  
+     &               QJZZ * RZ * RZ)
+C                                                  
+               RXRXRX = RX * RX * RX                            
+               RXRXRY = RX * RX * RY * THREE
+               RXRYRY = RX * RY * RY * THREE
+               RYRYRY = RY * RY * RY
+               RYRYRZ = RY * RY * RZ * THREE
+               RYRZRZ = RY * RZ * RZ * THREE
+               RZRZRZ = RZ * RZ * RZ
+               RXRYRZ = RX * RY * RZ * SIX
+               RXRXRZ = RX * RX * RZ * THREE
+               RXRZRZ = RX * RZ * RZ * THREE
+C                                                        
+               S3 = (OJXXX * RXRXRX +
+     &               OJXXY * RXRXRY +
+     &               OJXYY * RXRYRY +
+     &               OJYYY * RYRYRY +
+     &               OJYYZ * RYRYRZ +
+     &               OJYZZ * RYRZRZ +
+     &               OJZZZ * RZRZRZ +
+     &               OJXYZ * RXRYRZ +
+     &               OJXXZ * RXRXRZ +
+     &               OJXZZ * RXRZRZ)
+C                                                        
+C              ACCUMULATE THE TERMS
+C                                                        
+               CV = CJ * RMN 
+               DV = S1 * RMN3
+               QV = S2 * RMN5
+               TV = S3 * RMN7
+C
+               POINTS(NIP1) = POINTS(NIP1) + CV
+               POINTS(NIP2) = POINTS(NIP2) + DV
+               POINTS(NIP3) = POINTS(NIP3) + QV
+               POINTS(NIP4) = POINTS(NIP4) + TV
+               POINTS(NIP5) = POINTS(NIP5) + CV + DV + QV + TV
+            ENDDO
+         ENDDO
+C
+ 190  CONTINUE
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
       SUBROUTINE CLEMTP(NORGA,RA,CA,DA,QA,OA,
      &                  NORGB,RB,CB,DB,QB,OB,
      &                  ELMTP,A,B,C,D,E,
