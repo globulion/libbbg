@@ -22,7 +22,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'text_to_list','QMFile','Emtp_charges','MDOut',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
-         'PotentialContourMap',]
+         'PotentialContourMap','make_bqc_inp',]
          
 __version__ = '3.3.2'
 
@@ -64,6 +64,69 @@ uUNITS= units.UNITS
 #                              interp2d as I2D
 #from letters import greek as let_greek
 #from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+def make_bqc_inp(mol):
+    nelec = mol.get_atno().sum()
+    bfs   = mol.get_bfs()
+
+    ntypes = {'[0 0 0]':1 ,
+              '[1 0 0]':2 , '[0 1 0]':3 , '[0 0 1]':4 ,
+              '[2 0 0]':5 , '[0 2 0]':6 , '[0 0 2]':7 , '[1 1 0]':8 , '[1 0 1]':9 , '[0 1 1]':10,
+              '[3 0 0]':11, '[0 3 0]':12, '[0 0 3]':13, '[2 1 0]':14, '[2 0 1]':15, '[1 2 0]':16, 
+                            '[0 2 1]':17, '[1 0 2]':18, '[0 1 2]':19, '[1 1 1]':20}
+    
+    # gather the operational arguments
+    natoms = len(mol)
+    nbasis = len(bfs)
+    nt     = bfs.get_bfst()
+    
+    # collect the basis set
+    exps  = list()
+    coefs = list()
+    origs = list()
+    nfirst= list()
+    nlast = list()
+    
+    ngmx = 0
+    for i in range(nbasis):
+        bf = bfs.bfs[i]
+        n_cont = len(bf.prims)
+        nfirst.append(ngmx+1)
+        nlast.append(ngmx+n_cont)
+        for j in range(n_cont):
+            origs += list(bf.prims[j].origin) 
+        orig  = bf.origin
+        exps +=bf.pexps
+        coefs+=bf.pcoefs
+        #
+        ngmx += n_cont
+    
+    # build the final data structures
+    vlist = numpy.zeros((natoms,4),numpy.float64)
+    eta   = numpy.zeros((ngmx  ,5),numpy.float64)
+    
+    # make vlist
+    vlist[:,:3] = mol.get_pos()
+    vlist[:,3] = mol.get_atno()
+    # make eta
+    eta[:,:3] = numpy.array(origs,numpy.float64).reshape(ngmx,3)
+    eta[:,3] = numpy.array(exps ,numpy.float64)
+    eta[:,4] = numpy.array(coefs,numpy.float64)
+    # make other
+    ncntr = numpy.array(bfs.LIST1, int) + 1
+    ncmx  = natoms
+    nbfns = nbasis
+    # make ntype
+    ntype = [ntypes[str(i)] for i in nt]
+    task = 90
+    crit = 1.00E-07
+    damp = 0.33
+    interp = 30
+    read_eri = 0 # NO. For YES set 1
+    charge = 0
+    multiplicity = 1
+    ntmx = 20
+    return vlist, eta, ncntr, ntype, nfirst, nlast, ncmx, ngmx, ntmx, nbfns
 
 def circles(x, y, s, c='b', ax=None, vmin=None, vmax=None, **kwargs):
     """
@@ -272,12 +335,13 @@ class PotentialContourMap:
        atoms = self.__xyz[self.__atoms]
        X,Y = numpy.meshgrid(self.__y,self.__x)
        if self.__mask_with_qm:
-          for i in range(self.__nx):
-              x = self.__x_min + i*self.__dx
-              for j in range(self.__ny):
-                  y = self.__y_min + j*self.__dy
-                  point = numpy.array([x,y,0.0], numpy.float64)
-                  v = self._v_wfn(self.__mol, self.__bfs, self.__dmat, point)
+          vlist, eta, ncntr, ntype, nfirst, nlast, ncmx, ngmx, ntmx, nbfns = make_bqc_inp(self.__mol)
+#          for i in range(self.__nx):
+#              x = self.__x_min + i*self.__dx
+#              for j in range(self.__ny):
+#                  y = self.__y_min + j*self.__dy
+#                  point = numpy.array([x,y,0.0], numpy.float64)
+#                  v = self._v_wfn(self.__mol, self.__bfs, self.__dmat, point)
        else:
            for i in range(len(atoms)):
                interior = numpy.sqrt(((X-atoms[i,1])**2) + ((Y-atoms[i,0])**2)) < self.__radii[i]
@@ -3814,10 +3878,11 @@ def Vr_dma(dma,Rb,is_full=False):
     """calculates electrostatic potential in point Rb 
 from dma distribution."""
 
+    dmac = dma.copy()
     if not is_full:
-       dma.MAKE_FULL()
-       dma.MakeTraceless()
-    Ra,qa,Da,Qa,Oa = dma.DMA_FULL
+       dmac.MAKE_FULL()
+       dmac.MakeTraceless()
+    Ra,qa,Da,Qa,Oa = dmac.DMA_FULL
     V=0
     for i in range(len(Ra)):
         R=Rb-Ra[i] 
@@ -3834,11 +3899,12 @@ from dma distribution.
 Energy_density(dma,R,full=False/True)
 if full - the dma object is turned into traceless object
 """
-
+ 
+    dmac = dma.copy()
     if not is_full:
-       dma.MAKE_FULL()
-       dma.MakeTraceless()
-    Ra,qa,Da,Qa,Oa = dma.DMA_FULL
+       dmac.MAKE_FULL()
+       dmac.MakeTraceless()
+    Ra,qa,Da,Qa,Oa = dmac.DMA_FULL
     e2=0
     for i in range(len(Ra)):
         R=Rb-Ra[i]
@@ -3869,10 +3935,11 @@ ElectricField(dma,R,full=False/True)
 if not is_full - the dma object is turned into traceless object
 """
 
+    dmac = dma.copy()
     if not is_full:
-       dma.MAKE_FULL()
-       dma.MakeTraceless()
-    Ra,qa,Da,Qa,Oa = dma.DMA_FULL
+       dmac.MAKE_FULL()
+       dmac.MakeTraceless()
+    Ra,qa,Da,Qa,Oa = dmac.DMA_FULL
     field=numpy.zeros(3,dtype=numpy.float64)
     for i in range(len(Ra)):
         R=Rb-Ra[i] 
