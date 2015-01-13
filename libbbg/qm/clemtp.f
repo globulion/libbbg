@@ -1582,9 +1582,9 @@ C
                RIY = POINTS(NIY3)
                RIZ = POINTS(NIZ3)
 C
-               RX = RDMA(NJX3) - RIX
-               RY = RDMA(NJY3) - RIY
-               RZ = RDMA(NJZ3) - RIZ
+               RX = RIX - RDMA(NJX3)  
+               RY = RIY - RDMA(NJY3)  
+               RZ = RIZ - RDMA(NJZ3)  
 C                                                     
                RMN  = ONE/DSQRT(RX*RX+RY*RY+RZ*RZ)
                RMN3 = RMN*RMN*RMN
