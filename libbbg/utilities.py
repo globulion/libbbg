@@ -212,23 +212,35 @@ class PotentialContourMap:
                                                                                                                 Author: Bartosz Błasiak
  ---------------------------------------------------------------------------------------------------------------------------------------
 
- Usage:
+ DESCRIPTION:
 
- from libbbg.utilities import PotentialContourMap as PCM
+    Makes the contour plot of generalized potential (normal elextrostatic, solvatochromic transition etc) for a given molecular data.
+ It masks areas where multipole expansion diverges.  
 
- map = PCM(dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), 
-           pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
-           radii=None, dmat=None, bfs=None,
-           colors =[(0.0, 0.1, 1.0),
-                    (1.0, 1.0, 1.0),
-                    (1.0, 0.1, 0.0)], levs=60, linthresh = 0.0014,
-           label=False, fmt='%2.1f', font_size=6, block=False, name=None,
-           )
 
- map.make()
+ USAGE:
 
- Arguments:
+            from libbbg.utilities import PotentialContourMap as PCM                  
+                                                                                     
+            map = PCM(dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), 
+                      pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
+                      pad_left=None, pad_right=None, pad_down=None, pad_up=None, 
+                      radii=None, dmat=None, vec=None, basis=None, 
+                      dma_pot=None, qm_mask_thr=0.01, 
+                      colors =[(0.0, 0.1, 1.0),
+                               (1.0, 1.0, 1.0),
+                               (1.0, 0.1, 0.0)], levs=60, linthresh = 0.0014,
+                      label=False, fmt='%2.1f', font_size=6, block=False, name=None,
+                      atom_colors=None, bond_width=4.0, bond_fmt='k-',
+                      )
+                                                                                     
+            map.make()
 
+
+ ARGUMENTS:
+
+ Basic inputs:
+ -------------
  dma         - libbbg.dma.DMA object
  
  atoms       - list of atoms to be drawn on the plane of a contour plot. (normal numbers)
@@ -247,28 +259,43 @@ class PotentialContourMap:
                         it places 3-rd atom at the origin, 1-st atom specifies y-axis, 
                         4-th atom lies in the plane of contour plot, z-axis is perpendicular to the plane of contour plot.
 
+
+ Masking options:
+ ----------------
+
+ Choose either *radii* or the remaining options. 
+
+ radii       - van der Waals radii for atoms. It is used to mask the regions where multipole expansion diverges. 
+               If radii=None you must specify density matrix, basis set and the appropriate DMA object computed at the same level of theory. 
+               Then the region with deviations 
+               larger than qm_mask_thr (in absolute value in AU units of potential) from the exact QM potential are masked.
+
+                             - OR -
+
+ basis       - basis set (eg. 6-311++G**)
+
+ dmat        - density matrix for a molecule in alligned geometry! To obtain this geometry first make a map using van der Waals radii. The
+               program will print the alligned geometry. For THIS geometry compute the density matrix. Otherwise the result will be incorrect.
+
+ vec         - optional to dmat, specify the eigenvectors (wavefunction LCAO coefficients). These eigenvectors will be rotated so
+               they should be in the geometry identical to the DMA supplied (dma). From the rotated eigenvectors density matrix is computed.
+               This option is still buggy and provides poor masking since rotation of wavefunction is either buggy or just not accurate enough.
+
+ dma_pot     - dma distribution in exactly the same orientation as DMA suppplied (the one which is to be plotted). dma_pot represents
+               the elecrostatic potential and is assumed to have the same divergence spheres as DMA to be plotted.
+
+ atnos       - atomic numbers of all atoms in DMA distribution. 
+
+
+ Plot options:
+ -------------
+
  pad_x/pad_y - padding in x/y directions (in Bohr)
 
  dx/dy       - grid spacing in x/y directions (in Bohr)
 
  levels      - Levels of contour plot. If None, default ones will be used by matplotlib.contour
 
- radii       - van der Waals radii for atoms. It is used to mask the regions where multipole expansion diverges. 
-               If radii=None you must specify density matrix and basis set object. Then the region with deviations 
-               larger than 1% from the exact QM potential are masked.
-
- dmat        - density matrix
-
- bfs         - PyQuante basis set object compatible with the turn of AOs in dmat.
-
- colors      - RGB values for color map. Default is Red(+)-White(0)-Blue(-)
-
- levs        - number of levels in the colorbar
-
- linthresh   - Number specifying the maximum value (for positive and negative potential regions) where the normalization is linear. 
-               In other points the normalization is logarithmic. This is necessary parameter because otherwise the zero-valued regions
-               would blow up to infinity during logarithmic normalization.
- 
  label       - if True, the isovalues of potential are printed within isobars. Default is False.
 
  fmt         - format of labels. Relevant if label=True.
@@ -279,16 +306,34 @@ class PotentialContourMap:
 
  name        - if not None, the map will be saved to the file=name. Default is None.
 
+ atom_colors - list of size len(atoms) specifying matplotlib.colors for atoms. Default all black.
+
+ bond_width  - number specifying width of stick representation of bonds. Default 4.0
+
+ bond_fmt    - format of bond line. Default 'k-'.
+
+ colors      - RGB values for color map. Default is Red(+)-White(0)-Blue(-)
+
+ levs        - number of levels in the colorbar
+
+ linthresh   - Number specifying the maximum value (for positive and negative potential regions) where the normalization is linear. 
+               In other points the normalization is logarithmic. This is necessary parameter because otherwise the zero-valued regions
+               would blow up to infinity during logarithmic normalization.
+
+
  ---------------------------------------------------------------------------------------------------------------------------------------
-                                                                                          Last Revision: 12 Jan 2015
+                                                                                                      Last Revision: 14 Jan 2015
 """
    def __init__(self, dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), 
                       pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
-                      radii=None, dmat=None, bfs=None, mol=None,
+                      pad_left=None, pad_right=None, pad_down=None, pad_up=None, 
+                      radii=None, vec=None, dmat=None, dma_pot=None, qm_mask_thr=0.10,
+                      atnos=None, basis=None,
                       colors =[(0.0, 0.1, 1.0),
                                (1.0, 1.0, 1.0),
                                (1.0, 0.1, 0.0)], levs=60, linthresh = 0.0014,
-                      label=False, fmt='%2.1f', font_size=6, block=False, name=None
+                      label=False, fmt='%2.1f', font_size=6, block=False, name=None, 
+                      atom_colors=None, bond_width=4.0, bond_fmt='k-',
                       ):
        self.__dma = dma.copy()
        self.__atoms = numpy.array(atoms,int)-1
@@ -296,17 +341,34 @@ class PotentialContourMap:
        self.__levels = levels
        self.__allign = (allign_atid, allign_axes)
        self.__radii = radii
-       self.__mol = mol
+       self.__atnos = atnos
+       self.__basis = basis
+       self.__vec = vec
        self.__dmat = dmat
-       self.__bfs = bfs
-       self.__pad_x = pad_x ; self.__pad_y = pad_y
+       self.__dma_pot = dma_pot; self.__qm_mask_thr = qm_mask_thr
+       if pad_left is None and pad_right is not None or pad_right is None and pad_left is not None:
+          print " You must specify padding in both right and left directions!"; exit()
+       if pad_down is None and pad_up is not None or pad_up is None and pad_down is not None:
+          print " You must specify padding in both up and down directions!"; exit()
+       if pad_left is None and pad_right is None:
+          self.__pad_left = pad_x ; self.__pad_right= pad_x
+       else:
+          self.__pad_left= pad_left ; self.__pad_right= pad_right
+       if pad_down is None and pad_up is None:
+          self.__pad_down= pad_y ; self.__pad_up= pad_y
+       else:
+          self.__pad_down= pad_down ; self.__pad_up= pad_up
        self.__dx = dx       ; self.__dy = dy
        self.__colors = colors; self.__levs = levs; self.__linthresh = linthresh
        self.__label = label ; self.__fmt = fmt; self.__font_size = font_size
        self.__block = block ; self.__name = name
+       self.__atom_colors = atom_colors
+       self.__bond_width = bond_width; self.__bond_fmt = bond_fmt
+       if atom_colors is None: 
+          self.__atom_colors = ['black'] * len(atoms)
        if radii is None:
-          error = " Van der Waals radii not specified so you must provide density matrix (dmat) and basis set (bsf)!"
-          assert ((dmat is not None) and (bfs is not None)), error
+          error = " Van der Waals radii not specified so you must provide basis set (basis) and density matrix (dmat) for alligned molecule!"
+          assert (dmat is not None or vec is not None) , error
           self.__mask_with_qm = True
        else: self.__mask_with_qm = False
 
@@ -317,40 +379,113 @@ class PotentialContourMap:
        """Main routine for map generation"""
        self._allign_molecule()
        self._calc_potential()
+       self._mask()
        self._make_plot()
        return
+
    def _allign_molecule(self):
        """Alligns the molecule (structure and DMA)"""
        atid, axes = self.__allign
        alligner = Allign(self.__xyz, atid=atid, axes=axes, dma=self.__dma)
+       if self.__mask_with_qm:
+          alligner2 = Allign(self.__xyz, atid=atid, axes=axes, dma=self.__dma_pot)
        self.__dma, self.__xyz = alligner.get_transformed()
        self.__dma.MAKE_FULL()
        self.__dma.MakeTraceless()
        self.__dma.makeDMAfromFULL()
-       PRINTL(self.__xyz,'','')
-       return
-   def _make_plot(self):
-       """Makes the contour plot"""
-       # [1] mask
-       atoms = self.__xyz[self.__atoms]
-       X,Y = numpy.meshgrid(self.__y,self.__x)
+       rot = alligner.rot
+
+       # rotate (allign) the additional electrostatic distribution
        if self.__mask_with_qm:
+          self.__dma_pot, smiec = alligner2.get_transformed()
+          self.__dma_pot.MAKE_FULL()
+          self.__dma_pot.MakeTraceless()
+          self.__dma_pot.makeDMAfromFULL()
+       print " The alligned coordinates [Angstrom]:\n"
+       PRINTL(self.__xyz*units.UNITS.BohrToAngstrom,'','')
+       self._create_mol()
+       # generate the rotated density matrix
+       if self.__mask_with_qm:
+          if self.__dmat is None:
+             typs= self.__bfs.get_bfst().sum(axis=1)                       
+             nbasis = len(self.__bfs)
+             self.__vec = qm.efprot.vecrot(self.__vec, rot.T, typs)
+             self.__dmat = numpy.zeros((nbasis,nbasis),numpy.float64)
+             for i in range(len(self.__vec)):
+                 v = self.__vec[i]
+                 self.__dmat += numpy.outer(v,v)
+             self.__dmat = self.__dmat.ravel() * 2.0   
+          else:
+             self.__dmat = self.__dmat.ravel()
+       return
+
+   def _calc_potential(self):
+       """Calculate potential from DMA and WFN if needed"""
+       ndma = numpy.array([len(self.__dma),],int)
+       rdma = self.__dma.get_origin().ravel()
+       chg  = self.__dma.get_charges()
+       dip  = self.__dma.get_dipoles().ravel()
+       qad  = self.__dma.get_quadrupoles().ravel()
+       oct  = self.__dma.get_octupoles().ravel()
+       points = numpy.zeros((self.__nx*self.__ny*8), numpy.float64)
+       points = qm.make_points.make_points(self.__nx,self.__ny,self.__dx,self.__dy,self.__x_min,self.__y_min,points)
+       if self.__mask_with_qm: 
+          points2 = points.copy()
+          points3 = points.copy()
+       points = qm.clemtp.potdma(points,rdma,ndma,chg,dip,qad,oct)
+       points = points.reshape(self.__nx,self.__ny,8)
+       self.__z = points[:,:,-1]
+       if self.__mask_with_qm:
+          # exact QM potential
           vlist, eta, ncntr, ntype, nfirst, nlast, ncmx, ngmx, ntmx, nbfns = make_bqc_inp(self.__mol)
-#          for i in range(self.__nx):
-#              x = self.__x_min + i*self.__dx
-#              for j in range(self.__ny):
-#                  y = self.__y_min + j*self.__dy
-#                  point = numpy.array([x,y,0.0], numpy.float64)
-#                  v = self._v_wfn(self.__mol, self.__bfs, self.__dmat, point)
+          points2 = qm.wfn.scawf2(points2,self.__dmat,eta,nfirst,nlast,ntype,vlist)
+          points2 = points2.reshape(self.__nx,self.__ny,8)
+          self.__z_exact = points2[:,:,4]
+          # potential from DMA
+          ndma = numpy.array([len(self.__dma_pot),],int)  
+          rdma = self.__dma_pot.get_origin().ravel()
+          chg  = self.__dma_pot.get_charges()
+          dip  = self.__dma_pot.get_dipoles().ravel()
+          qad  = self.__dma_pot.get_quadrupoles().ravel()
+          oct  = self.__dma_pot.get_octupoles().ravel()
+          points3 = qm.clemtp.potdma(points3,rdma,ndma,chg,dip,qad,oct)
+          points3 = points3.reshape(self.__nx,self.__ny,8)
+          self.__z_test = points3[:,:,-1]
+          del points2, points3
+       del points
+       return
+
+   def _mask(self):
+       """masks the region where multipole expansion diverges"""
+       # masking according to QM calculation
+       if self.__mask_with_qm:
+          ke = self.__z_exact.reshape(self.__nx*self.__ny)
+          kt = self.__z_test .reshape(self.__nx*self.__ny)
+          #for i in range(len(ke)):
+          #    ff = numpy.abs(ke[i]-kt[i])/numpy.abs(ke[i]) * 100.0
+          #    print " %16.5E %16.5E %16.5f %16.5f" % (ke[i], kt[i], numpy.abs(ke[i]-kt[i]), ff)
+          #interior = numpy.abs(self.__z_exact - self.__z_test)/numpy.abs(self.__z_exact) > self.__qm_mask_thr
+          interior = numpy.abs(self.__z_exact - self.__z_test) > self.__qm_mask_thr
+          self.__z[interior] = numpy.NaN #numpy.ma.masked
+       # masking according to vdW radii
        else:
+           X,Y = numpy.meshgrid(self.__y,self.__x)
+           atoms = self.__xyz[self.__atoms]
            for i in range(len(atoms)):
                interior = numpy.sqrt(((X-atoms[i,1])**2) + ((Y-atoms[i,0])**2)) < self.__radii[i]
                self.__z[interior] = numpy.ma.masked
+       return
+
+   def _make_plot(self):
+       """Makes the contour plot"""
+       # [1] mask
+       X,Y = numpy.meshgrid(self.__y,self.__x)
        Z = self.__z 
 
        # [2] make contour plot
        CP1 = pylab.contour(X,Y,Z,levels=self.__levels,colors='k')
        if self.__label: pylab.clabel(CP1, colors='k', fmt=self.__fmt, nline=True, fontsize=self.__font_size)
+       pylab.gca().patch.set_color('1.0')
        CP2 = pylab.contourf(X,Y,Z,levels=self.__levels,cmap=self.__cmap,norm=matplotlib.colors.SymLogNorm(self.__linthresh))
        pylab.colorbar(CP2)
        pylab.title('Contour plot')
@@ -368,38 +503,40 @@ class PotentialContourMap:
 
        # [4] plot bonds
        for bond in self.__bonds:
-           pylab.plot(y[bond], x[bond], 'k-', lw=4)
+           pylab.plot(y[bond], x[bond], self.__bond_fmt, lw=self.__bond_width)
+
+       # [5] plot atoms
+       for i in range(len(self.__atoms)):
+           circles(y[self.__atoms[i]], x[self.__atoms[i]], s=0.3, alpha=1.0, c='black',facecolor=self.__atom_colors[i])
+          
        
        pylab.axes().set_aspect('equal', 'datalim')
        pylab.show(block=self.__block)
        if self.__name is not None: pylab.savefig(self.__name)
        return
-   def _calc_potential(self):
-       """Calculate potential from DMA"""
-       ndma = numpy.array([len(self.__dma),],int)
-       rdma = self.__dma.get_origin().ravel()
-       chg  = self.__dma.get_charges()
-       dip  = self.__dma.get_dipoles().ravel()
-       qad  = self.__dma.get_quadrupoles().ravel()
-       oct  = self.__dma.get_octupoles().ravel()
-       points = numpy.zeros((self.__nx*self.__ny*8), numpy.float64)
-       #for i in xrange(self.__nx):
-       #    x = self.__x_min + i*self.__dx
-       #    for j in xrange(self.__ny):
-       #        y = self.__y_min + j*self.__dy
-       #        points[i,j,:3] = numpy.array([x,y,0.0], numpy.float64)
-       #points = points.reshape(self.__nx*self.__ny*8)
-       points = qm.make_points.make_points(self.__nx,self.__ny,self.__dx,self.__dy,self.__x_min,self.__y_min,points)
-       points = qm.clemtp.potdma(points,rdma,ndma,chg,dip,qad,oct)
-       points = points.reshape(self.__nx,self.__ny,8)
-         
-       self.__z = points[:,:,-1]
+
+   # helper methods
+   def _create_mol(self):
+       """Make PyQuante.Molecule object in the alligned geometry"""
+       xyz = self.__xyz.copy()
+       Coords = list()
+       for i in range(len(xyz)):
+           atom  = (self.__atnos[i], (xyz[i,0],
+                                      xyz[i,1],
+                                      xyz[i,2]) )
+           Coords.append(atom)
+       Mol = PyQuante.Molecule('buddy',Coords,units='Bohr',
+                               multiplicity=1,charge=0,
+                               basis=self.__basis)
+       self.__mol = Mol
+       self.__bfs = Mol.get_bfs()
        return
+ 
    def _prepare(self):
        """Generate the X and Y axis and initialize points' values Z"""
        xyz = self.__dma.get_origin()
-       x_min = xyz[:,0].min()-self.__pad_x; x_max = xyz[:,0].max()+self.__pad_x
-       y_min = xyz[:,1].min()-self.__pad_y; y_max = xyz[:,1].max()+self.__pad_y
+       x_min = xyz[:,0].min()-self.__pad_left; x_max = xyz[:,0].max()+self.__pad_right
+       y_min = xyz[:,1].min()-self.__pad_down; y_max = xyz[:,1].max()+self.__pad_up
        nx = numpy.int64((x_max-x_min)/self.__dx + 1)
        ny = numpy.int64((y_max-y_min)/self.__dy + 1)
        x = numpy.linspace(x_min, x_max, nx)
@@ -412,7 +549,9 @@ class PotentialContourMap:
        self.__x = x
        self.__y = y
        self.__z = numpy.zeros((nx,ny),numpy.float64)
+       print " This map will contain %10d points" % (nx*ny)
        return 
+
    def _create_cmap(self):
        levs = range(self.__levs)
        assert len(levs) % 2 == 0, 'N levels must be even.'
@@ -421,21 +560,6 @@ class PotentialContourMap:
                                                                   N=len(levs)-1, )
        self.__cmap = cmap
        return
-   def _v_wfn(self,molecule,bfs,P,Rb):
-       """Calculates electrostatic potential in point Rb
-directly from wave function. Needs molecule, basis set
-and density matrix. Rb is in AU."""
-       a = molecule.atoms
-       Rb= tuple(Rb)
-       V = 0
-       # nuclear contribution
-       for q in range(len(molecule)):
-           V+= a[q].atno / numpy.sqrt( sum( (numpy.array(a[q].pos())-Rb)**2 ) )
-       # electronic contribution 
-       for i in range(len(bfs)):
-           for j in range(len(bfs)):
-               V += P[i,j] * bfs[i].nuclear(bfs[j],Rb)
-       return V
 
 def autocorr(x):
     """Auto-correlation"""
