@@ -75,7 +75,9 @@ export LIBBBG_LIB=$PREFIX/lib/python2.7/dist-packages/libbbg/
 # install solpol and solpol2 extensions - requires mathematical libraries linked to NumPy!
 cd libbbg/qm
 f2py -c --link-lapack_opt --link-blas_opt -m make_points  make_points.f
+f2py -c --link-lapack_opt --link-blas_opt -m wfn  wfn.f
 mv -v $PWD/make_points.so $LIBBBG_LIB/qm
+mv -v $PWD/wfn.so $LIBBBG_LIB/qm
 cd ../..
 
 echo --- INFO ---------------------------------------------------------------------------

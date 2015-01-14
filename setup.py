@@ -26,6 +26,8 @@ ORBLOC = Extension(name='libbbg.qm.pmloca',
                    sources=['libbbg/qm/pmloca.f'],)
 FT_LIB = Extension(name='libbbg.fourier.ft',
                    sources=['libbbg/fourier/ft.f'],)
+EFPROT = Extension(name='libbbg.qm.efprot',
+                   sources=['libbbg/qm/efprot.f'],)
 
 #CLPLTP = Extension(name='libbbg.clpltp',
 #                   sources=['libbbg/clpltp.f'],
@@ -56,6 +58,6 @@ setup(name='LIBBBG',
                   'libbbg.utilities','libbbg.utilities2',
                   'libbbg.dipderiv','libbbg.re_templates',
                   'libbbg.mpfit','libbbg.letters.greek',],
-      ext_modules=[GENTCF,ORBLOC,CLEMTP,FT_LIB],
+      ext_modules=[GENTCF,ORBLOC,CLEMTP,FT_LIB,EFPROT],
      )
 
