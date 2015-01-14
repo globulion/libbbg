@@ -401,9 +401,9 @@ class PotentialContourMap:
           self.__dma_pot.MAKE_FULL()
           self.__dma_pot.MakeTraceless()
           self.__dma_pot.makeDMAfromFULL()
+          self._create_mol()
        print " The alligned coordinates [Angstrom]:\n"
        PRINTL(self.__xyz*units.UNITS.BohrToAngstrom,'','')
-       self._create_mol()
        # generate the rotated density matrix
        if self.__mask_with_qm:
           if self.__dmat is None:
