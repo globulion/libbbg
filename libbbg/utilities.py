@@ -259,6 +259,9 @@ class PotentialContourMap:
                         it places 3-rd atom at the origin, 1-st atom specifies y-axis, 
                         4-th atom lies in the plane of contour plot, z-axis is perpendicular to the plane of contour plot.
 
+ max_moment  - maximum rank of multipole moment included in map generation (for dma object only). Default is 3 (octupole),
+               2 - quadrupole, 1 - dipole and 0 - charge).
+
 
  Masking options:
  ----------------
@@ -324,7 +327,7 @@ class PotentialContourMap:
  ---------------------------------------------------------------------------------------------------------------------------------------
                                                                                                       Last Revision: 14 Jan 2015
 """
-   def __init__(self, dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), 
+   def __init__(self, dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), max_moment=3,
                       pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
                       pad_left=None, pad_right=None, pad_down=None, pad_up=None, 
                       radii=None, vec=None, dmat=None, dma_pot=None, qm_mask_thr=0.10,
@@ -340,6 +343,7 @@ class PotentialContourMap:
        self.__bonds = numpy.array(bonds,int)-1
        self.__levels = levels
        self.__allign = (allign_atid, allign_axes)
+       self.__max_moment = max_moment
        self.__radii = radii
        self.__atnos = atnos
        self.__basis = basis
@@ -434,7 +438,14 @@ class PotentialContourMap:
           points3 = points.copy()
        points = qm.clemtp.potdma(points,rdma,ndma,chg,dip,qad,oct)
        points = points.reshape(self.__nx,self.__ny,8)
-       self.__z = points[:,:,-1]
+       if self.__max_moment == 3:
+          self.__z = points[:,:,-1]
+       elif self.__max_moment == 2:
+          self.__z = points[:,:,-5] + points[:,:,-4] + points[:,:,-3]
+       elif self.__max_moment == 1:
+          self.__z = points[:,:,-5] + points[:,:,-4]
+       elif self.__max_moment == 0:
+          self.__z = points[:,:,-5]
        if self.__mask_with_qm:
           # exact QM potential
           vlist, eta, ncntr, ntype, nfirst, nlast, ncmx, ngmx, ntmx, nbfns = make_bqc_inp(self.__mol)
@@ -534,7 +545,7 @@ class PotentialContourMap:
  
    def _prepare(self):
        """Generate the X and Y axis and initialize points' values Z"""
-       xyz = self.__dma.get_origin()
+       xyz = self.__dma.get_pos()
        x_min = xyz[:,0].min()-self.__pad_left; x_max = xyz[:,0].max()+self.__pad_right
        y_min = xyz[:,1].min()-self.__pad_down; y_max = xyz[:,1].max()+self.__pad_up
        nx = numpy.int64((x_max-x_min)/self.__dx + 1)
