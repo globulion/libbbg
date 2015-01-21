@@ -344,7 +344,8 @@ class PotentialContourMap:
        self.__levels = levels
        self.__allign = (allign_atid, allign_axes)
        self.__max_moment = max_moment
-       self.__radii = radii
+       if radii is None: self.__radii = None
+       else: self.__radii = numpy.array(radii)
        self.__atnos = atnos
        self.__basis = basis
        self.__vec = vec
@@ -522,8 +523,8 @@ class PotentialContourMap:
           
        
        pylab.axes().set_aspect('equal', 'datalim')
-       pylab.show(block=self.__block)
        if self.__name is not None: pylab.savefig(self.__name)
+       pylab.show(block=self.__block)
        return
 
    # helper methods
