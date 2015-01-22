@@ -22,7 +22,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'text_to_list','QMFile','Emtp_charges','MDOut',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
-         'PotentialContourMap','make_bqc_inp',]
+         'PotentialContourMap','make_bqc_inp','bcolors']
          
 __version__ = '3.3.2'
 
@@ -64,6 +64,16 @@ uUNITS= units.UNITS
 #                              interp2d as I2D
 #from letters import greek as let_greek
 #from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 def make_bqc_inp(mol):
     nelec = mol.get_atno().sum()
