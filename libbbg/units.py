@@ -5,7 +5,7 @@
 __all__=['UNITS','Atom']
 __version__ = '3.0.1'
 
-import numpy
+import numpy, math
 
 class Atom:
       """Represents an atom. Stores, its symbol, atomic number, mass and vdW radius
@@ -113,6 +113,7 @@ class UNITS:
       AuToOctupolarTunningRate      = 42.6810 * BohrToCm**2
       HartreeToKcalPerMole   = 627.509
       HartreeToElectronVolt  = 27.2116
+      MuToG09Mu              = BohrElectronToDebye * math.sqrt(IrIntToKmM/ElectronMassToAmu) / BohrToAngstrom # converts [e a_0]/[a_0 * m_e^1/2] -> const* [D]/[Angs * AMU^1/2]
       
       ### masses of atoms in AMU
       #mass   = { 1: 1.0078250,  6:12.0000000,  7:14.0030740,
