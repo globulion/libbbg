@@ -22,7 +22,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'text_to_list','QMFile','Emtp_charges','MDOut',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
-         'PotentialContourMap','make_bqc_inp','bcolors']
+         'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',]
          
 __version__ = '3.3.2'
 
@@ -4461,6 +4461,20 @@ def ParseEnergyFromFchk(file,type='SCF'):
     E = numpy.float64(line.split()[-1])
     data.close()
     return E
+
+def ParseDipoleMomentFromFchk(file):
+    """parse total dipole moment from g09 fchk. 
+Note that level of theory is dependent of the keyword used in g09 input file!"""
+    data = open(file)
+    line = data.readline()
+    ### look for dipole moment
+    querry = "Dipole Moment"
+    while querry not in line:
+          line = data.readline()
+    line = data.readline()
+    D = numpy.float64(line.split())
+    data.close()
+    return D
 
 def ParseVecFromFchk(file):
     """parse Ci\mu coeeficients from g09 fchk"""
