@@ -395,12 +395,13 @@ and changing to AU units (frequencies and reduced masses)"""
 
           return numpy.array(T,dtype=numpy.float64)
         
-      def DipoleDeriv(self,file):
+      def DipoleDeriv(self,file=None):
           """withdraw first derivs of dipole moment in cartesian coord. These derivatives 
              are from gaussian log file and hase strange units, unknown to me as for the
              time being! (probably natural units)"""
 
           querry = " DipoleDeriv"
+          if file is None: file = self.file
           data = open(file)
           line = data.readline()
 
