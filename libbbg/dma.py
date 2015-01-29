@@ -442,9 +442,10 @@ the magnitudes by 2.0"""
         c2 = sqrt ( ((self[1].copy())**2).sum(axis=1) )
         # quadrupoles and octupoles
         temp = self.copy()
-        temp.MAKE_FULL()
-        temp.MakeTraceless()
-        temp.makeDMAfromFULL()
+        if not temp.traceless:
+           temp.MAKE_FULL()       
+           temp.MakeTraceless()
+           temp.makeDMAfromFULL()
         v3 = temp[2]; v4 = temp[3]
         c3 = zeros(self.nfrag, float64)
         c4 = zeros(self.nfrag, float64)
