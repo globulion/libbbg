@@ -431,6 +431,34 @@ mathematical operations:
         """return number of atoms"""
         return len(self.pos)
 
+    def get_magnitudes(self):
+        """
+Return the magnitudes of distributed multipoles. Octupoles NOT implemented yet!
+To obtain magnitude of quadrupole according to Jackson convention just multiply
+the magnitudes by 2.0"""
+        # charges
+        c1 = self[0].copy()
+        # dipoles
+        c2 = sqrt ( ((self[1].copy())**2).sum(axis=1) )
+        # quadrupoles and octupoles
+        temp = self.copy()
+        temp.MAKE_FULL()
+        temp.MakeTraceless()
+        temp.makeDMAfromFULL()
+        v3 = temp[2]; v4 = temp[3]
+        c3 = zeros(self.nfrag, float64)
+        c4 = zeros(self.nfrag, float64)
+        for i in range(self.nfrag):
+            Q11 = v3[i,0] 
+            Q22 = v3[i,1]
+            Q33 = v3[i,2]
+            Q12 = v3[i,3]
+            Q13 = v3[i,4]
+            Q23 = v3[i,5]
+            v = 1./4. * Q33**2 + 1./6. * (Q12**2 + Q13**2 + Q23**2) + 1./24. * (Q11 - Q22)**2
+            c3[i] = sqrt(v)
+        return c1, c2, c3, c4
+
     def get_charges    (self): return self[0]
     def get_dipoles    (self): return self[1]
     def get_quadrupoles(self): return self[2]
