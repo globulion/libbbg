@@ -405,9 +405,13 @@ and changing to AU units (frequencies and reduced masses)"""
           data = open(file)
           line = data.readline()
 
-          while 1:
-                if querry in line: break
+          search = 'ERR'
+          while line:
+                if querry in line: 
+                   search = 'OK'
+                   break
                 line = data.readline()
+          if search=='ERR': raise ValueError, "No DipoleDeriv found"
 
           T = numpy.zeros((self.a,3),dtype=numpy.float64)
           for i in range(self.a):
