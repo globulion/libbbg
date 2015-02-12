@@ -22,7 +22,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'text_to_list','QMFile','Emtp_charges','MDOut',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
-         'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',]
+         'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
+         'ParseGradFromFchk',]
          
 __version__ = '3.3.2'
 
@@ -2286,11 +2287,11 @@ class VIB(units.UNITS):
     """
 Represents vibrational analysis tool
     """
-    def __init__(self,mol,hess,weight=True):
+    def __init__(self,mol,hess,weight=True,proj_grad=None):
         self.hess = hess
         self.mol = mol
         self._prepare()
-        if weight: self._weight()
+        if weight: self._weight(proj_grad)
 
     # public
     
@@ -2358,10 +2359,15 @@ Represents vibrational analysis tool
         self.masses = numpy.array(masses,dtype=numpy.float64)*self.AmuToElectronMass
         self.coords = numpy.array(coords,dtype=numpy.float64)
         return
-    def _weight(self):
+    def _weight(self,proj_grad=None):
         """weight hessian"""
         M = self._M()
         self.hess = numpy.dot(M,numpy.dot(self.hess,M))
+        if proj_grad is not None:
+           g = numpy.dot(M,proj_grad)
+           g/=-numpy.linalg.norm(g)
+           T = numpy.identity(len(g)) - numpy.outer(g,g)
+           self.hess = numpy.dot(numpy.dot(T,self.hess),T)
         return
     def _weight_old(self):
         """weight Hessian"""
@@ -4615,6 +4621,32 @@ def ParseFCFromFchk(file):
             I+=1
     
     return H
+
+def ParseGradFromFchk(file):
+    """parses cartesian gradients from Gaussian fchk file"""
+        
+    data = open(file)
+    line = data.readline()
+    querry = "Number of atoms"
+    while 1:
+        if querry in line: break
+        line = data.readline()
+    N = int(line.split()[-1])
+    querry = "Cartesian Gradient"
+    while 1:
+        if querry in line: break
+        line = data.readline()
+    M = int(line.split()[-1])
+    line = data.readline()
+    G = []
+    g = lambda n: n/5+bool(n%5)
+    for i in range(g(M)):
+        G+= line.split()
+        line = data.readline()
+    data.close()
+    
+    G = numpy.array(G,numpy.float64)
+    return G
 
 def ParseDipoleDerivFromFchk(file):
     """parses dipole derivatives from Gaussian fchk file"""
