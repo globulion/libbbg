@@ -1849,6 +1849,25 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
                              'gms' :self._open_gms,}
        return
 
+   def _make_mol(self,name,coord,mult,charge,method,basis):
+       """make the PyQuante.Molecule object"""
+       Coords = []
+       for i in range(len(coord)):
+           atom  = (uAtom(coord[i][0]).atno, (coord[i][1], 
+                                              coord[i][2],
+                                              coord[i][3]) )
+           Coords.append(atom)
+       Mol = PyQuante.Molecule(name,Coords,units='Bohr',
+                               multiplicity=mult,charge=charge,
+                               basis=basis,method=method)
+       return Mol
+
+   def pop(self, idx, mol=True):
+       """Remove atom from a molecule and create molecule object if specified - this method is NOT FINISHED !!! AND WORKS ONLY FOR GENERATING SHRINKED MOL OBJECT!!!!!!!!!!!!!!!!!!!!!!"""
+       self.__coord_list.pop(idx) 
+       if mol: self.__mol = self._make_mol('happy buddy', self.__coord_list, mult=1, charge=0, method='HF', basis='3-21G')
+       return
+
    def _open_xyz(self,file,units,name,mult,charge,method,basis,mol=True):
        """open xyz file"""
        self.__file_obj = open(file)
