@@ -23,7 +23,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
          'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
-         'ParseGradFromFchk',]
+         'ParseGradFromFchk','distribute']
          
 __version__ = '3.3.2'
 
@@ -65,6 +65,56 @@ uUNITS= units.UNITS
 #                              interp2d as I2D
 #from letters import greek as let_greek
 #from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+def distribute(box_size, mol_size, max_n_mol, box_type='cubic'):
+    """
+Distribute molecules into a regular lattice in a cubic box. 
+Finds optimial number of molecules per each box dimension to fill the 
+space. Pay caution: to many molecules per box may cause clashes and the algorithm
+will produce an error message.
+
+Usage:
+
+   nxyz = distribute(box_size, mol_size, max_n_mol, box_type='cubic')
+ 
+Arguments:
+
+   box_size = [Lx, Ly, Lz] - list or numpy.ndarray of length 3
+                             specifying the box dimensions in unit U
+   mol_size = [hy, hy, hz] - list or numpy.ndarray of length 3
+                             specifying the molecule dimensions in unit U    
+   max_n_mol               - maximal number of molecules to be packed
+   box_type                - type of a box. Now only cubic box is implemented
+
+Returns:
+
+   nxyz = [nx, ny, nz]     - numpy.ndarray of length 3 giving the optimal
+                             fractional number of molecules per axis
+"""
+    assert box_type=='cubic', 'Box type %s is not implemented yet! Quitting...' % box_type
+    n = max_n_mol**(1./3)
+    nxyz_0 = numpy.array([n,n,n], numpy.float64)
+    Lx, Ly, Lz = box_size
+    hx, hy, hz = mol_size
+    fmin_slsqp = scipy.optimize.fmin_slsqp
+
+    # minimizing function                                                                                            
+    I = lambda nxyz, n, Lx, Ly, Lz, hx, hy, hz: \
+        (Lx-nxyz[0]*hx)/(nxyz[0]-1) + \
+        (Ly-n/(nxyz[0]*nxyz[2])*hy)/(n/(nxyz[0]*nxyz[2])-1) + \
+        (Lz-n/(nxyz[0]*nxyz[1])*hz)/(n/(nxyz[0]*nxyz[1])-1)
+
+    # constraints
+    dx = lambda nxyz, n, Lx, Ly, Lz, hx, hy, hz: (Lx-nxyz[0]*hx)/(nxyz[0]-1)
+    dy = lambda nxyz, n, Lx, Ly, Lz, hx, hy, hz: (Ly-n/(nxyz[0]*nxyz[2])*hy)/(n/(nxyz[0]*nxyz[2])-1)
+    dz = lambda nxyz, n, Lx, Ly, Lz, hx, hy, hz: (Lz-n/(nxyz[0]*nxyz[1])*hz)/(n/(nxyz[0]*nxyz[1])-1)
+
+    # go! 
+    x = fmin_slsqp(I, nxyz_0, eqcons=[dx, dy, dz], f_eqcons=None, ieqcons=(), f_ieqcons=None,
+                      bounds=(), fprime=None, fprime_eqcons=None, fprime_ieqcons=None,
+                      args=(max_n_mol, Lx, Ly, Lz, hx, hy, hz), iter=100, acc=1e-06, iprint=1, disp=None, full_output=0,
+                      epsilon=1.4901161193847656e-08)
+    return x
 
 class bcolors:
     HEADER = '\033[95m'
@@ -1200,7 +1250,7 @@ text_to_list(text,delimiter=',',dtype=float) = [-0.44, 0.122, 23.4544, -335.2]
     else:
        rang = text.split(delimiter)
        rang = map(dtype,rang)
-    return rang
+    return numpy.array(rang)
 
 def dihedral(A,unit='radian'):
     """Compute dihedral angle n1-n2-n3-n4. 
@@ -1631,6 +1681,12 @@ Notes:
        if (units.lower()).startswith('angs'): self.__pos = pos * self.AngstromToBohr
        else: self.__pos = pos
        return 
+
+   def set_atoms(self,pos,atoms):
+       """set the atoms and positions"""
+       self.__pos = pos
+       self.__atoms = atoms
+       return
   
    def set_charges(self, chg):
        """set the charges array"""
