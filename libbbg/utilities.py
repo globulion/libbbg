@@ -23,7 +23,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
          'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
-         'ParseGradFromFchk','distribute']
+         'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk',]
          
 __version__ = '3.3.2'
 
@@ -4585,6 +4585,35 @@ def ParseVecFromFchk(file):
         C+= line.split()
         line = data.readline()
     C = numpy.array(C,dtype=numpy.float64).reshape(N,M)
+    data.close()
+    return C
+
+def ParseAlphaOrbitalEnergiesFromFchk(file, spin='alpha'):
+    """parse alpha or beta orbital energies coeeficients from g09 fchk"""
+    if spin!='alpha': raise NotImplementedError, "UTILITIES: Not Implemented beta spins!"
+
+    data = open(file)
+    line = data.readline()
+    
+    ### look for basis set size
+    querry = "Number of basis functions"
+    while querry not in line:
+          line = data.readline()
+    M = int(line.split()[-1])
+    
+    ### look for Alpha MO size
+    querry = "Alpha Orbital Energies"
+    while querry not in line:
+          line = data.readline()
+    N = int(line.split()[-1])
+    
+    line = data.readline()
+    C = []
+    g = lambda n: n/5+bool(n%5)
+    for i in range(g(N)):
+        C+= line.split()
+        line = data.readline()
+    C = numpy.array(C,dtype=numpy.float64)
     data.close()
     return C
 
