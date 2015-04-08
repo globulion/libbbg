@@ -2039,9 +2039,9 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        line = file.readline()
        ### search for atomic symbols, charge and multiplicity
        atoms = []
-       querry = "Symbolic Z-matrix:"
+       querry = "symbolic z-matrix:"
        while True:
-           if querry in line: break
+           if querry in line.lower(): break
            line = file.readline()
        line = file.readline()
        chg = numpy.float64(line.split()[2])
