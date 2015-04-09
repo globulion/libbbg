@@ -112,11 +112,11 @@ and changing to AU units (frequencies and reduced masses)"""
 
       def find_Atoms(self):
           """finds atoms and store them in a list"""
-          querry = " Symbolic Z-matrix"
+          querry = " symbolic z-matrix"
           data = open(self.file)
           line = data.readline()
           while 1:
-                if querry in line: break
+                if querry in line.lower(): break
                 line = data.readline()
           line = data.readline()
           line = data.readline()
