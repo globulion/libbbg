@@ -634,16 +634,32 @@ class PotentialContourMap:
        self.__cmap = cmap
        return
 
-def autocorr(x):
+def autocorr(y, normalize=True, t_min=0.0, t_max=1.0 ):
     """Auto-correlation"""
-    result = numpy.correlate(x, x, mode='full')
-    return result[result.size/2:]
+    result = numpy.correlate(y, y, mode='full')
+    r = result[result.size/2:]
+    if normalize:
+       M = lambda L, t, dt: L - t/dt
+       L = len(y); dt = (t_max - t_min)/(L-1)
+       for i in range(L):
+           t = t_min + i*dt
+           r[i]/= M(L, t, dt)
+       r/=r[0]
+    return r
 
-def crosscorr(x,y):
+def crosscorr(y1, y2, normalize=True, t_min=0.0, t_max=1.0 ):
     """Cross-correlation"""
-    assert x.shape==y.shape, 'Shapes of input arrays are not the same!'
-    result = numpy.correlate(x, y, mode='full')
-    return result[result.size/2:]
+    assert y1.shape==y2.shape, 'Shapes of input arrays are not the same!'
+    result = numpy.correlate(y1, y2, mode='full')
+    r = result[result.size/2:]
+    if normalize:
+       M = lambda L, t, dt: L - t/dt
+       L = len(y); dt = (t_max - t_min)/(L-1)
+       for i in range(L):
+           t = t_min + i*dt
+           r[i]/= M(L, t, dt)
+       r/=r[0]
+    return r
 
 class FF_scheme(object):
    """
@@ -4773,15 +4789,24 @@ def ParseDipoleDerivFromFchk(file):
     fd = numpy.array(fd,numpy.float64).reshape(M*3,3)
     return fd
 
-def Parse_EDS_InteractionEnergies(file):
+def Parse_EDS_InteractionEnergies(file, method='HF'):
     """parses EDS interaction energies from GAMESS log file"""
     
     data = open(file).read()
     #line = data.readline()
     querry = r'.*VARIATIONAL-PERTURBATIONAL DECOMPOSITION.*'
-    E = ['DE\\(HL\\)'   , 'E\\(EL,10\\)', 'E\\(EL,M,1\\)',
-         'E\\(EL,P,1\\)', 'E\\(EX,HL\\)', 'DE\\(DEL,HF\\)', 
-         'DE\\(HF\\)']
+    if method.lower()=='hf':
+       E = ['DE\\(HL\\)'   , 'E\\(EL,10\\)', 'E\\(EL,M,1\\)',
+            'E\\(EL,P,1\\)', 'E\\(EX,HL\\)', 'DE\\(DEL,HF\\)', 
+            'DE\\(HF\\)']
+    elif method.lower()=='mp2':
+       E = ['DE\\(HL\\)'   , 'E\\(EL,10\\)', 'E\\(EL,M,1\\)',
+            'E\\(EL,P,1\\)', 'E\\(EX,HL\\)', 'DE\\(DEL,HF\\)', 
+            'DE\\(HF\\)'   ,
+            'E\\(MP,2\\)'  , 'E\\(EL,R,12\\)', 'E\\(EL,M,2\\)', 
+            'E\\(EL,P,2\\)', 'E\\(DS,20\\)'  , 'DE\\(EX-DEL,2\\)',
+            'DE\\(MP2\\)'  ]
+    else: raise ValueError, 'Incorrect method %s specified! Quitting...' % method.upper()
          
     for term in E:
         querry+= '\s*%s\s+(%s).*\n' % (term,re_templates.re_real_e)
