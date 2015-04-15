@@ -941,7 +941,7 @@ Notes:
          uconv = numpy.float64(cunit)
     #
     nf = len(f)
-    ht = t/(nf-1)
+    ht = numpy.float(t)/(nf-1)
     # Fast Fourier Transform (Cooley-Tukey)
     if algorithm.lower()[-3:]=='fft':
        # prepare the data points
