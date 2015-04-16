@@ -3,7 +3,9 @@
 # ------------------------------------------ #
 
 __all__=['array_outer_product'    ,'array_outer_product_1_2',
-         'array_outer_product_2_1','array_outer_product_1_n']
+         'array_outer_product_2_1','array_outer_product_1_n',
+         'array_outer_product_2_2','array_outer_product_1_3',
+         'array_outer_product_3_1']
 
 from numpy import zeros, array, outer,\
                   float64
@@ -52,6 +54,22 @@ def array_outer_product_2_1( B, A, result=None):
     #else:
     #   result = array_outer_product( B.reshape(9),A ).reshape(3,3,3) 
     return result
+
+def array_outer_product_2_2( B, A, result=None):
+    f = B.shape[0]
+    result = array_outer_product( B.reshape(f,9), A.reshape(f,9) ).reshape(f,3,3,3,3)
+    return result
+    
+def array_outer_product_1_3( B, A, result=None):
+    f = B.shape[0]
+    result = array_outer_product( B, A.reshape(f,27) ).reshape(f,3,3,3,3)
+    return result
+
+def array_outer_product_3_1( B, A, result=None):
+    f = B.shape[0]
+    result = array_outer_product( B.reshape(f,27), A ).reshape(f,3,3,3,3)
+    return result
+
 
 def array_outer_product_1_n(A, B):
     result = B.copy()
