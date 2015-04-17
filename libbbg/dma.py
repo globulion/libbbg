@@ -19,6 +19,7 @@ import numpy, numpy.linalg, copy, units, utilities2
 
 def ParseDMA(file,type='coulomb',hexadecapoles=False):
     """\
+>>>>> Copied from LIBBBG.utilities <<<<<
 ============================================================================
 Parse DMA from GAUSSIAN, GAMESS or COULOMB.py file. It returns a DMA object.
 Usage:
@@ -524,6 +525,243 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
             c3[i] = numpy.sqrt(v)
         return c1, c2, c3, c4
 
+    def get_const(self, origin=numpy.array([0.,0.,0.]) ):
+        """
+ Calculate the invariants of total multipole moments
+ Returns the tuple of four invariant sets for charge, dipole, quadrupole
+ and octupole moments:
+
+ 1) charge invariant: 
+     total charge
+
+ 2) dipole invariant:
+     norm of a dipole vector
+
+ 3) quadrupole invariants:
+     trace(Q)
+     0.5 * (trace(Q)^2 - trace(Q^2))
+     det(Q)
+ 
+     where Q is quadrupole moment (primitive form)
+
+ 4) octupole invariants:
+     F1 = E_iik * E_ppk
+     F2 = E_ijj * E_iqq
+     F3 = E_ijk * E_ijk
+     F4 = E_ijk * E_kij
+     F5 = 0.5 * (e_kp * E_ijk * E_pji + e_ri * E_ijk * E_kjr)
+
+     where E is octupole moment (primitive form)
+     and e is 2-order antisymmetric (permutation) tensor
+
+ Notes:
+  1) invariants or 3-rd order Cartesian tensors:
+        from. F. Ahmad, Arch. Mech. 63, 4, pp383-392 Warszawa 2011
+        formulae on p.390 for F1-F5
+
+  2) no invariants are computed for hexadecapole moments!
+     """
+        eij = numpy.zeros((3, 3), numpy.float64)
+        eij[0,1] = eij[1,2] = eij[2,0] =  1.0
+        eij[1,0] = eij[2,1] = eij[0,2] = -1.0
+        
+        eijk = numpy.zeros((3, 3, 3), numpy.float64)
+        eijk[0, 1, 2] = eijk[1, 2, 0] = eijk[2, 0, 1] =  1.0
+        eijk[0, 2, 1] = eijk[2, 1, 0] = eijk[1, 0, 2] = -1.0
+        tot = self.get_mult(origin)
+        tot.MAKE_FULL()
+        # invariants for dipole moment
+        mu  = numpy.sqrt(numpy.sum(tot.DMA_FULL[2][0]**2))
+        # invariants for quadrupole moment
+        tr = tot.DMA_FULL[3][0].trace()
+        tr2= (numpy.dot(tot.DMA_FULL[3][0],tot.DMA_FULL[3][0])).trace()
+        qad_1 = tr
+        qad_2 = 0.500*(tr*tr-tr2)
+        qad_3 = numpy.linalg.det(tot.DMA_FULL[3][0])
+        # invariants for octupole moment
+        # from. F. Ahmad, Arch. Mech. 63, 4, pp383-392 Warszawa 2011
+        # formulae from p.390 for F1-F5
+        oct   = tot.DMA_FULL[4][0]
+        oct_1 = numpy.dot(oct.trace(axis1=0,axis2=1),oct.trace(axis1=0,axis2=1))
+        oct_2 = numpy.dot(oct.trace(axis1=1,axis2=2),oct.trace(axis1=1,axis2=2))
+        oct_3 = numpy.tensordot(oct,oct,((0,1,2),(0,1,2)))
+        oct_4 = numpy.tensordot(oct,oct,((0,1,2),(1,2,0)))
+        A_kp  = numpy.tensordot(oct,oct,((0,1),(2,1)))
+        B_ri  = numpy.tensordot(oct,oct,((1,2),(1,0)))
+        oct_5 = 0.5*(numpy.sum(eij*A_kp,axis=None) + numpy.sum(eij.transpose()*B_ri,axis=None))
+        #oct = 1./6. * (numpy.sum(tot.DMA_FULL[4][0]*eijk)) * eijk
+        qad = numpy.array([qad_1, qad_2, qad_3],numpy.float64)
+        oct = numpy.array([oct_1,oct_2,oct_3,oct_4,oct_5],numpy.float64)
+        return tot.DMA_FULL[1][0], mu, qad, oct
+
+    def get_mult(self, origin=numpy.zeros(3,dtype=numpy.float64), hexadecapoles=False):
+        """Calculates overall primitive multipole moments from distributed multipoles.
+This can be used for a test of the correctness of multipole analysis. The exact distributed
+expansions should sum up to the total molecular expansion with respect to origin privided.
+"""
+        if hexadecapoles and not self.has_hexadecapoles:
+           print " WARNING: This DMA object does not contain hexadecapoles but they were requested. It will be ignored by Coulomb."
+           hexadecapoles = False
+        overall = DMA(nfrag=1)
+        #overall.name = 'Test of reproducing multipoles from charges [units: Debyes(*Angstroms^n)]'
+        overall.name = 'Test of reproducing overall multipoles from CAMM/CBAMM/LMTP/DMA [units: A.U.]'
+        overall.pos = numpy.zeros((1,3),dtype=numpy.float64)
+        overall.pos[0] = origin
+        tmp = self.copy()
+        tmp.MAKE_FULL()
+        tmp.ChangeOrigin(zero=1)
+        
+        ### make full format of DMA
+        tmp.MAKE_FULL()
+        
+        ### compute molecular solvatochromic moments
+        mu   = numpy.zeros((3),dtype=numpy.float64)
+        quad = numpy.zeros((3,3),dtype=numpy.float64)
+        oct  = numpy.zeros((3,3,3),dtype=numpy.float64)
+        hex  = numpy.zeros((3,3,3,3),dtype=numpy.float64)
+        for atom in range(self.nfrag):
+            r     = tmp.origin[atom]### zmiana origin z pos!!!
+            qatom = tmp.DMA[0][atom]
+            ### calculate dipole moment
+            mu   += tmp.DMA[1][atom]
+            ### calculate quadrupole moment
+            quad += tmp.DMA_FULL[3][atom]
+            ### calculate octupole moment
+            oct  += tmp.DMA_FULL[4][atom]
+            ### calculate hexadecapole moment
+            if hexadecapoles:
+               hex  += tmp.DMA_FULL[5][atom]
+
+        ### set the molecular moments into the DMA solvent object
+        overall.DMA[1][0] = mu
+           
+        overall.DMA[2][0,0] = quad[0,0]           
+        overall.DMA[2][0,1] = quad[1,1]
+        overall.DMA[2][0,2] = quad[2,2]
+        overall.DMA[2][0,3] = quad[0,1]
+        overall.DMA[2][0,4] = quad[0,2]
+        overall.DMA[2][0,5] = quad[1,2] 
+           
+        overall.DMA[3][0,0] = oct[0,0,0]
+        overall.DMA[3][0,1] = oct[1,1,1]
+        overall.DMA[3][0,2] = oct[2,2,2]
+        overall.DMA[3][0,3] = oct[0,0,1]
+        overall.DMA[3][0,4] = oct[0,0,2]
+        overall.DMA[3][0,5] = oct[0,1,1]
+        overall.DMA[3][0,6] = oct[1,1,2]
+        overall.DMA[3][0,7] = oct[0,2,2]
+        overall.DMA[3][0,8] = oct[1,2,2]
+        overall.DMA[3][0,9] = oct[0,1,2]
+
+        if hexadecapoles:
+           overall.DMA[4][0, 0]  = hex[0,0,0,0]
+           overall.DMA[4][0, 1]  = hex[1,1,1,1]
+           overall.DMA[4][0, 2]  = hex[2,2,2,2]
+           overall.DMA[4][0, 3]  = hex[0,0,0,1]
+           overall.DMA[4][0, 4]  = hex[0,0,0,2]
+           overall.DMA[4][0, 5]  = hex[1,1,1,0]
+           overall.DMA[4][0, 6]  = hex[1,1,1,2]
+           overall.DMA[4][0, 7]  = hex[2,2,2,0]
+           overall.DMA[4][0, 8]  = hex[2,2,2,1]
+           overall.DMA[4][0, 9]  = hex[0,0,1,1]
+           overall.DMA[4][0,10]  = hex[0,0,2,2]
+           overall.DMA[4][0,11]  = hex[1,1,2,2]
+           overall.DMA[4][0,12]  = hex[0,0,1,2]
+           overall.DMA[4][0,13]  = hex[1,1,0,2]
+           overall.DMA[4][0,14]  = hex[2,2,0,1]
+
+
+        overall.MAKE_FULL()
+        overall.ChangeOrigin(new_origin_set=numpy.array([origin],numpy.float64) )
+        
+        #overall.DMA[1] *= UNITS.BohrElectronToDebye
+        #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom
+        #overall.DMA[3] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom**2
+          
+        return overall
+       
+    def get_mult_c(self, origin=numpy.zeros(3,dtype=numpy.float64), hexadecapoles=False):
+        """Calculates overall primitive moments from charges.
+This tool has a purpose of testing population analysis obtained by
+fitting to the molecular ab initio potential or other methods.
+
+For an example, refer to the construction of total molecular 
+solvatochromic multipoles from fitted distributed charges:
+
+H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
+"""
+        overall = DMA(nfrag=1)
+        overall.name = 'Test of reproducing multipoles from charges'
+        overall.pos = numpy.zeros((1,3),dtype=numpy.float64)
+        overall.pos[0] = origin
+        
+        ### make full format of DMA
+        tmp = self.copy()
+        tmp.MAKE_FULL()
+        
+        ### compute molecular solvatochromic moments
+        mu   = numpy.zeros((3),dtype=numpy.float64)
+        quad = numpy.zeros((3,3),dtype=numpy.float64)
+        oct  = numpy.zeros((3,3,3),dtype=numpy.float64)
+        hex  = numpy.zeros((3,3,3,3),dtype=numpy.float64)
+        for atom in range(self.nfrag):
+            r     = tmp.pos[atom] - origin
+            qatom = tmp.DMA[0][atom]
+            ### calculate dipole moment
+            mu   += qatom * r 
+            ### calculate quadrupole moment
+            quad += qatom * numpy.outer (r,r)
+            ### calculate octupole moment
+            oct  += qatom * numpy.outer( r, numpy.outer (r,r) ).reshape(3,3,3)
+            ### calculate hexadecapole moment
+            if hexadecapoles:
+               hex  += qatom * numpy.outer( r, numpy.outer (r, numpy.outer(r,r) ) ).reshape(3,3,3,3)
+
+        ### set the molecular moments into the DMA solvent object
+        overall.DMA[1][0] = mu
+           
+        overall.DMA[2][0,0] = quad[0,0]           
+        overall.DMA[2][0,1] = quad[1,1]
+        overall.DMA[2][0,2] = quad[2,2]
+        overall.DMA[2][0,3] = quad[0,1]
+        overall.DMA[2][0,4] = quad[0,2]
+        overall.DMA[2][0,5] = quad[1,2] 
+           
+        overall.DMA[3][0,0] = oct[0,0,0]
+        overall.DMA[3][0,1] = oct[1,1,1]
+        overall.DMA[3][0,2] = oct[2,2,2]
+        overall.DMA[3][0,3] = oct[0,0,1]
+        overall.DMA[3][0,4] = oct[0,0,2]
+        overall.DMA[3][0,5] = oct[0,1,1]
+        overall.DMA[3][0,6] = oct[1,1,2]
+        overall.DMA[3][0,7] = oct[0,2,2]
+        overall.DMA[3][0,8] = oct[1,2,2]
+        overall.DMA[3][0,9] = oct[0,1,2]
+
+        if hexadecapoles:
+           overall.DMA[4][0, 0]  = hex[0,0,0,0]  
+           overall.DMA[4][0, 1]  = hex[1,1,1,1]
+           overall.DMA[4][0, 2]  = hex[2,2,2,2]
+           overall.DMA[4][0, 3]  = hex[0,0,0,1]
+           overall.DMA[4][0, 4]  = hex[0,0,0,2]
+           overall.DMA[4][0, 5]  = hex[1,1,1,0]
+           overall.DMA[4][0, 6]  = hex[1,1,1,2]
+           overall.DMA[4][0, 7]  = hex[2,2,2,0]
+           overall.DMA[4][0, 8]  = hex[2,2,2,1]
+           overall.DMA[4][0, 9]  = hex[0,0,1,1]
+           overall.DMA[4][0,10]  = hex[0,0,2,2]
+           overall.DMA[4][0,11]  = hex[1,1,2,2]
+           overall.DMA[4][0,12]  = hex[0,0,1,2]
+           overall.DMA[4][0,13]  = hex[1,1,0,2]
+           overall.DMA[4][0,14]  = hex[2,2,0,1]
+
+        #overall.DMA[1] *= UNITS.BohrElectronToDebye
+        #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom
+        #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom**2
+          
+        return overall
+    
+    
     # ---- SET methods
 
     def set_name(self,name):
@@ -551,6 +789,20 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
         if equal:
            self.origin = pos.copy()
 
+    def set_moments_all(self, other):
+        """Copy the moments from other to self"""
+        o = other.copy()
+        self.set_moments(charges=o.get_charges(),
+                         dipoles=o.get_dipoles(),
+                         quadrupoles=o.get_quadrupoles(),
+                         octupoles=o.get_octupoles())
+        if self.has_hexadecapoles and other.has_hexadecapoles:
+           self.set_moments(hexadecapoles=o.get_hexadecapoles())
+        elif self.has_hexadecapoles and not other.has_hexadecapoles:
+           raise TypeError, " %s object does not have hexadecapoles so they cannot be copied to %s object!" % (other.get_name(), self.get_name())
+        return
+
+
     def set_moments(self,charges=None,dipoles=None,
                          quadrupoles=None,octupoles=None,
                          hexadecapoles=None):
@@ -563,7 +815,7 @@ where n is rank of multipole moment"""
         if octupoles     is not None: self.DMA[3] = octupoles     .copy()
         if hexadecapoles is not None: self.DMA[4] = hexadecapoles .copy()
         return
-   
+  
     # ---- property descriptor methods
  
     def if_traceless(self):
@@ -604,7 +856,118 @@ premute all moments, positions and origins using ind list
            self.DMA[4] = self.DMA[4][contrlist]
         self.origin = self.origin[contrlist]
         return
-                     
+
+    def replace(self, other):
+        """Copy the contents from one DMA instance to another"""
+        o = other.copy()
+        self.set_structure(o.get_origin(), equal=True)
+        self.atoms = o.atoms
+        self.set_moments_all(o)
+        return
+
+    def translate(self,vector):
+        """translate origins and positions by a vector"""
+        self.origin += vector
+        self.pos    += vector
+        return
+
+    def rotate(self, rot):
+        """Rotate the DMA instance by rotation matrix """
+        self.MAKE_FULL()
+        self.Rotate(rot)
+        return
+
+    def traceless(self):
+        """Transform the DMA instance into traceless form. 
+This is an irreversible operation and primitive moments cannot be retrieved from traceless form."""
+        self.MAKE_FULL()
+        self.MakeTraceless()
+        self.makeDMAfromFULL()
+        return
+
+    def trac(self): self.traceless()
+
+    def sup(self, xyz, suplist=None, sup_origin=False):
+        """Superimpose DMA position onto xyz. 
+
+Usage:
+
+  rms = DMA_instance.sup(self, xyz, suplist=None, sup_origin=False)
+
+By default, superimposition is done based on atomic positions. 
+Superimposition based on DMA origins can be set by setting sup_origin=True. 
+Subset of superimposed centers can be chosen by specifying suplist=[...] 
+indices (using normal numbering scheme, not in Python convention!).
+For example, suplist = [1,2,5] and sup_origin=False will choose
+first, second and fifth atom while sup_origin=False corresponding DMA origins will
+be chosen.
+
+Returned value is an RMS of a superimposition and is given in Bohrs.
+"""
+        suplist = numpy.array(suplist)-1
+        s = utilities.SVDSuperimposer()
+        xyz_prev = self.pos
+        if sup_origin: xyz_prev = self.origin
+        if len(xyz)!=0:
+           if suplist is None: s.set( xyz, xyz_prev )
+           else:               s.set( xyz[suplist], xyz_prev[suplist] )
+           s.run()
+           rms = s.get_rms()
+           rot, transl = s.get_rotran()
+        else:
+           rot = numpy.identity(3,numpy.float64)
+           transl = xyz - xyz_prev
+           rms = 0.0
+        self.rotate(rot)
+        self.translate(transl)
+        return rms
+
+    def MakeUa(self,ua_list,change_origin=True,contract=False):
+        """\
+Transforms the object to the contracted DMA form employing united atoms. 
+Usage:
+MakeUa( ua_list )
+        
+where 'ua_list' is a list of tuples ti containing integers:
+        
+ua+list = [ t1, t2, t3 , ... ], 
+ti = ( A, a1, a2, a3, ... )
+        
+For i-th tuple corresponding to i-th UA the first integer A
+is the atom id of UA center atom and the remaining a1, a2 etc relate to 
+the atoms supposed to be contracted within a united atom UA for A-th center.
+The numbers are normal numbers (not in Python convention)."""
+       
+        if self.has_hexadecapoles: rs = range(5)
+        else:                      rs = range(4) 
+        origin = self.origin
+        if change_origin:
+           self.MAKE_FULL()
+           self.ChangeOrigin(zero=True)
+        for t in ua_list:
+            for i in t[1:]:
+                for c in rs:
+                    self.DMA[c][t[0]-1]+= self.DMA[c][i-1]
+                    if not c: self.DMA[c][i-1] = 0
+                    else:     self.DMA[c][i-1].fill(0)
+        if change_origin:
+           self.MAKE_FULL()
+           self.ChangeOrigin(new_origin_set=origin)
+      
+        if contract:
+           contrlist = self.__contrListFromUaList(ua_list)
+           self.contract(contrlist)
+
+    def ChangeUnits(self,charges,dipoles,quadrupoles,octupoles,hexadecapoles=1.0):
+        """changes the units"""
+        self.DMA[0] *= charges
+        self.DMA[1] *= dipoles
+        self.DMA[2] *= quadrupoles
+        self.DMA[3] *= octupoles
+        if self.has_hexadecapoles:
+           self.DMA[4] *= hexadecapoles
+        return
+
     def write(self, file, type='c'):
         """writes  the DMA distribution in a file or in a XYZ file (structure)"""
         newfile = open(file,'w')
@@ -825,6 +1188,99 @@ premute all moments, positions and origins using ind list
           return DMA(q=q,m=m,T=T,O=O,
                      pos=self.pos.copy(),origin=self.origin.copy())
 
+    def __repr__(self):
+        """PRINTOUT FORM FOR DMA REDUCED FORMAT"""
+        log = "\n"
+        log+= " --- %s ---\n\n" % (self.name)
+        log+= " Distributed zeroth-order property\n"
+        log+= " ---------------------------------\n"
+        log+= "\n"
+        charges = self.DMA[0]
+        for xfrag in charges:
+            log+= "%16.6E\n"%xfrag
+        log+= "\n"
+
+        log+= " Distributed first-order property \n"
+        log+= " ---------------------------------\n"
+        log+= "\n"
+        dipoles = self.DMA[1]
+        log+= "%16s %16s %16s\n" % ('X'.rjust(16),'Y'.rjust(16),'Z'.rjust(16))
+        for xfrag in dipoles:
+            log+= "%16.6E %16.6E %16.6E\n"%(xfrag[0],xfrag[1],xfrag[2])
+        log+= "\n"  
+
+        log+= " Distributed second-order property\n"
+        log+= " ---------------------------------\n"
+        log+= "\n"
+        quadrupoles = self.DMA[2]
+        log+= "%16s %16s %16s %16s %16s %16s\n" %\
+             ('XX'.rjust(16),'YY'.rjust(16),'ZZ'.rjust(16),
+              'XY'.rjust(16),'XZ'.rjust(16),'YZ'.rjust(16))
+        for xfrag in quadrupoles:
+            log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n"%\
+             (xfrag[0],xfrag[1],xfrag[2],
+              xfrag[3],xfrag[4],xfrag[5])
+        log+= "\n"
+
+        log+= " Distributed third-order property \n"
+        log+= " ---------------------------------\n"
+        log+= "\n"
+        octupoles = self.DMA[3]
+        log+= "%16s %16s %16s %16s %16s %16s\n" %\
+            ('XXX'.rjust(16),'YYY'.rjust(16),'ZZZ'.rjust(16),
+             'XXY'.rjust(16),'XXZ'.rjust(16),'XYY'.rjust(16))
+        log+= "%16s %16s %16s %16s\n" %\
+            ('YYZ'.rjust(16),'XZZ'.rjust(16),'YZZ'.rjust(16),'XYZ'.rjust(16))
+        for xfrag in octupoles:
+            log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n" %\
+                   (xfrag[0],xfrag[1],xfrag[2],
+                    xfrag[3],xfrag[4],xfrag[5])
+            log+= "%16.6E %16.6E %16.6E %16.6E\n" %\
+                   (xfrag[6],xfrag[7],xfrag[8],xfrag[9])
+
+        if self.has_hexadecapoles:
+           log+= "\n"
+           log+= " Distributed fourth-order property\n"              
+           log+= " ---------------------------------\n"
+           log+= "\n"
+           hexadecapoles = self.DMA[4]
+           log+= "%16s %16s %16s\n" % ('XXXX'.rjust(16),'YYYY'.rjust(16),'ZZZZ'.rjust(16))
+           log+= "%16s %16s %16s %16s %16s %16s\n" %\
+                ('XXXY'.rjust(16),'XXXZ'.rjust(16),'YYYX'.rjust(16),
+                 'YYYZ'.rjust(16),'ZZZX'.rjust(16),'ZZZY'.rjust(16))
+           log+= "%16s %16s %16s %16s %16s %16s\n" %\
+                ('XXYY'.rjust(16),'XXZZ'.rjust(16),'YYZZ'.rjust(16),
+                 'XXYZ'.rjust(16),'YYXZ'.rjust(16),'ZZXY'.rjust(16))
+           for xfrag in hexadecapoles:
+               log+= "%16.6E %16.6E %16.6E\n"%(xfrag[0],xfrag[1],xfrag[2])
+               log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n"%\
+                (xfrag[3],xfrag[4],xfrag[5],
+                 xfrag[6],xfrag[7],xfrag[8])
+               log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n"%\
+                (xfrag[9 ],xfrag[10],xfrag[11],
+                 xfrag[12],xfrag[13],xfrag[14])
+
+        log = self.__end_multipole_section(log)
+        
+        return str(log) 
+
+    def __end_multipole_section(self, log):
+       log+= " "+"-"*100+"\n"                                                                               
+       if self.nfrag == 1:
+          if self.traceless: 
+             log+= (" traceless form@,   origin: %s\n"  % str(self.origin*0.5291772086)[1:-1]).rjust(100)  
+          else: 
+             log+= (" primitive form@,   origin: %s \n" % str(self.origin*0.5291772086)[1:-1]).rjust(100) 
+       else:
+          if self.traceless: 
+             log+= " traceless form@\n".rjust(100)  
+          else: 
+             log+= " primitive form@\n".rjust(100) 
+       log+= "\n\n\n"
+       return log
+
+
+    # Intrinsic methods which will be converted into private in the future: user should not use them any longer explicitly
 
     def MAKE_FULL(self):
         """creates numpy.arrays of ordinary forms of distributed multipoles
@@ -1055,74 +1511,6 @@ premute all moments, positions and origins using ind list
         del self.DMA_FULL
         self.full = False
        
-    def get_const(self, origin=numpy.array([0.,0.,0.]) ):
-        """
- Calculate the invariants of total multipole moments
- Returns the tuple of four invariant sets for charge, dipole, quadrupole
- and octupole moments:
-
- 1) charge invariant: 
-     total charge
-
- 2) dipole invariant:
-     norm of a dipole vector
-
- 3) quadrupole invariants:
-     trace(Q)
-     0.5 * (trace(Q)^2 - trace(Q^2))
-     det(Q)
- 
-     where Q is quadrupole moment (primitive form)
-
- 4) octupole invariants:
-     F1 = E_iik * E_ppk
-     F2 = E_ijj * E_iqq
-     F3 = E_ijk * E_ijk
-     F4 = E_ijk * E_kij
-     F5 = 0.5 * (e_kp * E_ijk * E_pji + e_ri * E_ijk * E_kjr)
-
-     where E is octupole moment (primitive form)
-     and e is 2-order antisymmetric (permutation) tensor
-
- Notes:
-  1) invariants or 3-rd order Cartesian tensors:
-        from. F. Ahmad, Arch. Mech. 63, 4, pp383-392 Warszawa 2011
-        formulae on p.390 for F1-F5
-
-  2) no invariants are computed for hexadecapole moments!
-     """
-        eij = numpy.zeros((3, 3), numpy.float64)
-        eij[0,1] = eij[1,2] = eij[2,0] =  1.0
-        eij[1,0] = eij[2,1] = eij[0,2] = -1.0
-        
-        eijk = numpy.zeros((3, 3, 3), numpy.float64)
-        eijk[0, 1, 2] = eijk[1, 2, 0] = eijk[2, 0, 1] =  1.0
-        eijk[0, 2, 1] = eijk[2, 1, 0] = eijk[1, 0, 2] = -1.0
-        tot = self.get_mult(origin)
-        tot.MAKE_FULL()
-        # invariants for dipole moment
-        mu  = numpy.sqrt(numpy.sum(tot.DMA_FULL[2][0]**2))
-        # invariants for quadrupole moment
-        tr = tot.DMA_FULL[3][0].trace()
-        tr2= (numpy.dot(tot.DMA_FULL[3][0],tot.DMA_FULL[3][0])).trace()
-        qad_1 = tr
-        qad_2 = 0.500*(tr*tr-tr2)
-        qad_3 = numpy.linalg.det(tot.DMA_FULL[3][0])
-        # invariants for octupole moment
-        # from. F. Ahmad, Arch. Mech. 63, 4, pp383-392 Warszawa 2011
-        # formulae from p.390 for F1-F5
-        oct   = tot.DMA_FULL[4][0]
-        oct_1 = numpy.dot(oct.trace(axis1=0,axis2=1),oct.trace(axis1=0,axis2=1))
-        oct_2 = numpy.dot(oct.trace(axis1=1,axis2=2),oct.trace(axis1=1,axis2=2))
-        oct_3 = numpy.tensordot(oct,oct,((0,1,2),(0,1,2)))
-        oct_4 = numpy.tensordot(oct,oct,((0,1,2),(1,2,0)))
-        A_kp  = numpy.tensordot(oct,oct,((0,1),(2,1)))
-        B_ri  = numpy.tensordot(oct,oct,((1,2),(1,0)))
-        oct_5 = 0.5*(numpy.sum(eij*A_kp,axis=None) + numpy.sum(eij.transpose()*B_ri,axis=None))
-        #oct = 1./6. * (numpy.sum(tot.DMA_FULL[4][0]*eijk)) * eijk
-        qad = numpy.array([qad_1, qad_2, qad_3],numpy.float64)
-        oct = numpy.array([oct_1,oct_2,oct_3,oct_4,oct_5],numpy.float64)
-        return tot.DMA_FULL[1][0], mu, qad, oct
  
     def MakeTraceless(self):
         """turns ordinary full-formatted DMA_FULL into traceless 
@@ -1301,48 +1689,6 @@ premute all moments, positions and origins using ind list
            
         else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
 
-    def MakeUa(self,ua_list,change_origin=True,contract=False):
-        """\
-Transforms the object to the contracted DMA form employing united atoms. 
-Usage:
-MakeUa( ua_list )
-        
-where 'ua_list' is a list of tuples ti containing integers:
-        
-ua+list = [ t1, t2, t3 , ... ], 
-ti = ( A, a1, a2, a3, ... )
-        
-For i-th tuple corresponding to i-th UA the first integer A
-is the atom id of UA center atom and the remaining a1, a2 etc relate to 
-the atoms supposed to be contracted within a united atom UA for A-th center.
-The numbers are normal numbers (not in Python convention)."""
-       
-        if self.has_hexadecapoles: rs = range(5)
-        else:                      rs = range(4) 
-        origin = self.origin
-        if change_origin:
-           self.MAKE_FULL()
-           self.ChangeOrigin(zero=True)
-        for t in ua_list:
-            for i in t[1:]:
-                for c in rs:
-                    self.DMA[c][t[0]-1]+= self.DMA[c][i-1]
-                    if not c: self.DMA[c][i-1] = 0
-                    else:     self.DMA[c][i-1].fill(0)
-        if change_origin:
-           self.MAKE_FULL()
-           self.ChangeOrigin(new_origin_set=origin)
-      
-        if contract:
-           contrlist = self.__contrListFromUaList(ua_list)
-           self.contract(contrlist)
-
-    def translate(self,vector):
-        """translate origins and positions by a vector"""
-        self.origin += vector
-        self.pos    += vector
-        return
-    
     def Rotate(self,rotmat):
         """rotates the ordinary full-formatted DMA_FULL
            in molecular space based on rotation matrix
@@ -1394,274 +1740,4 @@ The numbers are normal numbers (not in Python convention)."""
 
            self.makeDMAfromFULL()
            
-        else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
-
-    def ChangeUnits(self,charges,dipoles,quadrupoles,octupoles,hexadecapoles=1.0):
-        """changes the units"""
-        self.DMA[0] *= charges
-        self.DMA[1] *= dipoles
-        self.DMA[2] *= quadrupoles
-        self.DMA[3] *= octupoles
-        if self.has_hexadecapoles:
-           self.DMA[4] *= hexadecapoles
-        return
-        
-    def get_mult_c(self, origin=numpy.zeros(3,dtype=numpy.float64), hexadecapoles=False):
-        """Calculates overall primitive moments from charges.
-This tool has a purpose of testing population analysis obtained by
-fitting to the molecular ab initio potential or other methods.
-
-For an example, refer to the construction of total molecular 
-solvatochromic multipoles from fitted distributed charges:
-
-H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
-"""
-        overall = DMA(nfrag=1)
-        overall.name = 'Test of reproducing multipoles from charges'
-        overall.pos = numpy.zeros((1,3),dtype=numpy.float64)
-        overall.pos[0] = origin
-        
-        ### make full format of DMA
-        tmp = self.copy()
-        tmp.MAKE_FULL()
-        
-        ### compute molecular solvatochromic moments
-        mu   = numpy.zeros((3),dtype=numpy.float64)
-        quad = numpy.zeros((3,3),dtype=numpy.float64)
-        oct  = numpy.zeros((3,3,3),dtype=numpy.float64)
-        hex  = numpy.zeros((3,3,3,3),dtype=numpy.float64)
-        for atom in range(self.nfrag):
-            r     = tmp.pos[atom] - origin
-            qatom = tmp.DMA[0][atom]
-            ### calculate dipole moment
-            mu   += qatom * r 
-            ### calculate quadrupole moment
-            quad += qatom * numpy.outer (r,r)
-            ### calculate octupole moment
-            oct  += qatom * numpy.outer( r, numpy.outer (r,r) ).reshape(3,3,3)
-            ### calculate hexadecapole moment
-            if hexadecapoles:
-               hex  += qatom * numpy.outer( r, numpy.outer (r, numpy.outer(r,r) ) ).reshape(3,3,3,3)
-
-        ### set the molecular moments into the DMA solvent object
-        overall.DMA[1][0] = mu
-           
-        overall.DMA[2][0,0] = quad[0,0]           
-        overall.DMA[2][0,1] = quad[1,1]
-        overall.DMA[2][0,2] = quad[2,2]
-        overall.DMA[2][0,3] = quad[0,1]
-        overall.DMA[2][0,4] = quad[0,2]
-        overall.DMA[2][0,5] = quad[1,2] 
-           
-        overall.DMA[3][0,0] = oct[0,0,0]
-        overall.DMA[3][0,1] = oct[1,1,1]
-        overall.DMA[3][0,2] = oct[2,2,2]
-        overall.DMA[3][0,3] = oct[0,0,1]
-        overall.DMA[3][0,4] = oct[0,0,2]
-        overall.DMA[3][0,5] = oct[0,1,1]
-        overall.DMA[3][0,6] = oct[1,1,2]
-        overall.DMA[3][0,7] = oct[0,2,2]
-        overall.DMA[3][0,8] = oct[1,2,2]
-        overall.DMA[3][0,9] = oct[0,1,2]
-
-        if hexadecapoles:
-           overall.DMA[4][0, 0]  = hex[0,0,0,0]  
-           overall.DMA[4][0, 1]  = hex[1,1,1,1]
-           overall.DMA[4][0, 2]  = hex[2,2,2,2]
-           overall.DMA[4][0, 3]  = hex[0,0,0,1]
-           overall.DMA[4][0, 4]  = hex[0,0,0,2]
-           overall.DMA[4][0, 5]  = hex[1,1,1,0]
-           overall.DMA[4][0, 6]  = hex[1,1,1,2]
-           overall.DMA[4][0, 7]  = hex[2,2,2,0]
-           overall.DMA[4][0, 8]  = hex[2,2,2,1]
-           overall.DMA[4][0, 9]  = hex[0,0,1,1]
-           overall.DMA[4][0,10]  = hex[0,0,2,2]
-           overall.DMA[4][0,11]  = hex[1,1,2,2]
-           overall.DMA[4][0,12]  = hex[0,0,1,2]
-           overall.DMA[4][0,13]  = hex[1,1,0,2]
-           overall.DMA[4][0,14]  = hex[2,2,0,1]
-
-        #overall.DMA[1] *= UNITS.BohrElectronToDebye
-        #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom
-        #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom**2
-          
-        return overall
-    
-    
-    def get_mult(self, origin=numpy.zeros(3,dtype=numpy.float64), hexadecapoles=False):
-        """Calculates overall primitive multipole moments from distributed multipoles.
-This can be used for a test of the correctness of multipole analysis. The exact distributed
-expansions should sum up to the total molecular expansion with respect to origin privided.
-"""
-        if hexadecapoles and not self.has_hexadecapoles:
-           print " WARNING: This DMA object does not contain hexadecapoles but they were requested. It will be ignored by Coulomb."
-           hexadecapoles = False
-        overall = DMA(nfrag=1)
-        #overall.name = 'Test of reproducing multipoles from charges [units: Debyes(*Angstroms^n)]'
-        overall.name = 'Test of reproducing overall multipoles from CAMM/CBAMM/LMTP/DMA [units: A.U.]'
-        overall.pos = numpy.zeros((1,3),dtype=numpy.float64)
-        overall.pos[0] = origin
-        tmp = self.copy()
-        tmp.MAKE_FULL()
-        tmp.ChangeOrigin(zero=1)
-        
-        ### make full format of DMA
-        tmp.MAKE_FULL()
-        
-        ### compute molecular solvatochromic moments
-        mu   = numpy.zeros((3),dtype=numpy.float64)
-        quad = numpy.zeros((3,3),dtype=numpy.float64)
-        oct  = numpy.zeros((3,3,3),dtype=numpy.float64)
-        hex  = numpy.zeros((3,3,3,3),dtype=numpy.float64)
-        for atom in range(self.nfrag):
-            r     = tmp.origin[atom]### zmiana origin z pos!!!
-            qatom = tmp.DMA[0][atom]
-            ### calculate dipole moment
-            mu   += tmp.DMA[1][atom]
-            ### calculate quadrupole moment
-            quad += tmp.DMA_FULL[3][atom]
-            ### calculate octupole moment
-            oct  += tmp.DMA_FULL[4][atom]
-            ### calculate hexadecapole moment
-            if hexadecapoles:
-               hex  += tmp.DMA_FULL[5][atom]
-
-        ### set the molecular moments into the DMA solvent object
-        overall.DMA[1][0] = mu
-           
-        overall.DMA[2][0,0] = quad[0,0]           
-        overall.DMA[2][0,1] = quad[1,1]
-        overall.DMA[2][0,2] = quad[2,2]
-        overall.DMA[2][0,3] = quad[0,1]
-        overall.DMA[2][0,4] = quad[0,2]
-        overall.DMA[2][0,5] = quad[1,2] 
-           
-        overall.DMA[3][0,0] = oct[0,0,0]
-        overall.DMA[3][0,1] = oct[1,1,1]
-        overall.DMA[3][0,2] = oct[2,2,2]
-        overall.DMA[3][0,3] = oct[0,0,1]
-        overall.DMA[3][0,4] = oct[0,0,2]
-        overall.DMA[3][0,5] = oct[0,1,1]
-        overall.DMA[3][0,6] = oct[1,1,2]
-        overall.DMA[3][0,7] = oct[0,2,2]
-        overall.DMA[3][0,8] = oct[1,2,2]
-        overall.DMA[3][0,9] = oct[0,1,2]
-
-        if hexadecapoles:
-           overall.DMA[4][0, 0]  = hex[0,0,0,0]
-           overall.DMA[4][0, 1]  = hex[1,1,1,1]
-           overall.DMA[4][0, 2]  = hex[2,2,2,2]
-           overall.DMA[4][0, 3]  = hex[0,0,0,1]
-           overall.DMA[4][0, 4]  = hex[0,0,0,2]
-           overall.DMA[4][0, 5]  = hex[1,1,1,0]
-           overall.DMA[4][0, 6]  = hex[1,1,1,2]
-           overall.DMA[4][0, 7]  = hex[2,2,2,0]
-           overall.DMA[4][0, 8]  = hex[2,2,2,1]
-           overall.DMA[4][0, 9]  = hex[0,0,1,1]
-           overall.DMA[4][0,10]  = hex[0,0,2,2]
-           overall.DMA[4][0,11]  = hex[1,1,2,2]
-           overall.DMA[4][0,12]  = hex[0,0,1,2]
-           overall.DMA[4][0,13]  = hex[1,1,0,2]
-           overall.DMA[4][0,14]  = hex[2,2,0,1]
-
-
-        overall.MAKE_FULL()
-        overall.ChangeOrigin(new_origin_set=numpy.array([origin],numpy.float64) )
-        
-        #overall.DMA[1] *= UNITS.BohrElectronToDebye
-        #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom
-        #overall.DMA[3] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom**2
-          
-        return overall
-        
-    def __repr__(self):
-        """PRINTOUT FORM FOR DMA REDUCED FORMAT"""
-        log = "\n"
-        log+= " --- %s ---\n\n" % (self.name)
-        log+= " Distributed zeroth-order property\n"
-        log+= " ---------------------------------\n"
-        log+= "\n"
-        charges = self.DMA[0]
-        for xfrag in charges:
-            log+= "%16.6E\n"%xfrag
-        log+= "\n"
-
-        log+= " Distributed first-order property \n"
-        log+= " ---------------------------------\n"
-        log+= "\n"
-        dipoles = self.DMA[1]
-        log+= "%16s %16s %16s\n" % ('X'.rjust(16),'Y'.rjust(16),'Z'.rjust(16))
-        for xfrag in dipoles:
-            log+= "%16.6E %16.6E %16.6E\n"%(xfrag[0],xfrag[1],xfrag[2])
-        log+= "\n"  
-
-        log+= " Distributed second-order property\n"
-        log+= " ---------------------------------\n"
-        log+= "\n"
-        quadrupoles = self.DMA[2]
-        log+= "%16s %16s %16s %16s %16s %16s\n" %\
-             ('XX'.rjust(16),'YY'.rjust(16),'ZZ'.rjust(16),
-              'XY'.rjust(16),'XZ'.rjust(16),'YZ'.rjust(16))
-        for xfrag in quadrupoles:
-            log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n"%\
-             (xfrag[0],xfrag[1],xfrag[2],
-              xfrag[3],xfrag[4],xfrag[5])
-        log+= "\n"
-
-        log+= " Distributed third-order property \n"
-        log+= " ---------------------------------\n"
-        log+= "\n"
-        octupoles = self.DMA[3]
-        log+= "%16s %16s %16s %16s %16s %16s\n" %\
-            ('XXX'.rjust(16),'YYY'.rjust(16),'ZZZ'.rjust(16),
-             'XXY'.rjust(16),'XXZ'.rjust(16),'XYY'.rjust(16))
-        log+= "%16s %16s %16s %16s\n" %\
-            ('YYZ'.rjust(16),'XZZ'.rjust(16),'YZZ'.rjust(16),'XYZ'.rjust(16))
-        for xfrag in octupoles:
-            log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n" %\
-                   (xfrag[0],xfrag[1],xfrag[2],
-                    xfrag[3],xfrag[4],xfrag[5])
-            log+= "%16.6E %16.6E %16.6E %16.6E\n" %\
-                   (xfrag[6],xfrag[7],xfrag[8],xfrag[9])
-
-        if self.has_hexadecapoles:
-           log+= "\n"
-           log+= " Distributed fourth-order property\n"              
-           log+= " ---------------------------------\n"
-           log+= "\n"
-           hexadecapoles = self.DMA[4]
-           log+= "%16s %16s %16s\n" % ('XXXX'.rjust(16),'YYYY'.rjust(16),'ZZZZ'.rjust(16))
-           log+= "%16s %16s %16s %16s %16s %16s\n" %\
-                ('XXXY'.rjust(16),'XXXZ'.rjust(16),'YYYX'.rjust(16),
-                 'YYYZ'.rjust(16),'ZZZX'.rjust(16),'ZZZY'.rjust(16))
-           log+= "%16s %16s %16s %16s %16s %16s\n" %\
-                ('XXYY'.rjust(16),'XXZZ'.rjust(16),'YYZZ'.rjust(16),
-                 'XXYZ'.rjust(16),'YYXZ'.rjust(16),'ZZXY'.rjust(16))
-           for xfrag in hexadecapoles:
-               log+= "%16.6E %16.6E %16.6E\n"%(xfrag[0],xfrag[1],xfrag[2])
-               log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n"%\
-                (xfrag[3],xfrag[4],xfrag[5],
-                 xfrag[6],xfrag[7],xfrag[8])
-               log+= "%16.6E %16.6E %16.6E %16.6E %16.6E %16.6E\n"%\
-                (xfrag[9 ],xfrag[10],xfrag[11],
-                 xfrag[12],xfrag[13],xfrag[14])
-
-        log = self.__end_multipole_section(log)
-        
-        return str(log) 
-
-    def __end_multipole_section(self, log):
-       log+= " "+"-"*100+"\n"                                                                               
-       if self.nfrag == 1:
-          if self.traceless: 
-             log+= (" traceless form@,   origin: %s\n"  % str(self.origin*0.5291772086)[1:-1]).rjust(100)  
-          else: 
-             log+= (" primitive form@,   origin: %s \n" % str(self.origin*0.5291772086)[1:-1]).rjust(100) 
-       else:
-          if self.traceless: 
-             log+= " traceless form@\n".rjust(100)  
-          else: 
-             log+= " primitive form@\n".rjust(100) 
-       log+= "\n\n\n"
-       return log
-
+        else: raise Exception("\nerror: no FULL DMA object created! quitting...\n") 

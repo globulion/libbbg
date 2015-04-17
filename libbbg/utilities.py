@@ -32,7 +32,7 @@ import re, qm, PyQuante,  \
        math, numpy.linalg, dma, units, re_templates,\
        copy, os, math, matplotlib.font_manager,\
        pylab, scitools.numpyutils, scipy.interpolate,\
-       letters, fourier #, coulomb.multip
+       letters, fourier, string #, coulomb.multip
 
 uAtom = units.Atom
 uUNITS= units.UNITS
@@ -1718,24 +1718,68 @@ Notes:
        self.__misc = text
        return
  
-   def write(self,name='default.xyz'):
-       """write the structure into the XYZ file"""
+   def write(self, name='default', pkg=None, template=None, delim='@', **kwargs):
+       """
+ Write the structure into the XYZ file or input file for GAMESS, Gaussian or Coulomb.
+
+ Usage:
+
+   QMFile_instance.write(self, name='default', pkg=None, template=None, delim='@', **kwargs)
+
+ Notes:
+
+   template - is a usual string with a template argument for string.Template
+   delim    - is a delimiter used by string.Template
+   **kwargs are the keys for template substitutions (eg CHK when @CHK with delim='@')
+   *COORD keyword needs always to be present in template string object where * is the chosen delimiter
+        (eg. @COORD, $COORD etc)
+
+ Examplary template:
+
+         templ = '''\
+         %mem=@MEM
+         %nprocshared=@NCPUS
+         %chk=@CHK
+         
+         # RHF/6-311++G** nosymm scf(conver=10,xqc) 6D 10F
+         
+         test
+         
+         0 1
+         @COORD
+         '''
+
+ Warning: keyword pkg is not working yet (so if wanted to make GAMESS inputs it will not add atomic numbers
+          and you will have to add them manually or using external script.
+"""
+       if template is None: ext = '.xyz'
+       else               : ext = '.inp'
+       if not name.endswith(ext):  name = name + ext
        f = open(name,'w')
-       f.write('%d\n' % len(self.__atoms))
-       if self.__misc is None: f.write('\n')
-       else:                   f.write('%s' % self.__misc)
+
+       if template is None:
+          f.write('%d\n' % len(self.__atoms))
+          if self.__misc is None: f.write('\n')
+          else:                   f.write('%s' % self.__misc)
+
+       log = ''
        if self.__pos.shape[1]==3:
           for i in range(len(self.__atoms)):
-              log = '%2s ' % self.__atoms[i]
+              log+= '%2s ' % self.__atoms[i]
               log+= '%14.6f %14.6f %14.6f\n' % tuple(self.__pos[i]*self.BohrToAngstrom)
-              f.write(log)
        elif self.__pos.shape[1]==4:
           for i in range(len(self.__atoms)):
-              log = '%2s ' % self.__atoms[i]
+              log+= '%2s ' % self.__atoms[i]
               log+= '%14.6f %14.6f %14.6f' % tuple(self.__pos[i,:3]*self.BohrToAngstrom)
               log+= '%14.6f\n' % self.__pos[i,3]
-              f.write(log)
-       f.write('\n')
+
+       if template is None: f.write(log+'\n')
+       else:
+          class LocalTemplate(string.Template): delimiter=delim
+          template = LocalTemplate(template)
+          txt = template.substitute(COORD=log, **kwargs)
+          f.write(txt)
+          
        f.close()
        return
    
