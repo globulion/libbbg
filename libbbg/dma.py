@@ -4,26 +4,25 @@
 
 __all__ = ['DMA']
 
-from numpy import zeros, float64, trace, array,\
-                  tensordot, shape, outer, dot,\
-                  transpose, sqrt, sum, linalg
-from utilities2 import array_outer_product,    \
-                       array_outer_product_1_2,\
-                       array_outer_product_2_1,\
-                       array_outer_product_1_n,\
-                       array_outer_product_2_2,\
-                       array_outer_product_1_3,\
-                       array_outer_product_3_1
-from units import *
-import copy
+#from numpy import zeros, float64, trace, array,\
+#                  tensordot, shape, outer, dot,\
+#                  transpose, sqrt, sum, linalg
+#from utilities2 import utilities2.array_outer_product,    \
+#                       utilities2.array_outer_product_1_2,\
+#                       utilities2.array_outer_product_2_1,\
+#                       utilities2.array_outer_product_1_n,\
+#                       utilities2.array_outer_product_2_2,\
+#                       utilities2.array_outer_product_1_3,\
+#                       utilities2.array_outer_product_3_1
+#from units import *
+import numpy, numpy.linalg, copy, units, utilities2
 
-def ParseDMA(file,type='coulomb'):
+def ParseDMA(file,type='coulomb',hexadecapoles=False):
     """\
->>>>> Copied from LIBBBG.utilities <<<<<
 ============================================================================
 Parse DMA from GAUSSIAN, GAMESS or COULOMB.py file. It returns a DMA object.
 Usage:
-ParseDMA(type='coulomb')
+ParseDMA(file, type='coulomb', hexadecapoles=False)
 ----------------------------------------------------------------------------
 <type>s:
 1) coulomb  or c (or just nothing - it is default)
@@ -55,8 +54,8 @@ Gamess reads Stone's DMA analysis
          ZerothMoments = []
          Structure = []
          while line.split()!=[]:
-               ZerothMoments.append( float64( line.split()[2] ) )
-               Structure.append( array(line.split()[-3:],dtype=float64)  )
+               ZerothMoments.append( numpy.float64( line.split()[2] ) )
+               Structure.append( numpy.array( line.split()[-3:],dtype=numpy.float64)  )
                     
                line = data.readline()
          # ----------------------------------
@@ -67,7 +66,7 @@ Gamess reads Stone's DMA analysis
          for i in range(3): line = data.readline()
          FirstMoments = []
          while line.split()!=[]:
-               FirstMoments.append( map(float64, line.split()[1:]))
+               FirstMoments.append( map( numpy.float64, line.split()[1:]))
                line = data.readline()
          # ----------------------------------
          querry = " SECOND MOMENTS AT POINTS"
@@ -77,7 +76,7 @@ Gamess reads Stone's DMA analysis
          for i in range(3): line = data.readline()
          SecondMoments = []
          while line.split()!=[]:
-               SecondMoments.append( map( float64, line.split()[1:] ))
+               SecondMoments.append( map( numpy.float64, line.split()[1:] ))
                line = data.readline()
          # ----------------------------------
          querry = " THIRD MOMENTS AT POINTS"
@@ -87,9 +86,9 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          ThirdMoments = []
          while 'CPU' not in line.split():
-               A = map( float64, line.split()[1:] )
+               A = map( numpy.float64, line.split()[1:] )
                line = data.readline()
-               B = map( float64, line.split() )
+               B = map( numpy.float64, line.split() )
                ThirdMoments.append( A+B )
                line = data.readline()
 
@@ -103,17 +102,26 @@ Gamess reads Stone's DMA analysis
              ZerothMoments.pop(0)
              Structure.pop(0)
 
-         return DMA( q=array(ZerothMoments)   ,
-                     m=array(FirstMoments )   ,
-                     T=array(SecondMoments)   ,
-                     O=array(ThirdMoments )   ,
-                     pos=array(Structure)    )#,Structure
+         return     DMA( q  =numpy.array(ZerothMoments)   ,
+                         m  =numpy.array(FirstMoments )   ,
+                         T  =numpy.array(SecondMoments)   , 
+                         O  =numpy.array(ThirdMoments )   ,
+                         pos=numpy.array(Structure)       ,
+                         hexadecapoles=False              )
 
     # -----------------------------------------------------------------------------
     elif type.lower() == 'coulomb' or type.lower() == 'c':
-         # return DMA object
+         # determine if the file contains hexadecapole moments
+         has_hexadecapoles = False
+         data = open(file)
+         if " Distributed fourth-order property" in data.read(): has_hexadecapoles = True
+         data.close()
+
+         # now read the file once again line by line
          data = open(file)
          line = data.readline()
+
+         # start reading the sections
          querry = " Distributed zeroth-order property"
          while 1:
                if querry in line: break
@@ -123,9 +131,9 @@ Gamess reads Stone's DMA analysis
          Structure = []
          Origin = []
          while line.split()!=[]:
-               ZerothMoments.append( float64( line.split()[0] ) )
-                    
+               ZerothMoments.append( numpy.float64( line.split()[0] ) )
                line = data.readline()
+         nfrag = len(ZerothMoments)
          # ----------------------------------
          querry = " Distributed first-order property"
          while 1:
@@ -134,7 +142,7 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          FirstMoments = []
          while line.split()!=[]:
-               FirstMoments.append( map(float64, line.split()[:]))
+               FirstMoments.append( map( numpy.float64, line.split()[:]))
                line = data.readline()
          # ----------------------------------
          querry = " Distributed second-order property"
@@ -144,7 +152,7 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          SecondMoments = []
          while line.split()!=[]:
-               SecondMoments.append( map( float64, line.split()[:] ))
+               SecondMoments.append( map( numpy.float64, line.split()[:] ))
                line = data.readline()
          # ----------------------------------
          querry = " Distributed third-order property"
@@ -153,12 +161,31 @@ Gamess reads Stone's DMA analysis
                line = data.readline()
          for i in range(5): line = data.readline()
          ThirdMoments = []
-         while '-----' not in line:
-               A = map( float64, line.split()[:] )
+         #while '-----' not in line or :
+         for i in range(nfrag):
+               A = map( numpy.float64, line.split()[:] )
                line = data.readline()
-               B = map( float64, line.split()[:] )
+               B = map( numpy.float64, line.split()[:] )
                ThirdMoments.append( A+B )
                line = data.readline()
+         # ----------------------------------
+         FourthMoments = None
+         if has_hexadecapoles and hexadecapoles:
+            querry = " Distributed fourth-order property" 
+            while 1:
+                if querry in line: break
+                line = data.readline()
+            FourthMoments = []
+            for i in range(6): line = data.readline() 
+            for i in range(nfrag):
+                A = map( numpy.float64, line.split()[:] )
+                line = data.readline()
+                B = map( numpy.float64, line.split()[:] )
+                line = data.readline()
+                C = map( numpy.float64, line.split()[:] )
+                line = data.readline()
+                FourthMoments.append( A+B+C )
+            FourthMoments = numpy.array(FourthMoments)
          # ----------------------------------
          querry = " form@"
          while 1:
@@ -183,11 +210,11 @@ Gamess reads Stone's DMA analysis
             for i in range(3): line = data.readline()
             while line.split()!=[]:
                   coord = line.split()
-                  atoms.append(Atom(coord[0]))
-                  Structure.append( map( float64, coord[1:] ) )
+                  atoms.append(units.Atom(coord[0]))
+                  Structure.append( map( numpy.float64, coord[1:] ) )
                   line = data.readline()
 
-         Structure = array(Structure,dtype=float64)                  
+         Structure = numpy.array(Structure,dtype=numpy.float64)                  
          
          querry = " Origins"
          origins = True
@@ -202,22 +229,23 @@ Gamess reads Stone's DMA analysis
             for i in range(3): line = data.readline()
             while line.split()!=[]:
                   coord = line.split()
-                  Origin.append( map( float64, coord[1:] ) )
+                  Origin.append( map( numpy.float64, coord[1:] ) )
                   line = data.readline()  
             
-            Origin = array(Origin   ,dtype=float64)
+            Origin = numpy.array(Origin   ,dtype=numpy.float64)
 
          else:
             Origin    = Structure.copy()
-
-         return DMA( q=array(ZerothMoments)   ,
-                     m=array(FirstMoments )   ,
-                     T=array(SecondMoments)   ,
-                     O=array(ThirdMoments )   ,
-                     atoms=atoms              ,
-                     pos=Structure            ,
-                     origin=Origin,
-                     is_traceless=is_traceless )
+          
+         return     DMA( q=numpy.array(ZerothMoments)   ,
+                         m=numpy.array(FirstMoments )   , 
+                         T=numpy.array(SecondMoments)   ,
+                         O=numpy.array(ThirdMoments )   , 
+                         H=FourthMoments                ,
+                         atoms=atoms              ,
+                         pos=Structure            ,
+                         origin=Origin,
+                         is_traceless=is_traceless )
     # -----------------------------------------------------------------------------
     elif type.lower() == 'gaussian' or type.lower() == 'gau':
          data = open(file)
@@ -231,7 +259,7 @@ Gamess reads Stone's DMA analysis
          for i in range(4): line = data.readline()
          Structure = []
          while ('Atomic Center' in line or 'Ghost Center' in line):
-               Structure.append( array(line.split()[-3:],dtype=float64)  )
+               Structure.append( numpy.array(line.split()[-3:],dtype=numpy.float64)  )
                line = data.readline()
 
          # seek for charges!
@@ -242,23 +270,23 @@ Gamess reads Stone's DMA analysis
          for i in range(2): line = data.readline()
          ZerothMoments = []
          for i in range(len(Structure)):
-             ZerothMoments.append( float64( line.split()[-1] ) )    
+             ZerothMoments.append( numpy.float64( line.split()[-1] ) )    
              line = data.readline()
         
-         Result = DMA(nfrag=len(Structure))
-         Result.pos = array(Structure) * UNITS.AngstromToBohr
-         Result.DMA[0] = array(ZerothMoments)
+         Result =     DMA(nfrag=len(Structure), hexadecapoles=False)
+         Result.pos = numpy.array(Structure) * units.UNITS.AngstromToBohr
+         Result.DMA[0] = numpy.array(ZerothMoments)
          
-         return Result#, array(Structure) * UNITS.AngstromToBohr
-      
+         return Result
+     
 def interchange(T,ind):
     """\
 >>>>> Copied from LIBBBG.utilities <<<<<
 interchange rows according to order list
 
-Usage: ingerchange(array,order_list)
+Usage: ingerchange(numpy.array,order_list)
 
-Returns: permuted array
+Returns: permuted numpy.array
 
 Example: 
 
@@ -275,7 +303,7 @@ T =  [[ 1  6  8]         T'=  [[ 3 -4 -4]
 This is accomplished by run:
 T_prime = interchange(T,ind=[3, 7, 1, 4, 2, 5, 6])
 """
-    ind = array(ind)-1
+    ind = numpy.array(ind)-1
     B = T.copy()
     for i,index in enumerate(ind):
         B[i] = T[index]
@@ -286,10 +314,10 @@ class DMA:
 ==============================LIBBBG:DMA================================
 Represents the DMA distribution object. Inputs are q,m,T and O that mean
 a set of distributed multipoles on n centers, ie.:                      
-   Q = array([Q1,Q2, ... ,Qn])                                          
+   Q = numpy.array([Q1,Q2, ... ,Qn])                                          
 where Qi is i-th distributed tensor. The DMA class stores also vectors  
 of position and origin of each of distributed center in a form of a     
-NumPy array. As a zero object you can specify DMA(nfrag=<n>) after which
+NumPy numpy.array. As a zero object you can specify DMA(nfrag=<n>) after which
 the DMA of n distributed centers (zero moments at each) will be created.
                                                                         
 ========================================================================
@@ -305,7 +333,7 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
                                 distributed charges                     
 <object>.ChangeOrigin(new_origin_set=<0>,zero=<False>)                 
                                 change the origins of distribited moments
-                                to the new origin set specified by array
+                                to the new origin set specified by numpy.array
                                 (in bohrs) of dimension (<n>,3). If you 
                                 want to translate the centers to the    
                                 origin of coordinate system specify only
@@ -323,8 +351,8 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
 ------------------------------------------------------------------------
 "get" methods:                                                          
 ------------------------------------------------------------------------
-<object>.get_pos()              return atomic positions ndarray (in bohr)
-<object>.get_origin()           return origins ndarray (in bohr)       
+<object>.get_pos()              return atomic positions ndnumpy.array (in bohr)
+<object>.get_origin()           return origins ndnumpy.array (in bohr)       
 <object>.get_name()             return name of distribution             
 <object>.get_nfrags()           return number of distributed sites      
 <object>.get_natoms()           return number of atoms                  
@@ -334,7 +362,7 @@ DMA(nfrag=<n>)                  return zero DMA object with <n> centers
 <object>.set_name(<name>)       set the name of distribution            
 <object>.set_moments(charges=<None>,dipoles=<None>,                     
                      quadrupoles=<None>,octupoles=<None>)               
-                                set moments as numpy arrays in reduced  
+                                set moments as numpy numpy.arrays in reduced  
                                 format                                  
 <object>.set_structure(pos=<None>,origin=<None>,                        
                        atoms=<None>,equal=<False>)                      
@@ -365,8 +393,8 @@ mathematical operations:
                  nfrag=None,
                  name='Untitled',
                  q=None,m=None,T=None,O=None,H=None,
-                 pos=zeros((1,3),dtype=float64),
-                 origin=zeros((1,3),dtype=float64),
+                 pos=numpy.zeros((1,3),dtype=numpy.float64),
+                 origin=numpy.zeros((1,3),dtype=numpy.float64),
                  atoms=None,
                  is_traceless=False,
                  hexadecapoles=None):
@@ -383,25 +411,25 @@ mathematical operations:
            self.__call__(file)
 
         elif nfrag is not None:
-             q=zeros((nfrag),dtype=float64)
-             m=zeros((nfrag,3),dtype=float64)
-             T=zeros((nfrag,6),dtype=float64)
-             O=zeros((nfrag,10),dtype=float64)
-             if self.has_hexadecapoles: H=zeros((nfrag,15),dtype=float64)
-             pos = zeros((nfrag,3),dtype=float64)
-             origin = zeros((nfrag,3),dtype=float64)
+             q=numpy.zeros((nfrag),dtype=numpy.float64)
+             m=numpy.zeros((nfrag,3),dtype=numpy.float64)
+             T=numpy.zeros((nfrag,6),dtype=numpy.float64)
+             O=numpy.zeros((nfrag,10),dtype=numpy.float64)
+             if self.has_hexadecapoles: H=numpy.zeros((nfrag,15),dtype=numpy.float64)
+             pos = numpy.zeros((nfrag,3),dtype=numpy.float64)
+             origin = numpy.zeros((nfrag,3),dtype=numpy.float64)
 
         if file is None:
            # DMA distribution in reduced format (GAMESS-like)
            if self.has_hexadecapoles: self.DMA = [q,m,T,O,H]
            else:                      self.DMA = [q,m,T,O]
-           #self.pos = zeros((nfrag,3),dtype=float64)
-           #self.origin = zeros((nfrag,3),dtype=float64)
+           #self.pos = numpy.zeros((nfrag,3),dtype=numpy.float64)
+           #self.origin = numpy.zeros((nfrag,3),dtype=numpy.float64)
            # name
            self.name = name
            # origin
            self.origin = origin
-           # position array
+           # position numpy.array
            self.pos = pos
            # number of distributed sites (fragments)
            self.nfrag = len(self.DMA[0])
@@ -409,7 +437,7 @@ mathematical operations:
            if atoms is None:
               #if len(atoms)>1: self.atoms = [Atom('X')]
               #else: self.atoms = [Atom('X')]*self.nfrag
-              self.atoms = [Atom('X')]*self.nfrag
+              self.atoms = [units.Atom('X')]*self.nfrag
            else: self.atoms=atoms
            # if DMA FULL formatted memorial were created. Now it is not, so 'False'.
            self.full = False
@@ -475,7 +503,7 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
         # charges
         c1 = self[0].copy()
         # dipoles
-        c2 = sqrt ( ((self[1].copy())**2).sum(axis=1) )
+        c2 = numpy.sqrt ( ((self[1].copy())**2).sum(axis=1) )
         # quadrupoles and octupoles
         temp = self.copy()
         if not temp.traceless:
@@ -483,8 +511,8 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
            temp.MakeTraceless()
            temp.makeDMAfromFULL()
         v3 = temp[2]; v4 = temp[3]
-        c3 = zeros(self.nfrag, float64)
-        c4 = zeros(self.nfrag, float64)
+        c3 = numpy.zeros(self.nfrag, numpy.float64)
+        c4 = numpy.zeros(self.nfrag, numpy.float64)
         for i in range(self.nfrag):
             Q11 = v3[i,0] 
             Q22 = v3[i,1]
@@ -493,7 +521,7 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
             Q13 = v3[i,4]
             Q23 = v3[i,5]
             v = 1./4. * Q33**2 + 1./6. * (Q12**2 + Q13**2 + Q23**2) + 1./24. * (Q11 - Q22)**2
-            c3[i] = sqrt(v)
+            c3[i] = numpy.sqrt(v)
         return c1, c2, c3, c4
 
     # ---- SET methods
@@ -508,17 +536,17 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
         # update positions
         if pos is not None:
            if len(self.pos) != len(pos): # it means you have to update self.atoms
-              self.atoms = [ Atom('X') for x in range(len(pos)) ]
+              self.atoms = [ units.Atom('X') for x in range(len(pos)) ]
            self.pos = pos.copy()
         # update origins
         if origin is not None:
            self.origin = origin.copy()
         # update atoms
         if atoms is not None:
-           if isinstance(atoms[0], Atom): 
+           if isinstance(atoms[0], units.Atom): 
               self.atoms = atoms
            else:
-              self.atoms = [ Atom(x) for x in atoms.split(',') ]
+              self.atoms = [ units.Atom(x) for x in atoms.split(',') ]
         # equal the positions and origins
         if equal:
            self.origin = pos.copy()
@@ -527,7 +555,7 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
                          quadrupoles=None,octupoles=None,
                          hexadecapoles=None):
         """\
-set multipoles given as n-d array
+set multipoles given as n-d numpy.array
 where n is rank of multipole moment"""
         if charges       is not None: self.DMA[0] = charges       .copy()
         if dipoles       is not None: self.DMA[1] = dipoles       .copy()
@@ -599,7 +627,7 @@ premute all moments, positions and origins using ind list
         
         elif type=='xyz':
            log = "  %i\n\n"%len(self.pos)
-           pos = self.pos*UNITS.BohrToAngstrom
+           pos = self.pos * units.UNITS.BohrToAngstrom
            for i,atom in enumerate(self.atoms):
               log+= " %-10s %14.8f %14.8f %14.8f\n" % (atom.symbol, pos[i,0], pos[i,1], pos[i,2])
            log+='\n'
@@ -615,10 +643,10 @@ premute all moments, positions and origins using ind list
        return []
             
     def __getitem__(self,index): 
-        return array(self.DMA[index])
+        return numpy.array(self.DMA[index])
 
     def __setitem__(self,index,value):
-        self.DMA[index] = array(value)
+        self.DMA[index] = numpy.array(value)
     
     def __len__(self):
         """Return the number of distributed sites"""
@@ -677,7 +705,7 @@ premute all moments, positions and origins using ind list
         m = self.DMA[1] - other.DMA[1]
         T = self.DMA[2] - other.DMA[2]
         O = self.DMA[3] - other.DMA[3]
-        if has.hexadecapoles:
+        if self.has_hexadecapoles and other.has_hexadecapoles:
            H = self.DMA[4] - other.DMA[4]
            return DMA(q=q,m=m,T=T,O=O,H=H,
                       pos=self.pos.copy(),origin=self.origin.copy())
@@ -799,18 +827,18 @@ premute all moments, positions and origins using ind list
 
 
     def MAKE_FULL(self):
-        """creates arrays of ordinary forms of distributed multipoles
+        """creates numpy.arrays of ordinary forms of distributed multipoles
         in full format."""
-        CHARGES = array(self.DMA[0])
-        DIPOLES = array(self.DMA[1])
-        QDPOLES = zeros((self.nfrag,3,3),dtype=float64)
-        OCTPLES = zeros((self.nfrag,3,3,3),dtype=float64)
+        CHARGES = numpy.array(self.DMA[0])
+        DIPOLES = numpy.array(self.DMA[1])
+        QDPOLES = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+        OCTPLES = numpy.zeros((self.nfrag,3,3,3),dtype=numpy.float64)
         if self.has_hexadecapoles:
-           HEXPLES = zeros((self.nfrag,3,3,3,3),dtype=float64)
+           HEXPLES = numpy.zeros((self.nfrag,3,3,3,3),dtype=numpy.float64)
         for site in range(self.nfrag):
 
             # add quadrupoles
-            q = array(self.DMA[2])
+            q = numpy.array(self.DMA[2])
             QDPOLES[site,0,0] = q[site,0]
             QDPOLES[site,1,1] = q[site,1]
             QDPOLES[site,2,2] = q[site,2]
@@ -823,7 +851,7 @@ premute all moments, positions and origins using ind list
             QDPOLES[site,2,1] = QDPOLES[site,1,2]
             
             # add octupoles
-            o = array(self.DMA[3])
+            o = numpy.array(self.DMA[3])
             OCTPLES[site,0,0,0] = o[site,0]
             OCTPLES[site,1,1,1] = o[site,1]
             OCTPLES[site,2,2,2] = o[site,2]
@@ -863,7 +891,7 @@ premute all moments, positions and origins using ind list
             
             # add hexadecapoles
             if self.has_hexadecapoles:
-               h = array(self.DMA[4])    # REDUCED FORMAT COMPONENTS
+               h = numpy.array(self.DMA[4])    # REDUCED FORMAT COMPONENTS
 
                a = h[site,0]             # XXXX
                HEXPLES[site,0,0,0,0] = a
@@ -984,50 +1012,50 @@ premute all moments, positions and origins using ind list
 
     def makeDMAfromFULL(self):
         """Saves the reduced-formatted DMA data from full-formatted data"""
-        self.pos = array(self.DMA_FULL[0])
-        self.DMA[0] = array(self.DMA_FULL[1])
-        self.DMA[1] = array(self.DMA_FULL[2])
+        self.pos         = numpy.array(self.DMA_FULL[0])
+        self.DMA[0]      = numpy.array(self.DMA_FULL[1])
+        self.DMA[1]      = numpy.array(self.DMA_FULL[2])
         #
-        self.DMA[2][:,0] = array(self.DMA_FULL[3][:,0,0])
-        self.DMA[2][:,1] = array(self.DMA_FULL[3][:,1,1])
-        self.DMA[2][:,2] = array(self.DMA_FULL[3][:,2,2])
-        self.DMA[2][:,3] = array(self.DMA_FULL[3][:,0,1])
-        self.DMA[2][:,4] = array(self.DMA_FULL[3][:,0,2])
-        self.DMA[2][:,5] = array(self.DMA_FULL[3][:,1,2])
+        self.DMA[2][:,0] = numpy.array(self.DMA_FULL[3][:,0,0])
+        self.DMA[2][:,1] = numpy.array(self.DMA_FULL[3][:,1,1])
+        self.DMA[2][:,2] = numpy.array(self.DMA_FULL[3][:,2,2])
+        self.DMA[2][:,3] = numpy.array(self.DMA_FULL[3][:,0,1])
+        self.DMA[2][:,4] = numpy.array(self.DMA_FULL[3][:,0,2])
+        self.DMA[2][:,5] = numpy.array(self.DMA_FULL[3][:,1,2])
         #
-        self.DMA[3][:,0] = array(self.DMA_FULL[4][:,0,0,0])
-        self.DMA[3][:,1] = array(self.DMA_FULL[4][:,1,1,1])
-        self.DMA[3][:,2] = array(self.DMA_FULL[4][:,2,2,2])
-        self.DMA[3][:,3] = array(self.DMA_FULL[4][:,0,0,1])
-        self.DMA[3][:,4] = array(self.DMA_FULL[4][:,0,0,2])
-        self.DMA[3][:,5] = array(self.DMA_FULL[4][:,0,1,1])
+        self.DMA[3][:,0] = numpy.array(self.DMA_FULL[4][:,0,0,0])
+        self.DMA[3][:,1] = numpy.array(self.DMA_FULL[4][:,1,1,1])
+        self.DMA[3][:,2] = numpy.array(self.DMA_FULL[4][:,2,2,2])
+        self.DMA[3][:,3] = numpy.array(self.DMA_FULL[4][:,0,0,1])
+        self.DMA[3][:,4] = numpy.array(self.DMA_FULL[4][:,0,0,2])
+        self.DMA[3][:,5] = numpy.array(self.DMA_FULL[4][:,0,1,1])
         #
-        self.DMA[3][:,6] = array(self.DMA_FULL[4][:,1,1,2])
-        self.DMA[3][:,7] = array(self.DMA_FULL[4][:,0,2,2])
-        self.DMA[3][:,8] = array(self.DMA_FULL[4][:,1,2,2])
-        self.DMA[3][:,9] = array(self.DMA_FULL[4][:,0,1,2])
+        self.DMA[3][:,6] = numpy.array(self.DMA_FULL[4][:,1,1,2])
+        self.DMA[3][:,7] = numpy.array(self.DMA_FULL[4][:,0,2,2])
+        self.DMA[3][:,8] = numpy.array(self.DMA_FULL[4][:,1,2,2])
+        self.DMA[3][:,9] = numpy.array(self.DMA_FULL[4][:,0,1,2])
         #
         if self.has_hexadecapoles:
-           self.DMA[4][:, 0]  = array(self.DMA_FULL[5][:,0,0,0,0])  
-           self.DMA[4][:, 1]  = array(self.DMA_FULL[5][:,1,1,1,1])
-           self.DMA[4][:, 2]  = array(self.DMA_FULL[5][:,2,2,2,2])
-           self.DMA[4][:, 3]  = array(self.DMA_FULL[5][:,0,0,0,1])
-           self.DMA[4][:, 4]  = array(self.DMA_FULL[5][:,0,0,0,2])
-           self.DMA[4][:, 5]  = array(self.DMA_FULL[5][:,1,1,1,0])
-           self.DMA[4][:, 6]  = array(self.DMA_FULL[5][:,1,1,1,2])
-           self.DMA[4][:, 7]  = array(self.DMA_FULL[5][:,2,2,2,0])
-           self.DMA[4][:, 8]  = array(self.DMA_FULL[5][:,2,2,2,1])
-           self.DMA[4][:, 9]  = array(self.DMA_FULL[5][:,0,0,1,1])
-           self.DMA[4][:,10]  = array(self.DMA_FULL[5][:,0,0,2,2])
-           self.DMA[4][:,11]  = array(self.DMA_FULL[5][:,1,1,2,2])
-           self.DMA[4][:,12]  = array(self.DMA_FULL[5][:,0,0,1,2])
-           self.DMA[4][:,13]  = array(self.DMA_FULL[5][:,1,1,0,2])
-           self.DMA[4][:,14]  = array(self.DMA_FULL[5][:,2,2,0,1])
+           self.DMA[4][:, 0]  = numpy.array(self.DMA_FULL[5][:,0,0,0,0])  
+           self.DMA[4][:, 1]  = numpy.array(self.DMA_FULL[5][:,1,1,1,1])
+           self.DMA[4][:, 2]  = numpy.array(self.DMA_FULL[5][:,2,2,2,2])
+           self.DMA[4][:, 3]  = numpy.array(self.DMA_FULL[5][:,0,0,0,1])
+           self.DMA[4][:, 4]  = numpy.array(self.DMA_FULL[5][:,0,0,0,2])
+           self.DMA[4][:, 5]  = numpy.array(self.DMA_FULL[5][:,1,1,1,0])
+           self.DMA[4][:, 6]  = numpy.array(self.DMA_FULL[5][:,1,1,1,2])
+           self.DMA[4][:, 7]  = numpy.array(self.DMA_FULL[5][:,2,2,2,0])
+           self.DMA[4][:, 8]  = numpy.array(self.DMA_FULL[5][:,2,2,2,1])
+           self.DMA[4][:, 9]  = numpy.array(self.DMA_FULL[5][:,0,0,1,1])
+           self.DMA[4][:,10]  = numpy.array(self.DMA_FULL[5][:,0,0,2,2])
+           self.DMA[4][:,11]  = numpy.array(self.DMA_FULL[5][:,1,1,2,2])
+           self.DMA[4][:,12]  = numpy.array(self.DMA_FULL[5][:,0,0,1,2])
+           self.DMA[4][:,13]  = numpy.array(self.DMA_FULL[5][:,1,1,0,2])
+           self.DMA[4][:,14]  = numpy.array(self.DMA_FULL[5][:,2,2,0,1])
  
         del self.DMA_FULL
         self.full = False
        
-    def get_const(self, origin=array([0.,0.,0.]) ):
+    def get_const(self, origin=numpy.array([0.,0.,0.]) ):
         """
  Calculate the invariants of total multipole moments
  Returns the tuple of four invariant sets for charge, dipole, quadrupole
@@ -1063,37 +1091,37 @@ premute all moments, positions and origins using ind list
 
   2) no invariants are computed for hexadecapole moments!
      """
-        eij = zeros((3, 3), float64)
+        eij = numpy.zeros((3, 3), numpy.float64)
         eij[0,1] = eij[1,2] = eij[2,0] =  1.0
         eij[1,0] = eij[2,1] = eij[0,2] = -1.0
         
-        eijk = zeros((3, 3, 3), float64)
+        eijk = numpy.zeros((3, 3, 3), numpy.float64)
         eijk[0, 1, 2] = eijk[1, 2, 0] = eijk[2, 0, 1] =  1.0
         eijk[0, 2, 1] = eijk[2, 1, 0] = eijk[1, 0, 2] = -1.0
         tot = self.get_mult(origin)
         tot.MAKE_FULL()
         # invariants for dipole moment
-        mu  = sqrt(sum(tot.DMA_FULL[2][0]**2))
+        mu  = numpy.sqrt(numpy.sum(tot.DMA_FULL[2][0]**2))
         # invariants for quadrupole moment
         tr = tot.DMA_FULL[3][0].trace()
-        tr2= (dot(tot.DMA_FULL[3][0],tot.DMA_FULL[3][0])).trace()
+        tr2= (numpy.dot(tot.DMA_FULL[3][0],tot.DMA_FULL[3][0])).trace()
         qad_1 = tr
         qad_2 = 0.500*(tr*tr-tr2)
-        qad_3 = linalg.det(tot.DMA_FULL[3][0])
+        qad_3 = numpy.linalg.det(tot.DMA_FULL[3][0])
         # invariants for octupole moment
         # from. F. Ahmad, Arch. Mech. 63, 4, pp383-392 Warszawa 2011
         # formulae from p.390 for F1-F5
-        oct = tot.DMA_FULL[4][0]
-        oct_1 = dot(oct.trace(axis1=0,axis2=1),oct.trace(axis1=0,axis2=1))
-        oct_2 = dot(oct.trace(axis1=1,axis2=2),oct.trace(axis1=1,axis2=2))
-        oct_3 = tensordot(oct,oct,((0,1,2),(0,1,2)))
-        oct_4 = tensordot(oct,oct,((0,1,2),(1,2,0)))
-        A_kp = tensordot(oct,oct,((0,1),(2,1)))
-        B_ri = tensordot(oct,oct,((1,2),(1,0)))
-        oct_5 = 0.5*(sum(eij*A_kp,axis=None) + sum(eij.transpose()*B_ri,axis=None))
-        #oct = 1./6. * (sum(tot.DMA_FULL[4][0]*eijk)) * eijk
-        qad = array([qad_1, qad_2, qad_3],float64)
-        oct = array([oct_1,oct_2,oct_3,oct_4,oct_5],float64)
+        oct   = tot.DMA_FULL[4][0]
+        oct_1 = numpy.dot(oct.trace(axis1=0,axis2=1),oct.trace(axis1=0,axis2=1))
+        oct_2 = numpy.dot(oct.trace(axis1=1,axis2=2),oct.trace(axis1=1,axis2=2))
+        oct_3 = numpy.tensordot(oct,oct,((0,1,2),(0,1,2)))
+        oct_4 = numpy.tensordot(oct,oct,((0,1,2),(1,2,0)))
+        A_kp  = numpy.tensordot(oct,oct,((0,1),(2,1)))
+        B_ri  = numpy.tensordot(oct,oct,((1,2),(1,0)))
+        oct_5 = 0.5*(numpy.sum(eij*A_kp,axis=None) + numpy.sum(eij.transpose()*B_ri,axis=None))
+        #oct = 1./6. * (numpy.sum(tot.DMA_FULL[4][0]*eijk)) * eijk
+        qad = numpy.array([qad_1, qad_2, qad_3],numpy.float64)
+        oct = numpy.array([oct_1,oct_2,oct_3,oct_4,oct_5],numpy.float64)
         return tot.DMA_FULL[1][0], mu, qad, oct
  
     def MakeTraceless(self):
@@ -1107,18 +1135,17 @@ premute all moments, positions and origins using ind list
         if self.full:
            # Quadrupole moment
            for Q in self.DMA_FULL[3]:
-               t=trace(Q)
+               t = Q.trace()
                Q *= (3./2.)
                for i in [0,1,2]: Q[i,i]-=(1./2.)*t
            # Octapole moment
            for O in self.DMA_FULL[4]:
-               W= zeros((3,3,3),dtype=float)
-               W[:]= O
+               W  = O.copy()
                O *= (5./2.)
                for i in [0,1,2]:
                    for j in [0,1,2]:
                        for k in [0,1,2]:
-                           Wt = trace(W)
+                           Wt = W.trace()
                            if   i==j and i==k:
                                 O[i,j,k]-= (1./2.) * (Wt[i] + Wt[j] + Wt[k])
                            elif i==j and i!=k:
@@ -1171,67 +1198,67 @@ premute all moments, positions and origins using ind list
            
         if self.full:
            if zero:
-              new_origin_set = zeros((self.nfrag,3),dtype=float64)
+              new_origin_set = numpy.zeros((self.nfrag,3),dtype=numpy.float64)
            #print new_origin_set
            #new_origin_set*=-1 
-           old_origin_set = array(self.origin)#array(self.DMA_FULL[0])
-           M0 = array(self.DMA_FULL[1])
-           M1 = array(self.DMA_FULL[2]) 
-           M2 = array(self.DMA_FULL[3]) 
-           M3 = array(self.DMA_FULL[4])
+           old_origin_set = numpy.array(self.origin)#numpy.array(self.DMA_FULL[0])
+           M0 = numpy.array(self.DMA_FULL[1])
+           M1 = numpy.array(self.DMA_FULL[2]) 
+           M2 = numpy.array(self.DMA_FULL[3]) 
+           M3 = numpy.array(self.DMA_FULL[4])
 
-           #A2 = zeros((self.nfrag,3,3),dtype=float64)
-           #B2 = zeros((self.nfrag,3,3),dtype=float64)
-           A2 = array_outer_product(old_origin_set,old_origin_set)
-           B2 = array_outer_product(new_origin_set,new_origin_set)
+           #A2 = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+           #B2 = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+           A2 = utilities2.array_outer_product(old_origin_set,old_origin_set)
+           B2 = utilities2.array_outer_product(new_origin_set,new_origin_set)
 
            D = new_origin_set - old_origin_set
            
            #print old_origin_set
-           M1_o = M1 + array_outer_product_1_n(M0, old_origin_set)
-           #AM = zeros((self.nfrag,3,3),dtype=float64)
-           #MA = zeros((self.nfrag,3,3),dtype=float64)
-           AM = array_outer_product(old_origin_set,M1_o)
-           MA = array_outer_product(M1_o,old_origin_set)
+           M1_o = M1 + utilities2.array_outer_product_1_n(M0, old_origin_set)
+           #AM = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+           #MA = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+           AM = utilities2.array_outer_product(old_origin_set,M1_o)
+           MA = utilities2.array_outer_product(M1_o,old_origin_set)
            
-           M2_o = M2 - array_outer_product_1_n(M0, A2) + AM + MA
+           M2_o = M2 - utilities2.array_outer_product_1_n(M0, A2) + AM + MA
            
            # First moments
-           new_M1 = M1 - array_outer_product_1_n(M0, new_origin_set- old_origin_set)
+           new_M1 = M1 - utilities2.array_outer_product_1_n(M0, new_origin_set- old_origin_set)
            # Second moments
-           #MD = zeros((self.nfrag,3,3),dtype=float64)
-           MD = array_outer_product(M1_o,D)
-           #DM = zeros((self.nfrag,3,3),dtype=float64)
-           DM =  array_outer_product(D,M1_o)
-           new_M2 = M2 + array_outer_product_1_n(M0,(B2-A2)) - MD - DM
+           #MD = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+           MD = utilities2.array_outer_product(M1_o,D)
+           #DM = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+           DM =  utilities2.array_outer_product(D,M1_o)
+           new_M2 = M2 + utilities2.array_outer_product_1_n(M0,(B2-A2)) - MD - DM
 
            # Third moments
-           A3 = array_outer_product_1_2(old_origin_set,A2)#
-           B3 = array_outer_product_1_2(new_origin_set,B2)#
-           M1A= array_outer_product(M1_o,old_origin_set)#
-           M1B= array_outer_product(M1_o,new_origin_set)#
-           #BAM2 = zeros((self.nfrag,3,3,3),dtype=float64)
-           BAM2  = array_outer_product_1_2(D,M2_o)#
-           B2A2M1= array_outer_product_2_1(B2-A2,M1_o)#
-           QB3A3 = array_outer_product_1_n(M0,(B3-A3))#
-           M2BA  = array_outer_product_2_1(M2_o,D)#
-           M1B2A2= array_outer_product_1_2(M1_o,B2-A2)#
-           AM1A  = array_outer_product_1_2(old_origin_set,M1A)#
-           BM1B  = array_outer_product_1_2(new_origin_set,M1B)#
-           #M1AM1 = array_outer_product_2_1(M1A,old_origin_set)
-           #M1BM1 = array_outer_product_2_1(M1B,new_origin_set)
-           #print shape(array_outer_product_1_2(new_origin_set,M2_o))
-           BM2TR = transpose(array_outer_product_1_2(new_origin_set,M2_o),
-                             axes=(0,2,1,3))#
-           AM2TR = transpose(array_outer_product_1_2(old_origin_set,M2_o),
-                             axes=(0,2,1,3))#
+           A3 = utilities2.array_outer_product_1_2(old_origin_set,A2)#
+           B3 = utilities2.array_outer_product_1_2(new_origin_set,B2)#
+           M1A= utilities2.array_outer_product(M1_o,old_origin_set)#
+           M1B= utilities2.array_outer_product(M1_o,new_origin_set)#
+           #BAM2 = numpy.zeros((self.nfrag,3,3,3),dtype=numpy.float64)
+           BAM2  = utilities2.array_outer_product_1_2(D,M2_o)#
+           B2A2M1= utilities2.array_outer_product_2_1(B2-A2,M1_o)#
+           QB3A3 = utilities2.array_outer_product_1_n(M0,(B3-A3))#
+           M2BA  = utilities2.array_outer_product_2_1(M2_o,D)#
+           M1B2A2= utilities2.array_outer_product_1_2(M1_o,B2-A2)#
+           AM1A  = utilities2.array_outer_product_1_2(old_origin_set,M1A)#
+           BM1B  = utilities2.array_outer_product_1_2(new_origin_set,M1B)#
+           #M1AM1 = utilities2.array_outer_product_2_1(M1A,old_origin_set)
+           #M1BM1 = utilities2.array_outer_product_2_1(M1B,new_origin_set)
+           #print numpy.shape(utilities2.array_outer_product_1_2(new_origin_set,M2_o))
+           BM2TR = numpy.transpose(utilities2.array_outer_product_1_2(new_origin_set,M2_o),
+                                   axes=(0,2,1,3))#
+           AM2TR = numpy.transpose(utilities2.array_outer_product_1_2(old_origin_set,M2_o),
+                                   axes=(0,2,1,3))#
 
            new_M3 = M3   - BAM2 + B2A2M1 - QB3A3 - M2BA + M1B2A2 + \
                     BM1B - AM1A - BM2TR  + AM2TR
            
            # Fourth moments
            if self.has_hexadecapoles:
-              M4 = array(self.DMA_FULL[5])   # hexadecapoles centered at old origins 
+              M4 = numpy.array(self.DMA_FULL[5])   # hexadecapoles centered at old origins 
               #raise NotImplementedError, 'Recentering hexadecapoles is not implemented yet! Quitting...'
               # first find the dipoles, quadrupoles and octupoles at the origin [0,0,0]
               other = self.copy()
@@ -1248,12 +1275,12 @@ premute all moments, positions and origins using ind list
               # then construct the basis generalized outer tensor products
               D2 = B2 - A2
               D3 = B3 - A3
-              D4 = array_outer_product_2_2(B2,B2) - array_outer_product_2_2(A2,A2)
-              Y1 = array_outer_product_1_3(M10,D3)
-              Y2 = array_outer_product_2_2(M20,D2)
-              Y3 = array_outer_product_3_1(M30,D )
+              D4 = utilities2.array_outer_product_2_2(B2,B2) - utilities2.array_outer_product_2_2(A2,A2)
+              Y1 = utilities2.array_outer_product_1_3(M10,D3)
+              Y2 = utilities2.array_outer_product_2_2(M20,D2)
+              Y3 = utilities2.array_outer_product_3_1(M30,D )
               # finally, compute the new hexadecapoles from zeroth moments
-              new_M4 = M4 + array_outer_product_1_n(M0,D4)
+              new_M4 = M4 + utilities2.array_outer_product_1_n(M0,D4)
               for perm in T1: new_M4 -= Y1.transpose(perm)
               for perm in T2: new_M4 += Y2.transpose(perm)
               for perm in T3: new_M4 -= Y3.transpose(perm)
@@ -1270,7 +1297,7 @@ premute all moments, positions and origins using ind list
               self.DMA_FULL[5] = new_M4
            
            self.makeDMAfromFULL()
-           self.origin = array(new_origin_set)
+           self.origin = numpy.array(new_origin_set)
            
         else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
 
@@ -1325,24 +1352,24 @@ The numbers are normal numbers (not in Python convention)."""
         if self.full:
            ### transform the origins and positions
            for i in xrange(len(self.origin)):
-               self.origin[i] = dot(self.origin[i],rotmat)
+               self.origin[i] = numpy.dot(self.origin[i],rotmat)
            for i in xrange(len(self.pos)):
-               self.pos[i] = dot(self.pos[i],rotmat)
+               self.pos[i] = numpy.dot(self.pos[i],rotmat)
            ### transform the dipoles
-           self.DMA_FULL[2] = dot(self.DMA[1],rotmat)
+           self.DMA_FULL[2] = numpy.dot(self.DMA[1],rotmat)
 
            ### transform the quadrupoles
-           quadrupole = zeros((self.nfrag,3,3),dtype=float64)
+           quadrupole = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
            for i in range(self.nfrag):
-               quadrupole[i] = dot(rotmat.T,dot( self.DMA_FULL[3][i] ,rotmat))
+               quadrupole[i] = numpy.dot(rotmat.T,numpy.dot( self.DMA_FULL[3][i] ,rotmat))
 
            self.DMA_FULL[3] = quadrupole
         
            ### transform the octupoles
-           octupole = zeros((self.nfrag,3,3,3),dtype=float64)
+           octupole = numpy.zeros((self.nfrag,3,3,3),dtype=numpy.float64)
            for i in range(self.nfrag):
-               octupole[i] = tensordot(rotmat.T,tensordot(
-                                       rotmat.T,tensordot(
+               octupole[i] = numpy.tensordot(rotmat.T,numpy.tensordot(
+                                       rotmat.T,numpy.tensordot(
                                        rotmat.T,self.DMA_FULL[4][i] , (1,2)
                                      ),(1,2)
                                      ),(1,2)
@@ -1352,11 +1379,11 @@ The numbers are normal numbers (not in Python convention)."""
 
            ### transform the hexadecapoles
            if self.has_hexadecapoles:
-              hexadecapole = zeros((self.nfrag,3,3,3,3),dtype=float64)                       
+              hexadecapole = numpy.zeros((self.nfrag,3,3,3,3),dtype=numpy.float64)                       
               for i in range(self.nfrag):
-                  hexadecapole[i] = tensordot(rotmat.T,tensordot(
-                                              rotmat.T,tensordot(
-                                              rotmat.T,tensordot(
+                  hexadecapole[i] = numpy.tensordot(rotmat.T,numpy.tensordot(
+                                              rotmat.T,numpy.tensordot(
+                                              rotmat.T,numpy.tensordot(
                                               rotmat.T,self.DMA_FULL[5][i] , (1,2)
                                             ),(1,2)
                                             ),(1,2)
@@ -1379,7 +1406,7 @@ The numbers are normal numbers (not in Python convention)."""
            self.DMA[4] *= hexadecapoles
         return
         
-    def get_mult_c(self, origin=zeros(3,dtype=float64), hexadecapoles=False):
+    def get_mult_c(self, origin=numpy.zeros(3,dtype=numpy.float64), hexadecapoles=False):
         """Calculates overall primitive moments from charges.
 This tool has a purpose of testing population analysis obtained by
 fitting to the molecular ab initio potential or other methods.
@@ -1391,7 +1418,7 @@ H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
 """
         overall = DMA(nfrag=1)
         overall.name = 'Test of reproducing multipoles from charges'
-        overall.pos = zeros((1,3),dtype=float64)
+        overall.pos = numpy.zeros((1,3),dtype=numpy.float64)
         overall.pos[0] = origin
         
         ### make full format of DMA
@@ -1399,22 +1426,22 @@ H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
         tmp.MAKE_FULL()
         
         ### compute molecular solvatochromic moments
-        mu   = zeros((3),dtype=float64)
-        quad = zeros((3,3),dtype=float64)
-        oct  = zeros((3,3,3),dtype=float64)
-        hex  = zeros((3,3,3,3),dtype=float64)
+        mu   = numpy.zeros((3),dtype=numpy.float64)
+        quad = numpy.zeros((3,3),dtype=numpy.float64)
+        oct  = numpy.zeros((3,3,3),dtype=numpy.float64)
+        hex  = numpy.zeros((3,3,3,3),dtype=numpy.float64)
         for atom in range(self.nfrag):
             r     = tmp.pos[atom] - origin
             qatom = tmp.DMA[0][atom]
             ### calculate dipole moment
             mu   += qatom * r 
             ### calculate quadrupole moment
-            quad += qatom * outer (r,r)
+            quad += qatom * numpy.outer (r,r)
             ### calculate octupole moment
-            oct  += qatom * outer( r, outer (r,r) ).reshape(3,3,3)
+            oct  += qatom * numpy.outer( r, numpy.outer (r,r) ).reshape(3,3,3)
             ### calculate hexadecapole moment
             if hexadecapoles:
-               hex  += qatom * outer( r, outer (r, outer(r,r) ) ).reshape(3,3,3,3)
+               hex  += qatom * numpy.outer( r, numpy.outer (r, numpy.outer(r,r) ) ).reshape(3,3,3,3)
 
         ### set the molecular moments into the DMA solvent object
         overall.DMA[1][0] = mu
@@ -1461,7 +1488,7 @@ H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
         return overall
     
     
-    def get_mult(self, origin=zeros(3,dtype=float64), hexadecapoles=False):
+    def get_mult(self, origin=numpy.zeros(3,dtype=numpy.float64), hexadecapoles=False):
         """Calculates overall primitive multipole moments from distributed multipoles.
 This can be used for a test of the correctness of multipole analysis. The exact distributed
 expansions should sum up to the total molecular expansion with respect to origin privided.
@@ -1472,7 +1499,7 @@ expansions should sum up to the total molecular expansion with respect to origin
         overall = DMA(nfrag=1)
         #overall.name = 'Test of reproducing multipoles from charges [units: Debyes(*Angstroms^n)]'
         overall.name = 'Test of reproducing overall multipoles from CAMM/CBAMM/LMTP/DMA [units: A.U.]'
-        overall.pos = zeros((1,3),dtype=float64)
+        overall.pos = numpy.zeros((1,3),dtype=numpy.float64)
         overall.pos[0] = origin
         tmp = self.copy()
         tmp.MAKE_FULL()
@@ -1482,10 +1509,10 @@ expansions should sum up to the total molecular expansion with respect to origin
         tmp.MAKE_FULL()
         
         ### compute molecular solvatochromic moments
-        mu   = zeros((3),dtype=float64)
-        quad = zeros((3,3),dtype=float64)
-        oct  = zeros((3,3,3),dtype=float64)
-        hex  = zeros((3,3,3,3),dtype=float64)
+        mu   = numpy.zeros((3),dtype=numpy.float64)
+        quad = numpy.zeros((3,3),dtype=numpy.float64)
+        oct  = numpy.zeros((3,3,3),dtype=numpy.float64)
+        hex  = numpy.zeros((3,3,3,3),dtype=numpy.float64)
         for atom in range(self.nfrag):
             r     = tmp.origin[atom]### zmiana origin z pos!!!
             qatom = tmp.DMA[0][atom]
@@ -1539,7 +1566,7 @@ expansions should sum up to the total molecular expansion with respect to origin
 
 
         overall.MAKE_FULL()
-        overall.ChangeOrigin(new_origin_set=array([origin],float64) )
+        overall.ChangeOrigin(new_origin_set=numpy.array([origin],numpy.float64) )
         
         #overall.DMA[1] *= UNITS.BohrElectronToDebye
         #overall.DMA[2] *= UNITS.BohrElectronToDebye * UNITS.BohrToAngstrom

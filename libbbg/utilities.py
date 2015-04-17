@@ -4203,12 +4203,12 @@ if not is_full - the dma object is turned into traceless object
         
     return field
     
-def ParseDMA(file,type='coulomb'):
+def ParseDMA(file,type='coulomb',hexadecapoles=False):
     """\
 ============================================================================
 Parse DMA from GAUSSIAN, GAMESS or COULOMB.py file. It returns a DMA object.
 Usage:
-ParseDMA(type='coulomb')
+ParseDMA(file, type='coulomb', hexadecapoles=False)
 ----------------------------------------------------------------------------
 <type>s:
 1) coulomb  or c (or just nothing - it is default)
@@ -4292,13 +4292,22 @@ Gamess reads Stone's DMA analysis
                          m  =numpy.array(FirstMoments )   ,
                          T  =numpy.array(SecondMoments)   , 
                          O  =numpy.array(ThirdMoments )   ,
-                         pos=numpy.array(Structure)       )
+                         pos=numpy.array(Structure)       ,
+                         hexadecapoles=False              )
 
     # -----------------------------------------------------------------------------
     elif type.lower() == 'coulomb' or type.lower() == 'c':
-         # return DMA object
+         # determine if the file contains hexadecapole moments
+         has_hexadecapoles = False
+         data = open(file)
+         if " Distributed fourth-order property" in data.read(): has_hexadecapoles = True
+         data.close()
+
+         # now read the file once again line by line
          data = open(file)
          line = data.readline()
+
+         # start reading the sections
          querry = " Distributed zeroth-order property"
          while 1:
                if querry in line: break
@@ -4309,8 +4318,8 @@ Gamess reads Stone's DMA analysis
          Origin = []
          while line.split()!=[]:
                ZerothMoments.append( numpy.float64( line.split()[0] ) )
-                    
                line = data.readline()
+         nfrag = len(ZerothMoments)
          # ----------------------------------
          querry = " Distributed first-order property"
          while 1:
@@ -4338,12 +4347,31 @@ Gamess reads Stone's DMA analysis
                line = data.readline()
          for i in range(5): line = data.readline()
          ThirdMoments = []
-         while '-----' not in line:
+         #while '-----' not in line or :
+         for i in range(nfrag):
                A = map( numpy.float64, line.split()[:] )
                line = data.readline()
                B = map( numpy.float64, line.split()[:] )
                ThirdMoments.append( A+B )
                line = data.readline()
+         # ----------------------------------
+         FourthMoments = None
+         if has_hexadecapoles and hexadecapoles:
+            querry = " Distributed fourth-order property" 
+            while 1:
+                if querry in line: break
+                line = data.readline()
+            FourthMoments = []
+            for i in range(6): line = data.readline() 
+            for i in range(nfrag):
+                A = map( numpy.float64, line.split()[:] )
+                line = data.readline()
+                B = map( numpy.float64, line.split()[:] )
+                line = data.readline()
+                C = map( numpy.float64, line.split()[:] )
+                line = data.readline()
+                FourthMoments.append( A+B+C )
+            FourthMoments = numpy.array(FourthMoments)
          # ----------------------------------
          querry = " form@"
          while 1:
@@ -4398,7 +4426,8 @@ Gamess reads Stone's DMA analysis
          return dma.DMA( q=numpy.array(ZerothMoments)   ,
                          m=numpy.array(FirstMoments )   , 
                          T=numpy.array(SecondMoments)   ,
-                         O=numpy.array(ThirdMoments )   ,
+                         O=numpy.array(ThirdMoments )   , 
+                         H=FourthMoments                ,
                          atoms=atoms              ,
                          pos=Structure            ,
                          origin=Origin,
@@ -4430,11 +4459,11 @@ Gamess reads Stone's DMA analysis
              ZerothMoments.append( numpy.float64( line.split()[-1] ) )    
              line = data.readline()
         
-         Result = dma.DMA(nfrag=len(Structure))
+         Result = dma.DMA(nfrag=len(Structure), hexadecapoles=False)
          Result.pos = numpy.array(Structure) * units.UNITS.AngstromToBohr
          Result.DMA[0] = numpy.array(ZerothMoments)
          
-         return Result#, array(Structure) * UNITS.AngstromToBohr
+         return Result
 
 def ParseDMAFromGamessEfpFile(f):
     """parse DMA and their centers from GAMESS *.efp file"""
@@ -4676,7 +4705,7 @@ def ParseFockFromGamessLog(file,interpol=False):
     fock = numpy.array(fock,dtype=numpy.float64)
     return fock
 
-def ParseDmatFromFchk(file,basis_size,type='SCF'):
+def ParseDmatFromFchk(file, basis_size=None, type='SCF'):
     """parses density matrix from Gaussian fchk file"""
         
     data = open(file)
@@ -4685,6 +4714,14 @@ def ParseDmatFromFchk(file,basis_size,type='SCF'):
     elif type.lower()=='mp2': querry = "Total MP2 Density"
     elif type.lower()=='cc' : querry = "Total CC Density"
     else: raise Exception(" Type <%s> is invalid" % type)
+
+    if basis_size is None:
+       ### look for basis set size          
+       querry1 = "Number of basis functions"
+       while querry1 not in line:
+             line = data.readline()
+       basis_size = int(line.split()[-1])
+
     while 1:
         if querry in line: break
         line = data.readline()
