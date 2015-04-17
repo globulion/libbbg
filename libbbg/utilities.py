@@ -4249,7 +4249,7 @@ if not is_full - the dma object is turned into traceless object
         
     return field
     
-def ParseDMA(file,type='coulomb',hexadecapoles=False):
+def ParseDMA(file,type='coulomb',hexadecapoles=True):
     """\
 ============================================================================
 Parse DMA from GAUSSIAN, GAMESS or COULOMB.py file. It returns a DMA object.

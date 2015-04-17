@@ -17,7 +17,7 @@ __all__ = ['DMA']
 #from units import *
 import numpy, numpy.linalg, copy, units, utilities2
 
-def ParseDMA(file,type='coulomb',hexadecapoles=False):
+def ParseDMA(file,type='coulomb',hexadecapoles=True):
     """\
 >>>>> Copied from LIBBBG.utilities <<<<<
 ============================================================================
@@ -605,7 +605,7 @@ expansions should sum up to the total molecular expansion with respect to origin
         if hexadecapoles and not self.has_hexadecapoles:
            print " WARNING: This DMA object does not contain hexadecapoles but they were requested. It will be ignored by Coulomb."
            hexadecapoles = False
-        overall = DMA(nfrag=1)
+        overall = DMA(nfrag=1, hexadecapoles=hexadecapoles)
         #overall.name = 'Test of reproducing multipoles from charges [units: Debyes(*Angstroms^n)]'
         overall.name = 'Test of reproducing overall multipoles from CAMM/CBAMM/LMTP/DMA [units: A.U.]'
         overall.pos = numpy.zeros((1,3),dtype=numpy.float64)
@@ -1688,7 +1688,7 @@ The numbers are normal numbers (not in Python convention)."""
               Y1 = utilities2.array_outer_product_1_3(M10,D3)
               Y2 = utilities2.array_outer_product_2_2(M20,D2)
               Y3 = utilities2.array_outer_product_3_1(M30,D )
-              # finally, compute the new hexadecapoles from zeroth moments
+              # finally, compute the new hexadecapoles from lower moments
               new_M4 = M4 + utilities2.array_outer_product_1_n(M0,D4)
               for perm in T1: new_M4 -= Y1.transpose(perm)
               for perm in T2: new_M4 += Y2.transpose(perm)

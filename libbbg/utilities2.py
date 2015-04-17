@@ -70,7 +70,6 @@ def array_outer_product_3_1( B, A, result=None):
     result = array_outer_product( B.reshape(f,27), A ).reshape(f,3,3,3,3)
     return result
 
-
 def array_outer_product_1_n(A, B):
     result = B.copy()
     for i in range(len(A)):
