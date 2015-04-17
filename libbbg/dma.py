@@ -103,6 +103,7 @@ Gamess reads Stone's DMA analysis
              ZerothMoments.pop(0)
              Structure.pop(0)
 
+         data.close()
          return     DMA( q  =numpy.array(ZerothMoments)   ,
                          m  =numpy.array(FirstMoments )   ,
                          T  =numpy.array(SecondMoments)   , 
@@ -237,7 +238,8 @@ Gamess reads Stone's DMA analysis
 
          else:
             Origin    = Structure.copy()
-          
+         
+         data.close() 
          return     DMA( q=numpy.array(ZerothMoments)   ,
                          m=numpy.array(FirstMoments )   , 
                          T=numpy.array(SecondMoments)   ,
@@ -277,7 +279,8 @@ Gamess reads Stone's DMA analysis
          Result =     DMA(nfrag=len(Structure), hexadecapoles=False)
          Result.pos = numpy.array(Structure) * units.UNITS.AngstromToBohr
          Result.DMA[0] = numpy.array(ZerothMoments)
-         
+ 
+         data.close()
          return Result
      
 def interchange(T,ind):
@@ -921,6 +924,24 @@ Returned value is an RMS of a superimposition and is given in Bohrs.
         self.rotate(rot)
         self.translate(transl)
         return rms
+
+    def recenter(self, new_origin_set=0, zero=False):
+        """Recenter the DMA distribution.
+
+ Usage:  
+
+       DMA_instance.recenter(new_origin_set=0, zero=False)
+ 
+ Where:
+ 
+       new_origin_set - is the set of new origins
+       zero           - if True, new_origin_set is ignored
+                        and all DMA will be recentered to the
+                        point [0.0, 0.0, 0.0] (global origin)
+"""
+        self.MAKE_FULL()
+        self.ChangeOrigin(new_origin_set, zero)
+        return
 
     def MakeUa(self,ua_list,change_origin=True,contract=False):
         """\

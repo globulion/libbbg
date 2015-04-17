@@ -4332,6 +4332,7 @@ Gamess reads Stone's DMA analysis
              ZerothMoments.pop(0)
              Structure.pop(0)
 
+         data.close()
          return dma.DMA( q  =numpy.array(ZerothMoments)   ,
                          m  =numpy.array(FirstMoments )   ,
                          T  =numpy.array(SecondMoments)   , 
@@ -4466,7 +4467,8 @@ Gamess reads Stone's DMA analysis
 
          else:
             Origin    = Structure.copy()
-          
+         
+         data.close() 
          return dma.DMA( q=numpy.array(ZerothMoments)   ,
                          m=numpy.array(FirstMoments )   , 
                          T=numpy.array(SecondMoments)   ,
@@ -4507,6 +4509,7 @@ Gamess reads Stone's DMA analysis
          Result.pos = numpy.array(Structure) * units.UNITS.AngstromToBohr
          Result.DMA[0] = numpy.array(ZerothMoments)
          
+         data.close()
          return Result
 
 def ParseDMAFromGamessEfpFile(f):
