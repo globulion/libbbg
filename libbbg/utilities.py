@@ -1718,13 +1718,13 @@ Notes:
        self.__misc = text
        return
  
-   def write(self, name='default', pkg=None, template=None, delim='@', **kwargs):
+   def write(self, name='default', pkg=None, template=None, delim='@', ext=None, **kwargs):
        """
  Write the structure into the XYZ file or input file for GAMESS, Gaussian or Coulomb.
 
  Usage:
 
-   QMFile_instance.write(self, name='default', pkg=None, template=None, delim='@', **kwargs)
+   QMFile_instance.write(self, name='default', pkg=None, template=None, delim='@', ext=None, **kwargs)
 
  Notes:
 
@@ -1733,6 +1733,7 @@ Notes:
    **kwargs are the keys for template substitutions (eg CHK when @CHK with delim='@')
    *COORD keyword needs always to be present in template string object where * is the chosen delimiter
         (eg. @COORD, $COORD etc)
+   ext      - optional extension for file (default are .xyz or .inp)
 
  Examplary template:
 
@@ -1752,8 +1753,9 @@ Notes:
  Warning: keyword pkg is not working yet (so if wanted to make GAMESS inputs it will not add atomic numbers
           and you will have to add them manually or using external script.
 """
-       if template is None: ext = '.xyz'
-       else               : ext = '.inp'
+       if ext is None:
+          if template is None: ext = '.xyz' 
+          else               : ext = '.inp'
        if not name.endswith(ext):  name = name + ext
        f = open(name,'w')
 
