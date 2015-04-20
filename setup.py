@@ -39,7 +39,7 @@ EFPROT = Extension(name='libbbg.qm.efprot',
 # --- Install libbbg!
 
 setup(name='LIBBBG',
-      version='1.0.1',
+      version='1.0.2',
       description='Libraries for BBG packages',
       author='Bartosz Błasiak',
       author_email='blasiak.bartosz@gmail.com',
