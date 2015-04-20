@@ -136,7 +136,7 @@ class SVDSuperimposer(object):
         "Root mean square deviation of superimposed coordinates."
         if self.rms is None:
             transformed_coords=self.get_transformed()
-            self.rms=self._rms(transformed_coords, self.reference_coords)
+            self.celess=is_tracelessrms=self._rms(transformed_coords, self.reference_coords)
         return self.rms
 
 
@@ -584,7 +584,7 @@ mathematical operations:
         self.nfrag = len(dma[0])
         self.atoms = dma.atoms
         self.full  = False
-        self.is_traceless = False
+        self.is_traceless = dma.is_traceless
         self.has_hexadecapoles = dma.has_hexadecapoles
         return
 
@@ -1758,7 +1758,7 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
     def ChangeOrigin(self,new_origin_set=0,zero=False):
         """shifts origin(s) of ordinary full-formatted DMA_FULL
            into new one(s)"""
-           
+
         if self.full:
            if zero:
               new_origin_set = numpy.zeros((self.nfrag,3),dtype=numpy.float64)
@@ -1783,7 +1783,6 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
            #MA = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
            AM = utilities2.array_outer_product(old_origin_set,M1_o)
            MA = utilities2.array_outer_product(M1_o,old_origin_set)
-           
            M2_o = M2 - utilities2.array_outer_product_1_n(M0, A2) + AM + MA
            
            # First moments
@@ -1851,8 +1850,8 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
 
            if self.nfrag == 1:
               self.origin = new_origin_set[0]
-           
-           self.DMA_FULL.append(new_origin_set)
+         
+           #self.DMA_FULL.append(new_origin_set)
            self.DMA_FULL[2] = new_M1
            self.DMA_FULL[3] = new_M2
            self.DMA_FULL[4] = new_M3
