@@ -4479,7 +4479,7 @@ Gamess reads Stone's DMA analysis
                          atoms=atoms              ,
                          pos=Structure            ,
                          origin=Origin,
-                         is_traceless=is_traceless )
+                         traceless=is_traceless )
     # -----------------------------------------------------------------------------
     elif type.lower() == 'gaussian' or type.lower() == 'gau':
          data = open(file)

@@ -371,7 +371,7 @@ Gamess reads Stone's DMA analysis
                          atoms=atoms              ,
                          pos=Structure            ,
                          origin=Origin,
-                         is_traceless=is_traceless )
+                         traceless=is_traceless )
     # -----------------------------------------------------------------------------
     elif type.lower() == 'gaussian' or type.lower() == 'gau':
          data = open(file)
@@ -523,7 +523,7 @@ mathematical operations:
                  pos=numpy.zeros((1,3),dtype=numpy.float64),
                  origin=numpy.zeros((1,3),dtype=numpy.float64),
                  atoms=None,
-                 is_traceless=False,
+                 traceless=False,
                  hexadecapoles=None):
 
         # save the flag whether this object contains hexadecapoles        
@@ -569,7 +569,7 @@ mathematical operations:
            # if DMA FULL formatted memorial were created. Now it is not, so 'False'.
            self.full = False
            # if traceless forms were created. Now it is ordinary (primitive) DMA format so 'False'.
-           self.traceless = is_traceless
+           self.is_traceless = traceless
  
     def __call__(self,file):
         """open DMA file"""
@@ -584,7 +584,7 @@ mathematical operations:
         self.nfrag = len(dma[0])
         self.atoms = dma.atoms
         self.full  = False
-        self.traceless = False
+        self.is_traceless = False
         self.has_hexadecapoles = dma.has_hexadecapoles
         return
 
@@ -946,7 +946,7 @@ where n is rank of multipole moment"""
  
     def if_traceless(self):
         """Is the dma object traceless?"""
-        return self.traceless
+        return self.is_traceless
 
     def if_hexadecapoles(self):
         """Does this object contain hexadecapole moments?"""
@@ -1413,12 +1413,12 @@ The numbers are normal numbers (not in Python convention)."""
     def __end_multipole_section(self, log):
        log+= " "+"-"*100+"\n"                                                                               
        if self.nfrag == 1:
-          if self.traceless: 
+          if self.is_traceless: 
              log+= (" traceless form@,   origin: %s\n"  % str(self.origin*0.5291772086)[1:-1]).rjust(100)  
           else: 
              log+= (" primitive form@,   origin: %s \n" % str(self.origin*0.5291772086)[1:-1]).rjust(100) 
        else:
-          if self.traceless: 
+          if self.is_traceless: 
              log+= " traceless form@\n".rjust(100)  
           else: 
              log+= " primitive form@\n".rjust(100) 
@@ -1663,7 +1663,7 @@ The numbers are normal numbers (not in Python convention)."""
         full-formatted DMA_FULL. The traceless form is taken to be
         following Buckingham /add citation!!!"""
         
-        if self.traceless:
+        if self.is_traceless:
            raise  Exception("\nerror: DMA is already traceless!!! quitting ...\n")
            
         if self.full:
@@ -1722,7 +1722,7 @@ The numbers are normal numbers (not in Python convention)."""
                                   elif i==l and i!=j and j!=k:   # ABCA
                                      H -= c * Wt[j,k]
                             
-           self.traceless = True
+           self.is_traceless = True
            
         else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
 
