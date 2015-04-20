@@ -5429,7 +5429,7 @@ a.u. as well. """
                                Tensordot(Tensordot(Tensordot(R,Ob[j],(0,0)),R,(0,0)),R,(0,0)) ) /\
                                Rab**13                                                              # Oa - Ob  | R7
              
-             Eint = qq + qD + Dq + qQ + Qq + qO + Oq + DD + DQ + QD + DO + OD + QQ + QO + OQ + OO
+             Eint = qq + qD + Dq + qQ + Qq + qO + Oq + DD + DQ + QD + DO + OD + QQ + QO + OQ + OO + qH + Hq
              
              ### save the partitioning for current usage
              get_elmtp.qq = qq;get_elmtp.qD = qD;get_elmtp.qQ = qQ;get_elmtp.qO = qO;get_elmtp.QO = QO;get_elmtp.qH = qH
