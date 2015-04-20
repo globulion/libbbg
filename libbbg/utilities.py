@@ -5347,12 +5347,18 @@ a.u. as well. """
     # make FULL format of DMA distribution
     dma1.MAKE_FULL() # hexadecapole integrals not implemented yet
     dma2.MAKE_FULL()
-    # transform FULL format to fraceless forms for quadrupoles and octupoles
+    # transform FULL format to fraceless forms for quadrupoles, octupoles and hexadecapoles
     dma1.MakeTraceless()
     dma2.MakeTraceless()
     #
-    Ra,qa,Da,Qa,Oa = dma1.DMA_FULL
-    Rb,qb,Db,Qb,Ob = dma2.DMA_FULL
+    if dma1.has_hexadecapoles and dma2.has_hexadecapoles:
+       hexadecapoles = True
+       Ra,qa,Da,Qa,Oa,Ha = dma1.DMA_FULL
+       Rb,qb,Db,Qb,Ob,Hb = dma2.DMA_FULL
+    else:
+       hexadecapoles = False
+       Ra,qa,Da,Qa,Oa = dma1.DMA_FULL 
+       Rb,qb,Db,Qb,Ob = dma2.DMA_FULL
     #
     qq = 0
     qD = 0 ; Dq = 0
@@ -5395,11 +5401,11 @@ a.u. as well. """
              QQ  +=(2.)/(3.)  * Tensordot(Qa[i],Qb[j])  / Rab**5                                    # Qa - Qb  | R5
              OD  +=3 * Tensordot(R,Tensordot(R,Tensordot(Oa[i],Db[j],(0,0)),(0,0)),(0,0)) / Rab**7  # Db - Oa  | R5
              DO  +=3 * Tensordot(R,Tensordot(R,Tensordot(Ob[j],Da[i],(0,0)),(0,0)),(0,0)) / Rab**7  # Da - Ob  | R5
-             ### The remaining terms with hexadecapoles are not implemented yet
-             #Eint+= qb[j] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Ha[i],
-             #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Ha - qb  | R5
-             #Eint+= qa[i] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Hb[j],
-             #                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                                 # Hb - qj  | R5
+             if hexadecapoles:
+                Hq  += qb[j] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Ha[i],                                  
+                                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                              # Ha - qb  | R5
+                qH  += qa[i] * Tensordot(R,Tensordot(R,Tensordot(R,Tensordot(R,Hb[j],
+                                (0,0)),(0,0)),(0,0)),(0,0))   / Rab**9                              # Hb - qa  | R5
              ### these are implemented already !
              OQ  += 2* Tensordot(Tensordot(Oa[i],Qb[j],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qb - Oa  | R6
              QO  +=-2* Tensordot(Tensordot(Ob[j],Qa[i],((0,1),(0,1))),R,(0,0)) / Rab**7             # Qa - Ob  | R6
@@ -5426,8 +5432,8 @@ a.u. as well. """
              Eint = qq + qD + Dq + qQ + Qq + qO + Oq + DD + DQ + QD + DO + OD + QQ + QO + OQ + OO
              
              ### save the partitioning for current usage
-             get_elmtp.qq = qq;get_elmtp.qD = qD;get_elmtp.qQ = qQ;get_elmtp.qO = qO;get_elmtp.QO = QO;
-             get_elmtp.DD = DD;get_elmtp.DQ = DQ;get_elmtp.DO = DO;get_elmtp.QQ = QQ;get_elmtp.OO = OO;
+             get_elmtp.qq = qq;get_elmtp.qD = qD;get_elmtp.qQ = qQ;get_elmtp.qO = qO;get_elmtp.QO = QO;get_elmtp.qH = qH
+             get_elmtp.DD = DD;get_elmtp.DQ = DQ;get_elmtp.DO = DO;get_elmtp.QQ = QQ;get_elmtp.OO = OO;get_elmtp.Hq = Hq
     #
     get_elmtp.A = (         qq )
     get_elmtp.B = (get_elmtp.A + qD + Dq )
@@ -5460,6 +5466,7 @@ a.u. as well. """
     log+= "%7s %19.2f      :\n"                  % ("Q-Q".rjust(6), QQ    *converter)
     log+= "%7s %19.2f      :\n"                  % ("Q-O".rjust(6),(QO+OQ)*converter)
     log+= "%7s %19.2f      :\n"                  % ("O-O".rjust(6), OO    *converter)
+    log+= "%7s %19.2f      :\n"                  % ("q-H".rjust(6),(qH+Hq)*converter)
     log+= " "+"-"*32+":"+"-"*26+"\n"
     log+= "\n"
     get_elmtp.log = log

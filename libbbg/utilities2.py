@@ -72,6 +72,6 @@ def array_outer_product_3_1( B, A, result=None):
 
 def array_outer_product_1_n(A, B):
     result = B.copy()
-    for i in range(len(A)):
+    for i in xrange(len(A)):
         result[i] = A[i] * B[i]
     return result

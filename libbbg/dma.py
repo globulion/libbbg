@@ -1656,8 +1656,52 @@ The numbers are normal numbers (not in Python convention)."""
  
         del self.DMA_FULL
         self.full = False
-       
  
+    def MakeTraceless_wrong_code(self):
+        """turns ordinary full-formatted DMA_FULL into traceless 
+full-formatted DMA_FULL. The traceless form is taken to be
+following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
+
+        if self.is_traceless:
+           raise  Exception("\n Error: DMA is already traceless!!! quitting ...\n")
+
+        if self.full:
+           P3 = [(0,1,2,3),(0,2,1,3),(0,3,1,2)]                                            # permutations for oct
+           P4 = [(0,1,2,3,4),(0,1,3,2,4),(0,1,4,2,3),(0,2,3,1,4),(0,2,4,1,3),(0,3,4,1,2)]  # permutations for hex
+           
+           Q_P = self.DMA_FULL[3]
+           O_P = self.DMA_FULL[4]
+ 
+           # generate vector of identities
+           d = numpy.identity(3,dtype=numpy.float64)
+           I3= numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
+           for i in xrange(self.nfrag): I3[i] = d.copy()
+
+           # compute traceless properties 
+           Q_T = (3./2.) * Q_P - 0.500 * utilities2.array_outer_product_1_n( Q_P.trace(axis1=1,axis2=2), I3 )
+           O_T = (5./2.) * O_P
+           for perm in P3: O_T -=  0.500 * (utilities2.array_outer_product_1_2(O_P.trace(axis1=perm[2],axis2=perm[3]), I3)).transpose(perm)
+
+           self.DMA_FULL[3] = Q_T
+           self.DMA_FULL[4] = O_T
+
+           if self.has_hexadecapoles:
+              H_P = self.DMA_FULL[5]
+              H_T = (35./8.) * H_P
+              H_trace = H_P.trace(axis1=1,axis2=2)
+              I33  = utilities2.array_outer_product_2_2(I3, I3)
+              I33 += I33.transpose((0,1,3,2,4)) + I33.transpose((0,1,4,2,3))
+              B = utilities2.array_outer_product_2_2(H_trace, I3)
+              for perm in P4: H_T -= (5./8.) * B.transpose(perm)
+              H_T += utilities2.array_outer_product_1_n( H_trace.trace(axis1=1,axis2=2) , I33) / 8.00
+
+              self.DMA_FULL[5] = H_T
+
+           self.is_traceless = True
+           
+        else: raise Exception("\nerror: no FULL DMA object created! quitting...\n")
+        return
+
     def MakeTraceless(self):
         """turns ordinary full-formatted DMA_FULL into traceless 
         full-formatted DMA_FULL. The traceless form is taken to be
@@ -1697,30 +1741,15 @@ The numbers are normal numbers (not in Python convention)."""
                   Wt = W.trace()
                   Wtt= W.trace().trace()
                   c = (5./8.)
+                  p = (1./8.)
+                  d = numpy.identity(3,numpy.float64)
                   for i in [0,1,2]:
                       for j in [0,1,2]:
                           for k in [0,1,2]:
                               for l in [0,1,2]:
-                                  if i==j==k==l:                 # AAAA
-                                     H -= (15./4.) * Wt[i,i]       - 3.0 * Wtt
-                                  elif i==j and k==l and i!=k:   # AABB
-                                     H -= c * (Wt[i,i] + Wt[k,k])  - Wtt
-                                  elif i==k and j==l and i!=j:   # ABAB
-                                     H -= c * (Wt[i,i] + Wt[j,j])  - Wtt
-                                  elif i==l and j==k and i!=j:   # ABBA
-                                     H -= c * (Wt[i,i] + Wt[j,j])  - Wtt
-                                  elif i==j and j!=k and k!=l:   # AABC
-                                     H -= c * Wt[k,l]
-                                  elif i!=j and j!=k and k==l:   # ABCC
-                                     H -= c * Wt[i,j]
-                                  elif i!=j and j==k and k!=l:   # ABBC
-                                     H -= c * Wt[i,l]
-                                  elif i!=j and i==k and k!=l:   # ABAC
-                                     H -= c * Wt[j,l]
-                                  elif i!=j and j!=k and j==l:   # ABCB
-                                     H -= c * Wt[i,k]
-                                  elif i==l and i!=j and j!=k:   # ABCA
-                                     H -= c * Wt[j,k]
+                                  H[i,j,k,l] -= c * (d[i,j] * Wt[k,l] + d[i,k] * Wt[j,l] + d[i,l] * Wt[j,k] + 
+                                                     d[j,k] * Wt[i,l] + d[j,l] * Wt[i,k] + d[k,l] * Wt[i,j] ) \
+                                             -  p * Wtt * (d[i,j] * d[k,l] + d[i,k] * d[j,l] + d[i,l] * d[j,k] )
                             
            self.is_traceless = True
            
