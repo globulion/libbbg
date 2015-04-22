@@ -5334,7 +5334,7 @@ a.u. as well."""
 
     return qq,qq,qq,qq,qq
     
-def get_elmtp(DMA1,DMA2):
+def get_elmtp(DMA1,DMA2, return_all=False):
     """calculates E(EL)MTP from two DMA distributions.
 dma1 and dma2 are the objects of the class DMA. Calculations are
 in atomic units and a respective interaction energy is in 
@@ -5449,6 +5449,9 @@ a.u. as well. """
     get_elmtp.C *= converter
     get_elmtp.D *= converter
     get_elmtp.E *= converter
+    get_elmtp.F *= converter
+    get_elmtp.G *= converter
+    get_elmtp.H *= converter
     #
     log = "\n" 
     log+= " --------------------------------:--------------------------\n"
@@ -5471,7 +5474,8 @@ a.u. as well. """
     log+= "\n"
     get_elmtp.log = log
     
-    return get_elmtp.A, get_elmtp.B, get_elmtp.C, get_elmtp.D, get_elmtp.E
+    if return_all: return get_elmtp.A, get_elmtp.B, get_elmtp.C, get_elmtp.D, get_elmtp.E, get_elmtp.F, get_elmtp.G, get_elmtp.H
+    else:                 get_elmtp.A, get_elmtp.B, get_elmtp.C, get_elmtp.D, get_elmtp.E
 
 def Emtpc(DMA1,DMA2,threshold=1000,hash=True):
     """Compiled version of EMtp. calculates E(EL)MTP from two DMA distributions.
