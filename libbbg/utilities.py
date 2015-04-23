@@ -1954,6 +1954,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        self.__file_obj  = None
        self.__format    = None
        self.__pol       = None
+       self.__eigvec    = None
        self.__units     = 'au'
        self.__defaults  = {'name'  :'Unnamed molecule',
                            'mult'  :1,
