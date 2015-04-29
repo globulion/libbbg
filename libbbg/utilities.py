@@ -1767,11 +1767,13 @@ Notes:
        log = ''
        if self.__pos.shape[1]==3:
           for i in range(len(self.__atoms)):
-              log+= '%2s ' % self.__atoms[i]
+              #log+= '%2s ' % self.__atoms[i]
+              #print self.__atoms[i].symbol
+              log+= '%2s ' % self.__atoms[i]#.symbol
               log+= '%14.6f %14.6f %14.6f\n' % tuple(self.__pos[i]*self.BohrToAngstrom)
        elif self.__pos.shape[1]==4:
           for i in range(len(self.__atoms)):
-              log+= '%2s ' % self.__atoms[i]
+              log+= '%2s ' % self.__atoms[i]#.symbol
               log+= '%14.6f %14.6f %14.6f' % tuple(self.__pos[i,:3]*self.BohrToAngstrom)
               log+= '%14.6f\n' % self.__pos[i,3]
 
