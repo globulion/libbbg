@@ -1,5 +1,128 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
+      SUBROUTINE SDISP6(RPOL,RPOL1,DPOL,NPOL,DPOL1,GIJJ,REDMSS,FREQ,
+     &                  NMOLS,NPOLC,NMODES,MPOL,MRPOL,MODE,DISP)
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION DPOL(MPOL),DPOL1(NMODES*NPOLC*12*9),NPOL(NMOLS),
+     &          RPOL(MRPOL),RPOL1(NMODES*NPOLC*3),
+     &          GIJJ(NMODES),REDMSS(NMODES),FREQ(NMODES),
+     &          GIVEC(30),WEIGHT(12),ABSICA(12)
+      PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
+     &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,
+     &           TOCMRC=219474.63067873946D+00,PI=3.141592653589793D+00)
+C
+Cf2py INTENT(OUT) DISP
+      DATA GIVEC/30*0.0D+00/,XN0/0.3000D+00/
+C
+C     12-POINT GAUSS-LEGENDRE QUADRATURE FOR [-1: 1]
+C
+      DATA WEIGHT/0.0471753363865118D+00,0.1069393259953184D+00,
+     &            0.1600783285433462D+00,0.2031674267230659D+00,
+     &            0.2334925365383548D+00,0.2491470458134028D+00,
+     &            0.2491470458134028D+00,0.2334925365383548D+00,
+     &            0.2031674267230659D+00,0.1600783285433462D+00,
+     &            0.1069393259953184D+00,0.0471753363865118D+00/
+C
+      DATA ABSICA/-0.9815606342467192D+00,-0.9041172563704749D+00,
+     &            -0.7699026741943047D+00,-0.5873179542866175D+00,
+     &            -0.3678314989981802D+00,-0.1252334085114689D+00,
+     &             0.1252334085114689D+00, 0.3678314989981802D+00,
+     &             0.5873179542866175D+00, 0.7699026741943047D+00,
+     &             0.9041172563704749D+00, 0.9815606342467192D+00/
+C
+      DISP = ZERO
+C
+      DO 999 M=1, NMODES
+         FREQM = FREQ(M)
+         GIVEC(M) = GIJJ(M)/(REDMSS(M)*FREQM*FREQM)
+ 999  CONTINUE
+C                                                                          
+C     ITERATE OVER IR MOLECULE AND ITS POLARIZABLE CENTERS
+C                                                                       
+      NPOLI = 0
+      DO IMOL=1,1
+      NIM  = NPOL(IMOL)
+      NPOLI = NPOLI + NIM
+      DO I=1,NIM
+         NIX3 = 3*(NPOLI-NIM) + 3*(I-1) + 1
+C
+         RPOLIX = RPOL(NIX3  )
+         RPOLIY = RPOL(NIX3+1)
+         RPOLIZ = RPOL(NIX3+2)
+C
+C        ITERATE OVER IMAGINARY FREQUENCIES
+C
+         DO N=1,12
+C
+            NNIX9 = 12*9*(NPOLI-NIM) + 12*9*(I-1) + 9*(N-1) + 1
+C
+            TX = ONE - ABSICA(N)
+            G12W = WEIGHT(N) * TWO * XN0 / (TX*TX)
+C
+            AINAVE = DPOL(NNIX9  )+DPOL(NNIX9+4)+DPOL(NNIX9+8)
+            AINAVE = AINAVE / THREE
+C
+C           ITERATE OVER NORMAL MODES OF IR MOLECULE
+C 
+            DO M=1, NMODES                      
+C                                                                        
+               GRF = GIVEC(M)
+C
+               MNIX3  = NPOLC*   3*(M-1) +    3*(I-1)           + 1
+               MNNIX9 = NPOLC*12*9*(M-1) + 12*9*(I-1) + 9*(N-1) + 1
+C                                                                         
+               RX1 = RPOL1(MNIX3  )
+               RY1 = RPOL1(MNIX3+1)
+               RZ1 = RPOL1(MNIX3+2)
+C
+               AIMNAVE = DPOL1(MNNIX9  )+DPOL1(MNNIX9+4)+DPOL1(MNNIX9+8)
+               AIMNAVE = AIMNAVE / THREE
+C
+C              ITERATE OVER SOLVENT MOLECULE POLARIZABLE CENTERS      
+C                                                                     
+               NPOLJ = NPOL(1)
+               DO JMOL=2, NMOLS
+                  NJM = NPOL(JMOL)
+                  NPOLJ = NPOLJ + NJM
+                  DO J=1,NJM
+C
+                     NJX3 = 3*(NPOLJ-NJM) + 3*(J-1) + 1
+C
+                     NNJX9 = 12*9*(NPOLJ-NJM) + 12*9*(J-1) + 9*(N-1) + 1
+C
+                     RIJX = RPOLIX - RPOL(NJX3  )                    
+                     RIJY = RPOLIY - RPOL(NJX3+1)
+                     RIJZ = RPOLIZ - RPOL(NJX3+2)
+C                                                                    
+                     RIJ  = ONE/DSQRT(RIJX*RIJX+RIJY*RIJY+RIJZ*RIJZ)
+                     RIJ2 = RIJ  * RIJ
+                     RIJ6 = RIJ2 * RIJ * RIJ * RIJ * RIJ
+C
+                     RMR = RIJX * RX1 + RIJY * RY1 + RIJZ * RZ1
+C
+                     AJNAVE = DPOL(NNJX9  )+DPOL(NNJX9+4)+DPOL(NNJX9+8)
+                     AJNAVE = AJNAVE / THREE
+C
+                     DISP   = DISP + GRF * G12W * RIJ6 * 
+     &                    (AIMNAVE - SIX * RIJ2 * RMR * AINAVE) * AJNAVE
+C                                                                           
+                  ENDDO
+C                                                                           
+               ENDDO
+C
+            ENDDO
+         ENDDO
+C
+      ENDDO
+      ENDDO
+C
+      DISP = DISP * THREE / PI
+      DISP = DISP / (TWO * REDMSS(MODE) * FREQ(MODE))
+C
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
       SUBROUTINE DMTCOR(RDMA,NDMA,CHG,DIP,QAD,OCT,
      *                  CHGM,DIPM,QADM,OCTM,
      *                  REDMSS,FREQ,GIJJ,LVEC,
