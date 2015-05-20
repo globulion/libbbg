@@ -320,143 +320,652 @@ C
 C
 C                    TERM I
 C
-C  TERM1 R10
            TERM1 =   (RIJX * RIJX * RIJX * RIJX * VQXXXX +
-     &                 RIJX * RIJX * RIJX * RIJY * VQXXXY +
-     &                 RIJX * RIJX * RIJX * RIJZ * VQXXXZ +
-     &                 RIJX * RIJX * RIJY * RIJX * VQXXYX +
-     &                 RIJX * RIJX * RIJY * RIJY * VQXXYY +
-     &                 RIJX * RIJX * RIJY * RIJZ * VQXXYZ +
-     &                 RIJX * RIJX * RIJZ * RIJX * VQXXZX +
-     &                 RIJX * RIJX * RIJZ * RIJY * VQXXZY +
-     &                 RIJX * RIJX * RIJZ * RIJZ * VQXXZZ +
-     &                 RIJX * RIJY * RIJX * RIJX * VQXYXX +
-     &                 RIJX * RIJY * RIJX * RIJY * VQXYXY +
-     &                 RIJX * RIJY * RIJX * RIJZ * VQXYXZ +
-     &                 RIJX * RIJY * RIJY * RIJX * VQXYYX +
-     &                 RIJX * RIJY * RIJY * RIJY * VQXYYY +
-     &                 RIJX * RIJY * RIJY * RIJZ * VQXYYZ +
-     &                 RIJX * RIJY * RIJZ * RIJX * VQXYZX +
-     &                 RIJX * RIJY * RIJZ * RIJY * VQXYZY +
-     &                 RIJX * RIJY * RIJZ * RIJZ * VQXYZZ +
-     &                 RIJX * RIJZ * RIJX * RIJX * VQXZXX +
-     &                 RIJX * RIJZ * RIJX * RIJY * VQXZXY +
-     &                 RIJX * RIJZ * RIJX * RIJZ * VQXZXZ +
-     &                 RIJX * RIJZ * RIJY * RIJX * VQXZYX +
-     &                 RIJX * RIJZ * RIJY * RIJY * VQXZYY +
-     &                 RIJX * RIJZ * RIJY * RIJZ * VQXZYZ +
-     &                 RIJX * RIJZ * RIJZ * RIJX * VQXZZX +
-     &                 RIJX * RIJZ * RIJZ * RIJY * VQXZZY +
-     &                 RIJX * RIJZ * RIJZ * RIJZ * VQXZZZ +
-     &                 RIJY * RIJX * RIJX * RIJX * VQYXXX +
-     &                 RIJY * RIJX * RIJX * RIJY * VQYXXY +
-     &                 RIJY * RIJX * RIJX * RIJZ * VQYXXZ +
-     &                 RIJY * RIJX * RIJY * RIJX * VQYXYX +
-     &                 RIJY * RIJX * RIJY * RIJY * VQYXYY +
-     &                 RIJY * RIJX * RIJY * RIJZ * VQYXYZ +
-     &                 RIJY * RIJX * RIJZ * RIJX * VQYXZX +
-     &                 RIJY * RIJX * RIJZ * RIJY * VQYXZY +
-     &                 RIJY * RIJX * RIJZ * RIJZ * VQYXZZ +
-     &                 RIJY * RIJY * RIJX * RIJX * VQYYXX +
-     &                 RIJY * RIJY * RIJX * RIJY * VQYYXY +
-     &                 RIJY * RIJY * RIJX * RIJZ * VQYYXZ +
-     &                 RIJY * RIJY * RIJY * RIJX * VQYYYX +
-     &                 RIJY * RIJY * RIJY * RIJY * VQYYYY +
-     &                 RIJY * RIJY * RIJY * RIJZ * VQYYYZ +
-     &                 RIJY * RIJY * RIJZ * RIJX * VQYYZX +
-     &                 RIJY * RIJY * RIJZ * RIJY * VQYYZY +
-     &                 RIJY * RIJY * RIJZ * RIJZ * VQYYZZ +
-     &                 RIJY * RIJZ * RIJX * RIJX * VQYZXX +
-     &                 RIJY * RIJZ * RIJX * RIJY * VQYZXY +
-     &                 RIJY * RIJZ * RIJX * RIJZ * VQYZXZ +
-     &                 RIJY * RIJZ * RIJY * RIJX * VQYZYX +
-     &                 RIJY * RIJZ * RIJY * RIJY * VQYZYY +
-     &                 RIJY * RIJZ * RIJY * RIJZ * VQYZYZ +
-     &                 RIJY * RIJZ * RIJZ * RIJX * VQYZZX +
-     &                 RIJY * RIJZ * RIJZ * RIJY * VQYZZY +
-     &                 RIJY * RIJZ * RIJZ * RIJZ * VQYZZZ +
-     &                 RIJZ * RIJX * RIJX * RIJX * VQZXXX +
-     &                 RIJZ * RIJX * RIJX * RIJY * VQZXXY +
-     &                 RIJZ * RIJX * RIJX * RIJZ * VQZXXZ +
-     &                 RIJZ * RIJX * RIJY * RIJX * VQZXYX +
-     &                 RIJZ * RIJX * RIJY * RIJY * VQZXYY +
-     &                 RIJZ * RIJX * RIJY * RIJZ * VQZXYZ +
-     &                 RIJZ * RIJX * RIJZ * RIJX * VQZXZX +
-     &                 RIJZ * RIJX * RIJZ * RIJY * VQZXZY +
-     &                 RIJZ * RIJX * RIJZ * RIJZ * VQZXZZ +
-     &                 RIJZ * RIJY * RIJX * RIJX * VQZYXX +
-     &                 RIJZ * RIJY * RIJX * RIJY * VQZYXY +
-     &                 RIJZ * RIJY * RIJX * RIJZ * VQZYXZ +
-     &                 RIJZ * RIJY * RIJY * RIJX * VQZYYX +
-     &                 RIJZ * RIJY * RIJY * RIJY * VQZYYY +
-     &                 RIJZ * RIJY * RIJY * RIJZ * VQZYYZ +
-     &                 RIJZ * RIJY * RIJZ * RIJX * VQZYZX +
-     &                 RIJZ * RIJY * RIJZ * RIJY * VQZYZY +
-     &                 RIJZ * RIJY * RIJZ * RIJZ * VQZYZZ +
-     &                 RIJZ * RIJZ * RIJX * RIJX * VQZZXX +
-     &                 RIJZ * RIJZ * RIJX * RIJY * VQZZXY +
-     &                 RIJZ * RIJZ * RIJX * RIJZ * VQZZXZ +
-     &                 RIJZ * RIJZ * RIJY * RIJX * VQZZYX +
-     &                 RIJZ * RIJZ * RIJY * RIJY * VQZZYY +
-     &                 RIJZ * RIJZ * RIJY * RIJZ * VQZZYZ +
-     &                 RIJZ * RIJZ * RIJZ * RIJX * VQZZZX +
-     &                 RIJZ * RIJZ * RIJZ * RIJY * VQZZZY +
-     &                 RIJZ * RIJZ * RIJZ * RIJZ * VQZZZZ )
-     &                 * NINE / RIJ10
-     &             - ((RIJX * RIJX + RIJX * RIJX ) * VQXXXX +
-     &                 RIJX * RIJY * VQXXXY +
-     &                 RIJX * RIJZ * VQXXXZ +
-     &                 RIJY * RIJX * VQXXYX +
-     &                (RIJX * RIJX + RIJY * RIJY ) * VQXXYY +
-     &                 RIJY * RIJZ * VQXXYZ +
-     &                 RIJZ * RIJX * VQXXZX +
-     &                 RIJZ * RIJY * VQXXZY +
-     &                (RIJX * RIJX + RIJZ * RIJZ ) * VQXXZZ +
-     &                 RIJX * RIJY * VQXYXX +
-     &                 RIJX * RIJY * VQXYYY +
-     &                 RIJX * RIJY * VQXYZZ +
-     &                 RIJX * RIJZ * VQXZXX +
-     &                 RIJX * RIJZ * VQXZYY +
-     &                 RIJX * RIJZ * VQXZZZ +
-     &                 RIJY * RIJX * VQYXXX +
-     &                 RIJY * RIJX * VQYXYY +
-     &                 RIJY * RIJX * VQYXZZ +
-     &                (RIJY * RIJY + RIJX * RIJX ) * VQYYXX +
-     &                 RIJX * RIJY * VQYYXY +
-     &                 RIJX * RIJZ * VQYYXZ +
-     &                 RIJY * RIJX * VQYYYX +
-     &                (RIJY * RIJY + RIJY * RIJY ) * VQYYYY +
-     &                 RIJY * RIJZ * VQYYYZ +
-     &                 RIJZ * RIJX * VQYYZX +
-     &                 RIJZ * RIJY * VQYYZY +
-     &                (RIJY * RIJY + RIJZ * RIJZ ) * VQYYZZ +
-     &                 RIJY * RIJZ * VQYZXX +
-     &                 RIJY * RIJZ * VQYZYY +
-     &                 RIJY * RIJZ * VQYZZZ +
-     &                 RIJZ * RIJX * VQZXXX +
-     &                 RIJZ * RIJX * VQZXYY +
-     &                 RIJZ * RIJX * VQZXZZ +
-     &                 RIJZ * RIJY * VQZYXX +
-     &                 RIJZ * RIJY * VQZYYY +
-     &                 RIJZ * RIJY * VQZYZZ +
-     &                (RIJZ * RIJZ + RIJX * RIJX ) * VQZZXX +
-     &                 RIJX * RIJY * VQZZXY +
-     &                 RIJX * RIJZ * VQZZXZ +
-     &                 RIJY * RIJX * VQZZYX +
-     &                (RIJZ * RIJZ + RIJY * RIJY ) * VQZZYY +
-     &                 RIJY * RIJZ * VQZZYZ +
-     &                 RIJZ * RIJX * VQZZZX +
-     &                 RIJZ * RIJY * VQZZZY +
-     &                (RIJZ * RIJZ + RIJZ * RIJZ ) * VQZZZZ )
-     &                * THREE / RIJ8
-     &             + (VQXXXX + VQXXYY + VQXXZZ + VQYYXX +
-     &                VQYYYY + VQYYZZ + VQZZXX + VQZZYY +
-     &                VQZZZZ ) / RIJ6
+     &                RIJX * RIJX * RIJX * RIJY * VQXXXY +
+     &                RIJX * RIJX * RIJX * RIJZ * VQXXXZ +
+     &                RIJX * RIJX * RIJY * RIJX * VQXXYX +
+     &                RIJX * RIJX * RIJY * RIJY * VQXXYY +
+     &                RIJX * RIJX * RIJY * RIJZ * VQXXYZ +
+     &                RIJX * RIJX * RIJZ * RIJX * VQXXZX +
+     &                RIJX * RIJX * RIJZ * RIJY * VQXXZY +
+     &                RIJX * RIJX * RIJZ * RIJZ * VQXXZZ +
+     &                RIJX * RIJY * RIJX * RIJX * VQXYXX +
+     &                RIJX * RIJY * RIJX * RIJY * VQXYXY +
+     &                RIJX * RIJY * RIJX * RIJZ * VQXYXZ +
+     &                RIJX * RIJY * RIJY * RIJX * VQXYYX +
+     &                RIJX * RIJY * RIJY * RIJY * VQXYYY +
+     &                RIJX * RIJY * RIJY * RIJZ * VQXYYZ +
+     &                RIJX * RIJY * RIJZ * RIJX * VQXYZX +
+     &                RIJX * RIJY * RIJZ * RIJY * VQXYZY +
+     &                RIJX * RIJY * RIJZ * RIJZ * VQXYZZ +
+     &                RIJX * RIJZ * RIJX * RIJX * VQXZXX +
+     &                RIJX * RIJZ * RIJX * RIJY * VQXZXY +
+     &                RIJX * RIJZ * RIJX * RIJZ * VQXZXZ +
+     &                RIJX * RIJZ * RIJY * RIJX * VQXZYX +
+     &                RIJX * RIJZ * RIJY * RIJY * VQXZYY +
+     &                RIJX * RIJZ * RIJY * RIJZ * VQXZYZ +
+     &                RIJX * RIJZ * RIJZ * RIJX * VQXZZX +
+     &                RIJX * RIJZ * RIJZ * RIJY * VQXZZY +
+     &                RIJX * RIJZ * RIJZ * RIJZ * VQXZZZ +
+     &                RIJY * RIJX * RIJX * RIJX * VQYXXX +
+     &                RIJY * RIJX * RIJX * RIJY * VQYXXY +
+     &                RIJY * RIJX * RIJX * RIJZ * VQYXXZ +
+     &                RIJY * RIJX * RIJY * RIJX * VQYXYX +
+     &                RIJY * RIJX * RIJY * RIJY * VQYXYY +
+     &                RIJY * RIJX * RIJY * RIJZ * VQYXYZ +
+     &                RIJY * RIJX * RIJZ * RIJX * VQYXZX +
+     &                RIJY * RIJX * RIJZ * RIJY * VQYXZY +
+     &                RIJY * RIJX * RIJZ * RIJZ * VQYXZZ +
+     &                RIJY * RIJY * RIJX * RIJX * VQYYXX +
+     &                RIJY * RIJY * RIJX * RIJY * VQYYXY +
+     &                RIJY * RIJY * RIJX * RIJZ * VQYYXZ +
+     &                RIJY * RIJY * RIJY * RIJX * VQYYYX +
+     &                RIJY * RIJY * RIJY * RIJY * VQYYYY +
+     &                RIJY * RIJY * RIJY * RIJZ * VQYYYZ +
+     &                RIJY * RIJY * RIJZ * RIJX * VQYYZX +
+     &                RIJY * RIJY * RIJZ * RIJY * VQYYZY +
+     &                RIJY * RIJY * RIJZ * RIJZ * VQYYZZ +
+     &                RIJY * RIJZ * RIJX * RIJX * VQYZXX +
+     &                RIJY * RIJZ * RIJX * RIJY * VQYZXY +
+     &                RIJY * RIJZ * RIJX * RIJZ * VQYZXZ +
+     &                RIJY * RIJZ * RIJY * RIJX * VQYZYX +
+     &                RIJY * RIJZ * RIJY * RIJY * VQYZYY +
+     &                RIJY * RIJZ * RIJY * RIJZ * VQYZYZ +
+     &                RIJY * RIJZ * RIJZ * RIJX * VQYZZX +
+     &                RIJY * RIJZ * RIJZ * RIJY * VQYZZY +
+     &                RIJY * RIJZ * RIJZ * RIJZ * VQYZZZ +
+     &                RIJZ * RIJX * RIJX * RIJX * VQZXXX +
+     &                RIJZ * RIJX * RIJX * RIJY * VQZXXY +
+     &                RIJZ * RIJX * RIJX * RIJZ * VQZXXZ +
+     &                RIJZ * RIJX * RIJY * RIJX * VQZXYX +
+     &                RIJZ * RIJX * RIJY * RIJY * VQZXYY +
+     &                RIJZ * RIJX * RIJY * RIJZ * VQZXYZ +
+     &                RIJZ * RIJX * RIJZ * RIJX * VQZXZX +
+     &                RIJZ * RIJX * RIJZ * RIJY * VQZXZY +
+     &                RIJZ * RIJX * RIJZ * RIJZ * VQZXZZ +
+     &                RIJZ * RIJY * RIJX * RIJX * VQZYXX +
+     &                RIJZ * RIJY * RIJX * RIJY * VQZYXY +
+     &                RIJZ * RIJY * RIJX * RIJZ * VQZYXZ +
+     &                RIJZ * RIJY * RIJY * RIJX * VQZYYX +
+     &                RIJZ * RIJY * RIJY * RIJY * VQZYYY +
+     &                RIJZ * RIJY * RIJY * RIJZ * VQZYYZ +
+     &                RIJZ * RIJY * RIJZ * RIJX * VQZYZX +
+     &                RIJZ * RIJY * RIJZ * RIJY * VQZYZY +
+     &                RIJZ * RIJY * RIJZ * RIJZ * VQZYZZ +
+     &                RIJZ * RIJZ * RIJX * RIJX * VQZZXX +
+     &                RIJZ * RIJZ * RIJX * RIJY * VQZZXY +
+     &                RIJZ * RIJZ * RIJX * RIJZ * VQZZXZ +
+     &                RIJZ * RIJZ * RIJY * RIJX * VQZZYX +
+     &                RIJZ * RIJZ * RIJY * RIJY * VQZZYY +
+     &                RIJZ * RIJZ * RIJY * RIJZ * VQZZYZ +
+     &                RIJZ * RIJZ * RIJZ * RIJX * VQZZZX +
+     &                RIJZ * RIJZ * RIJZ * RIJY * VQZZZY +
+     &                RIJZ * RIJZ * RIJZ * RIJZ * VQZZZZ )
+     &                * NINE / RIJ10
+     &            - ((RIJX * RIJX + RIJX * RIJX ) * VQXXXX +
+     &                RIJX * RIJY * VQXXXY +
+     &                RIJX * RIJZ * VQXXXZ +
+     &                RIJY * RIJX * VQXXYX +
+     &               (RIJX * RIJX + RIJY * RIJY ) * VQXXYY +
+     &                RIJY * RIJZ * VQXXYZ +
+     &                RIJZ * RIJX * VQXXZX +
+     &                RIJZ * RIJY * VQXXZY +
+     &               (RIJX * RIJX + RIJZ * RIJZ ) * VQXXZZ +
+     &                RIJX * RIJY * VQXYXX +
+     &                RIJX * RIJY * VQXYYY +
+     &                RIJX * RIJY * VQXYZZ +
+     &                RIJX * RIJZ * VQXZXX +
+     &                RIJX * RIJZ * VQXZYY +
+     &                RIJX * RIJZ * VQXZZZ +
+     &                RIJY * RIJX * VQYXXX +
+     &                RIJY * RIJX * VQYXYY +
+     &                RIJY * RIJX * VQYXZZ +
+     &               (RIJY * RIJY + RIJX * RIJX ) * VQYYXX +
+     &                RIJX * RIJY * VQYYXY +
+     &                RIJX * RIJZ * VQYYXZ +
+     &                RIJY * RIJX * VQYYYX +
+     &               (RIJY * RIJY + RIJY * RIJY ) * VQYYYY +
+     &                RIJY * RIJZ * VQYYYZ +
+     &                RIJZ * RIJX * VQYYZX +
+     &                RIJZ * RIJY * VQYYZY +
+     &               (RIJY * RIJY + RIJZ * RIJZ ) * VQYYZZ +
+     &                RIJY * RIJZ * VQYZXX +
+     &                RIJY * RIJZ * VQYZYY +
+     &                RIJY * RIJZ * VQYZZZ +
+     &                RIJZ * RIJX * VQZXXX +
+     &                RIJZ * RIJX * VQZXYY +
+     &                RIJZ * RIJX * VQZXZZ +
+     &                RIJZ * RIJY * VQZYXX +
+     &                RIJZ * RIJY * VQZYYY +
+     &                RIJZ * RIJY * VQZYZZ +
+     &               (RIJZ * RIJZ + RIJX * RIJX ) * VQZZXX +
+     &                RIJX * RIJY * VQZZXY +
+     &                RIJX * RIJZ * VQZZXZ +
+     &                RIJY * RIJX * VQZZYX +
+     &               (RIJZ * RIJZ + RIJY * RIJY ) * VQZZYY +
+     &                RIJY * RIJZ * VQZZYZ +
+     &                RIJZ * RIJX * VQZZZX +
+     &                RIJZ * RIJY * VQZZZY +
+     &               (RIJZ * RIJZ + RIJZ * RIJZ ) * VQZZZZ )
+     &               * THREE / RIJ8
+     &            + (VQXXXX + VQXXYY + VQXXZZ + VQYYXX +
+     &               VQYYYY + VQYYZZ + VQZZXX + VQZZYY +
+     &               VQZZZZ ) / RIJ6
 C
 C                    TERM II
 C
-                     TERM2 = ZERO
-                     ...
+           TERM2 =   ((RX1 * RIJX * RIJX * RIJX +
+     &                 RIJX * RX1 * RIJX * RIJX +
+     &                 RIJX * RIJX * RX1 * RIJX +
+     &                 RIJX * RIJX * RIJX * RX1 ) * VIXXXX +
+     &                (RX1 * RIJX * RIJX * RIJY +
+     &                 RIJX * RX1 * RIJX * RIJY +
+     &                 RIJX * RIJX * RX1 * RIJY +
+     &                 RIJX * RIJX * RIJX * RY1 ) * VIXXXY +
+     &                (RX1 * RIJX * RIJX * RIJZ +
+     &                 RIJX * RX1 * RIJX * RIJZ +
+     &                 RIJX * RIJX * RX1 * RIJZ +
+     &                 RIJX * RIJX * RIJX * RZ1 ) * VIXXXZ +
+     &                (RX1 * RIJX * RIJY * RIJX +
+     &                 RIJX * RX1 * RIJY * RIJX +
+     &                 RIJX * RIJX * RY1 * RIJX +
+     &                 RIJX * RIJX * RIJY * RX1 ) * VIXXYX +
+     &                (RX1 * RIJX * RIJY * RIJY +
+     &                 RIJX * RX1 * RIJY * RIJY +
+     &                 RIJX * RIJX * RY1 * RIJY +
+     &                 RIJX * RIJX * RIJY * RY1 ) * VIXXYY +
+     &                (RX1 * RIJX * RIJY * RIJZ +
+     &                 RIJX * RX1 * RIJY * RIJZ +
+     &                 RIJX * RIJX * RY1 * RIJZ +
+     &                 RIJX * RIJX * RIJY * RZ1 ) * VIXXYZ +
+     &                (RX1 * RIJX * RIJZ * RIJX +
+     &                 RIJX * RX1 * RIJZ * RIJX +
+     &                 RIJX * RIJX * RZ1 * RIJX +
+     &                 RIJX * RIJX * RIJZ * RX1 ) * VIXXZX +
+     &                (RX1 * RIJX * RIJZ * RIJY +
+     &                 RIJX * RX1 * RIJZ * RIJY +
+     &                 RIJX * RIJX * RZ1 * RIJY +
+     &                 RIJX * RIJX * RIJZ * RY1 ) * VIXXZY +
+     &                (RX1 * RIJX * RIJZ * RIJZ +
+     &                 RIJX * RX1 * RIJZ * RIJZ +
+     &                 RIJX * RIJX * RZ1 * RIJZ +
+     &                 RIJX * RIJX * RIJZ * RZ1 ) * VIXXZZ +
+     &                (RX1 * RIJY * RIJX * RIJX +
+     &                 RIJX * RY1 * RIJX * RIJX +
+     &                 RIJX * RIJY * RX1 * RIJX +
+     &                 RIJX * RIJY * RIJX * RX1 ) * VIXYXX +
+     &                (RX1 * RIJY * RIJX * RIJY +
+     &                 RIJX * RY1 * RIJX * RIJY +
+     &                 RIJX * RIJY * RX1 * RIJY +
+     &                 RIJX * RIJY * RIJX * RY1 ) * VIXYXY +
+     &                (RX1 * RIJY * RIJX * RIJZ +
+     &                 RIJX * RY1 * RIJX * RIJZ +
+     &                 RIJX * RIJY * RX1 * RIJZ +
+     &                 RIJX * RIJY * RIJX * RZ1 ) * VIXYXZ +
+     &                (RX1 * RIJY * RIJY * RIJX +
+     &                 RIJX * RY1 * RIJY * RIJX +
+     &                 RIJX * RIJY * RY1 * RIJX +
+     &                 RIJX * RIJY * RIJY * RX1 ) * VIXYYX +
+     &                (RX1 * RIJY * RIJY * RIJY +
+     &                 RIJX * RY1 * RIJY * RIJY +
+     &                 RIJX * RIJY * RY1 * RIJY +
+     &                 RIJX * RIJY * RIJY * RY1 ) * VIXYYY +
+     &                (RX1 * RIJY * RIJY * RIJZ +
+     &                 RIJX * RY1 * RIJY * RIJZ +
+     &                 RIJX * RIJY * RY1 * RIJZ +
+     &                 RIJX * RIJY * RIJY * RZ1 ) * VIXYYZ +
+     &                (RX1 * RIJY * RIJZ * RIJX +
+     &                 RIJX * RY1 * RIJZ * RIJX +
+     &                 RIJX * RIJY * RZ1 * RIJX +
+     &                 RIJX * RIJY * RIJZ * RX1 ) * VIXYZX +
+     &                (RX1 * RIJY * RIJZ * RIJY +
+     &                 RIJX * RY1 * RIJZ * RIJY +
+     &                 RIJX * RIJY * RZ1 * RIJY +
+     &                 RIJX * RIJY * RIJZ * RY1 ) * VIXYZY +
+     &                (RX1 * RIJY * RIJZ * RIJZ +
+     &                 RIJX * RY1 * RIJZ * RIJZ +
+     &                 RIJX * RIJY * RZ1 * RIJZ +
+     &                 RIJX * RIJY * RIJZ * RZ1 ) * VIXYZZ +
+     &                (RX1 * RIJZ * RIJX * RIJX +
+     &                 RIJX * RZ1 * RIJX * RIJX +
+     &                 RIJX * RIJZ * RX1 * RIJX +
+     &                 RIJX * RIJZ * RIJX * RX1 ) * VIXZXX +
+     &                (RX1 * RIJZ * RIJX * RIJY +
+     &                 RIJX * RZ1 * RIJX * RIJY +
+     &                 RIJX * RIJZ * RX1 * RIJY +
+     &                 RIJX * RIJZ * RIJX * RY1 ) * VIXZXY +
+     &                (RX1 * RIJZ * RIJX * RIJZ +
+     &                 RIJX * RZ1 * RIJX * RIJZ +
+     &                 RIJX * RIJZ * RX1 * RIJZ +
+     &                 RIJX * RIJZ * RIJX * RZ1 ) * VIXZXZ +
+     &                (RX1 * RIJZ * RIJY * RIJX +
+     &                 RIJX * RZ1 * RIJY * RIJX +
+     &                 RIJX * RIJZ * RY1 * RIJX +
+     &                 RIJX * RIJZ * RIJY * RX1 ) * VIXZYX +
+     &                (RX1 * RIJZ * RIJY * RIJY +
+     &                 RIJX * RZ1 * RIJY * RIJY +
+     &                 RIJX * RIJZ * RY1 * RIJY +
+     &                 RIJX * RIJZ * RIJY * RY1 ) * VIXZYY +
+     &                (RX1 * RIJZ * RIJY * RIJZ +
+     &                 RIJX * RZ1 * RIJY * RIJZ +
+     &                 RIJX * RIJZ * RY1 * RIJZ +
+     &                 RIJX * RIJZ * RIJY * RZ1 ) * VIXZYZ +
+     &                (RX1 * RIJZ * RIJZ * RIJX +
+     &                 RIJX * RZ1 * RIJZ * RIJX +
+     &                 RIJX * RIJZ * RZ1 * RIJX +
+     &                 RIJX * RIJZ * RIJZ * RX1 ) * VIXZZX +
+     &                (RX1 * RIJZ * RIJZ * RIJY +
+     &                 RIJX * RZ1 * RIJZ * RIJY +
+     &                 RIJX * RIJZ * RZ1 * RIJY +
+     &                 RIJX * RIJZ * RIJZ * RY1 ) * VIXZZY +
+     &                (RX1 * RIJZ * RIJZ * RIJZ +
+     &                 RIJX * RZ1 * RIJZ * RIJZ +
+     &                 RIJX * RIJZ * RZ1 * RIJZ +
+     &                 RIJX * RIJZ * RIJZ * RZ1 ) * VIXZZZ +
+     &                (RY1 * RIJX * RIJX * RIJX +
+     &                 RIJY * RX1 * RIJX * RIJX +
+     &                 RIJY * RIJX * RX1 * RIJX +
+     &                 RIJY * RIJX * RIJX * RX1 ) * VIYXXX +
+     &                (RY1 * RIJX * RIJX * RIJY +
+     &                 RIJY * RX1 * RIJX * RIJY +
+     &                 RIJY * RIJX * RX1 * RIJY +
+     &                 RIJY * RIJX * RIJX * RY1 ) * VIYXXY +
+     &                (RY1 * RIJX * RIJX * RIJZ +
+     &                 RIJY * RX1 * RIJX * RIJZ +
+     &                 RIJY * RIJX * RX1 * RIJZ +
+     &                 RIJY * RIJX * RIJX * RZ1 ) * VIYXXZ +
+     &                (RY1 * RIJX * RIJY * RIJX +
+     &                 RIJY * RX1 * RIJY * RIJX +
+     &                 RIJY * RIJX * RY1 * RIJX +
+     &                 RIJY * RIJX * RIJY * RX1 ) * VIYXYX +
+     &                (RY1 * RIJX * RIJY * RIJY +
+     &                 RIJY * RX1 * RIJY * RIJY +
+     &                 RIJY * RIJX * RY1 * RIJY +
+     &                 RIJY * RIJX * RIJY * RY1 ) * VIYXYY +
+     &                (RY1 * RIJX * RIJY * RIJZ +
+     &                 RIJY * RX1 * RIJY * RIJZ +
+     &                 RIJY * RIJX * RY1 * RIJZ +
+     &                 RIJY * RIJX * RIJY * RZ1 ) * VIYXYZ +
+     &                (RY1 * RIJX * RIJZ * RIJX +
+     &                 RIJY * RX1 * RIJZ * RIJX +
+     &                 RIJY * RIJX * RZ1 * RIJX +
+     &                 RIJY * RIJX * RIJZ * RX1 ) * VIYXZX +
+     &                (RY1 * RIJX * RIJZ * RIJY +
+     &                 RIJY * RX1 * RIJZ * RIJY +
+     &                 RIJY * RIJX * RZ1 * RIJY +
+     &                 RIJY * RIJX * RIJZ * RY1 ) * VIYXZY +
+     &                (RY1 * RIJX * RIJZ * RIJZ +
+     &                 RIJY * RX1 * RIJZ * RIJZ +
+     &                 RIJY * RIJX * RZ1 * RIJZ +
+     &                 RIJY * RIJX * RIJZ * RZ1 ) * VIYXZZ +
+     &                (RY1 * RIJY * RIJX * RIJX +
+     &                 RIJY * RY1 * RIJX * RIJX +
+     &                 RIJY * RIJY * RX1 * RIJX +
+     &                 RIJY * RIJY * RIJX * RX1 ) * VIYYXX +
+     &                (RY1 * RIJY * RIJX * RIJY +
+     &                 RIJY * RY1 * RIJX * RIJY +
+     &                 RIJY * RIJY * RX1 * RIJY +
+     &                 RIJY * RIJY * RIJX * RY1 ) * VIYYXY +
+     &                (RY1 * RIJY * RIJX * RIJZ +
+     &                 RIJY * RY1 * RIJX * RIJZ +
+     &                 RIJY * RIJY * RX1 * RIJZ +
+     &                 RIJY * RIJY * RIJX * RZ1 ) * VIYYXZ +
+     &                (RY1 * RIJY * RIJY * RIJX +
+     &                 RIJY * RY1 * RIJY * RIJX +
+     &                 RIJY * RIJY * RY1 * RIJX +
+     &                 RIJY * RIJY * RIJY * RX1 ) * VIYYYX +
+     &                (RY1 * RIJY * RIJY * RIJY +
+     &                 RIJY * RY1 * RIJY * RIJY +
+     &                 RIJY * RIJY * RY1 * RIJY +
+     &                 RIJY * RIJY * RIJY * RY1 ) * VIYYYY +
+     &                (RY1 * RIJY * RIJY * RIJZ +
+     &                 RIJY * RY1 * RIJY * RIJZ +
+     &                 RIJY * RIJY * RY1 * RIJZ +
+     &                 RIJY * RIJY * RIJY * RZ1 ) * VIYYYZ +
+     &                (RY1 * RIJY * RIJZ * RIJX +
+     &                 RIJY * RY1 * RIJZ * RIJX +
+     &                 RIJY * RIJY * RZ1 * RIJX +
+     &                 RIJY * RIJY * RIJZ * RX1 ) * VIYYZX +
+     &                (RY1 * RIJY * RIJZ * RIJY +
+     &                 RIJY * RY1 * RIJZ * RIJY +
+     &                 RIJY * RIJY * RZ1 * RIJY +
+     &                 RIJY * RIJY * RIJZ * RY1 ) * VIYYZY +
+     &                (RY1 * RIJY * RIJZ * RIJZ +
+     &                 RIJY * RY1 * RIJZ * RIJZ +
+     &                 RIJY * RIJY * RZ1 * RIJZ +
+     &                 RIJY * RIJY * RIJZ * RZ1 ) * VIYYZZ +
+     &                (RY1 * RIJZ * RIJX * RIJX +
+     &                 RIJY * RZ1 * RIJX * RIJX +
+     &                 RIJY * RIJZ * RX1 * RIJX +
+     &                 RIJY * RIJZ * RIJX * RX1 ) * VIYZXX +
+     &                (RY1 * RIJZ * RIJX * RIJY +
+     &                 RIJY * RZ1 * RIJX * RIJY +
+     &                 RIJY * RIJZ * RX1 * RIJY +
+     &                 RIJY * RIJZ * RIJX * RY1 ) * VIYZXY +
+     &                (RY1 * RIJZ * RIJX * RIJZ +
+     &                 RIJY * RZ1 * RIJX * RIJZ +
+     &                 RIJY * RIJZ * RX1 * RIJZ +
+     &                 RIJY * RIJZ * RIJX * RZ1 ) * VIYZXZ +
+     &                (RY1 * RIJZ * RIJY * RIJX +
+     &                 RIJY * RZ1 * RIJY * RIJX +
+     &                 RIJY * RIJZ * RY1 * RIJX +
+     &                 RIJY * RIJZ * RIJY * RX1 ) * VIYZYX +
+     &                (RY1 * RIJZ * RIJY * RIJY +
+     &                 RIJY * RZ1 * RIJY * RIJY +
+     &                 RIJY * RIJZ * RY1 * RIJY +
+     &                 RIJY * RIJZ * RIJY * RY1 ) * VIYZYY +
+     &                (RY1 * RIJZ * RIJY * RIJZ +
+     &                 RIJY * RZ1 * RIJY * RIJZ +
+     &                 RIJY * RIJZ * RY1 * RIJZ +
+     &                 RIJY * RIJZ * RIJY * RZ1 ) * VIYZYZ +
+     &                (RY1 * RIJZ * RIJZ * RIJX +
+     &                 RIJY * RZ1 * RIJZ * RIJX +
+     &                 RIJY * RIJZ * RZ1 * RIJX +
+     &                 RIJY * RIJZ * RIJZ * RX1 ) * VIYZZX +
+     &                (RY1 * RIJZ * RIJZ * RIJY +
+     &                 RIJY * RZ1 * RIJZ * RIJY +
+     &                 RIJY * RIJZ * RZ1 * RIJY +
+     &                 RIJY * RIJZ * RIJZ * RY1 ) * VIYZZY +
+     &                (RY1 * RIJZ * RIJZ * RIJZ +
+     &                 RIJY * RZ1 * RIJZ * RIJZ +
+     &                 RIJY * RIJZ * RZ1 * RIJZ +
+     &                 RIJY * RIJZ * RIJZ * RZ1 ) * VIYZZZ +
+     &                (RZ1 * RIJX * RIJX * RIJX +
+     &                 RIJZ * RX1 * RIJX * RIJX +
+     &                 RIJZ * RIJX * RX1 * RIJX +
+     &                 RIJZ * RIJX * RIJX * RX1 ) * VIZXXX +
+     &                (RZ1 * RIJX * RIJX * RIJY +
+     &                 RIJZ * RX1 * RIJX * RIJY +
+     &                 RIJZ * RIJX * RX1 * RIJY +
+     &                 RIJZ * RIJX * RIJX * RY1 ) * VIZXXY +
+     &                (RZ1 * RIJX * RIJX * RIJZ +
+     &                 RIJZ * RX1 * RIJX * RIJZ +
+     &                 RIJZ * RIJX * RX1 * RIJZ +
+     &                 RIJZ * RIJX * RIJX * RZ1 ) * VIZXXZ +
+     &                (RZ1 * RIJX * RIJY * RIJX +
+     &                 RIJZ * RX1 * RIJY * RIJX +
+     &                 RIJZ * RIJX * RY1 * RIJX +
+     &                 RIJZ * RIJX * RIJY * RX1 ) * VIZXYX +
+     &                (RZ1 * RIJX * RIJY * RIJY +
+     &                 RIJZ * RX1 * RIJY * RIJY +
+     &                 RIJZ * RIJX * RY1 * RIJY +
+     &                 RIJZ * RIJX * RIJY * RY1 ) * VIZXYY +
+     &                (RZ1 * RIJX * RIJY * RIJZ +
+     &                 RIJZ * RX1 * RIJY * RIJZ +
+     &                 RIJZ * RIJX * RY1 * RIJZ +
+     &                 RIJZ * RIJX * RIJY * RZ1 ) * VIZXYZ +
+     &                (RZ1 * RIJX * RIJZ * RIJX +
+     &                 RIJZ * RX1 * RIJZ * RIJX +
+     &                 RIJZ * RIJX * RZ1 * RIJX +
+     &                 RIJZ * RIJX * RIJZ * RX1 ) * VIZXZX +
+     &                (RZ1 * RIJX * RIJZ * RIJY +
+     &                 RIJZ * RX1 * RIJZ * RIJY +
+     &                 RIJZ * RIJX * RZ1 * RIJY +
+     &                 RIJZ * RIJX * RIJZ * RY1 ) * VIZXZY +
+     &                (RZ1 * RIJX * RIJZ * RIJZ +
+     &                 RIJZ * RX1 * RIJZ * RIJZ +
+     &                 RIJZ * RIJX * RZ1 * RIJZ +
+     &                 RIJZ * RIJX * RIJZ * RZ1 ) * VIZXZZ +
+     &                (RZ1 * RIJY * RIJX * RIJX +
+     &                 RIJZ * RY1 * RIJX * RIJX +
+     &                 RIJZ * RIJY * RX1 * RIJX +
+     &                 RIJZ * RIJY * RIJX * RX1 ) * VIZYXX +
+     &                (RZ1 * RIJY * RIJX * RIJY +
+     &                 RIJZ * RY1 * RIJX * RIJY +
+     &                 RIJZ * RIJY * RX1 * RIJY +
+     &                 RIJZ * RIJY * RIJX * RY1 ) * VIZYXY +
+     &                (RZ1 * RIJY * RIJX * RIJZ +
+     &                 RIJZ * RY1 * RIJX * RIJZ +
+     &                 RIJZ * RIJY * RX1 * RIJZ +
+     &                 RIJZ * RIJY * RIJX * RZ1 ) * VIZYXZ +
+     &                (RZ1 * RIJY * RIJY * RIJX +
+     &                 RIJZ * RY1 * RIJY * RIJX +
+     &                 RIJZ * RIJY * RY1 * RIJX +
+     &                 RIJZ * RIJY * RIJY * RX1 ) * VIZYYX +
+     &                (RZ1 * RIJY * RIJY * RIJY +
+     &                 RIJZ * RY1 * RIJY * RIJY +
+     &                 RIJZ * RIJY * RY1 * RIJY +
+     &                 RIJZ * RIJY * RIJY * RY1 ) * VIZYYY +
+     &                (RZ1 * RIJY * RIJY * RIJZ +
+     &                 RIJZ * RY1 * RIJY * RIJZ +
+     &                 RIJZ * RIJY * RY1 * RIJZ +
+     &                 RIJZ * RIJY * RIJY * RZ1 ) * VIZYYZ +
+     &                (RZ1 * RIJY * RIJZ * RIJX +
+     &                 RIJZ * RY1 * RIJZ * RIJX +
+     &                 RIJZ * RIJY * RZ1 * RIJX +
+     &                 RIJZ * RIJY * RIJZ * RX1 ) * VIZYZX +
+     &                (RZ1 * RIJY * RIJZ * RIJY +
+     &                 RIJZ * RY1 * RIJZ * RIJY +
+     &                 RIJZ * RIJY * RZ1 * RIJY +
+     &                 RIJZ * RIJY * RIJZ * RY1 ) * VIZYZY +
+     &                (RZ1 * RIJY * RIJZ * RIJZ +
+     &                 RIJZ * RY1 * RIJZ * RIJZ +
+     &                 RIJZ * RIJY * RZ1 * RIJZ +
+     &                 RIJZ * RIJY * RIJZ * RZ1 ) * VIZYZZ +
+     &                (RZ1 * RIJZ * RIJX * RIJX +
+     &                 RIJZ * RZ1 * RIJX * RIJX +
+     &                 RIJZ * RIJZ * RX1 * RIJX +
+     &                 RIJZ * RIJZ * RIJX * RX1 ) * VIZZXX +
+     &                (RZ1 * RIJZ * RIJX * RIJY +
+     &                 RIJZ * RZ1 * RIJX * RIJY +
+     &                 RIJZ * RIJZ * RX1 * RIJY +
+     &                 RIJZ * RIJZ * RIJX * RY1 ) * VIZZXY +
+     &                (RZ1 * RIJZ * RIJX * RIJZ +
+     &                 RIJZ * RZ1 * RIJX * RIJZ +
+     &                 RIJZ * RIJZ * RX1 * RIJZ +
+     &                 RIJZ * RIJZ * RIJX * RZ1 ) * VIZZXZ +
+     &                (RZ1 * RIJZ * RIJY * RIJX +
+     &                 RIJZ * RZ1 * RIJY * RIJX +
+     &                 RIJZ * RIJZ * RY1 * RIJX +
+     &                 RIJZ * RIJZ * RIJY * RX1 ) * VIZZYX +
+     &                (RZ1 * RIJZ * RIJY * RIJY +
+     &                 RIJZ * RZ1 * RIJY * RIJY +
+     &                 RIJZ * RIJZ * RY1 * RIJY +
+     &                 RIJZ * RIJZ * RIJY * RY1 ) * VIZZYY +
+     &                (RZ1 * RIJZ * RIJY * RIJZ +
+     &                 RIJZ * RZ1 * RIJY * RIJZ +
+     &                 RIJZ * RIJZ * RY1 * RIJZ +
+     &                 RIJZ * RIJZ * RIJY * RZ1 ) * VIZZYZ +
+     &                (RZ1 * RIJZ * RIJZ * RIJX +
+     &                 RIJZ * RZ1 * RIJZ * RIJX +
+     &                 RIJZ * RIJZ * RZ1 * RIJX +
+     &                 RIJZ * RIJZ * RIJZ * RX1 ) * VIZZZX +
+     &                (RZ1 * RIJZ * RIJZ * RIJY +
+     &                 RIJZ * RZ1 * RIJZ * RIJY +
+     &                 RIJZ * RIJZ * RZ1 * RIJY +
+     &                 RIJZ * RIJZ * RIJZ * RY1 ) * VIZZZY +
+     &                (RZ1 * RIJZ * RIJZ * RIJZ +
+     &                 RIJZ * RZ1 * RIJZ * RIJZ +
+     &                 RIJZ * RIJZ * RZ1 * RIJZ +
+     &                 RIJZ * RIJZ * RIJZ * RZ1 ) * VIZZZZ )
+     &               * NINE / RIJ10
+     &             - (RIJX * RIJX * RIJX * RIJX * VIXXXX +
+     &                RIJX * RIJX * RIJX * RIJY * VIXXXY +
+     &                RIJX * RIJX * RIJX * RIJZ * VIXXXZ +
+     &                RIJX * RIJX * RIJY * RIJX * VIXXYX +
+     &                RIJX * RIJX * RIJY * RIJY * VIXXYY +
+     &                RIJX * RIJX * RIJY * RIJZ * VIXXYZ +
+     &                RIJX * RIJX * RIJZ * RIJX * VIXXZX +
+     &                RIJX * RIJX * RIJZ * RIJY * VIXXZY +
+     &                RIJX * RIJX * RIJZ * RIJZ * VIXXZZ +
+     &                RIJX * RIJY * RIJX * RIJX * VIXYXX +
+     &                RIJX * RIJY * RIJX * RIJY * VIXYXY +
+     &                RIJX * RIJY * RIJX * RIJZ * VIXYXZ +
+     &                RIJX * RIJY * RIJY * RIJX * VIXYYX +
+     &                RIJX * RIJY * RIJY * RIJY * VIXYYY +
+     &                RIJX * RIJY * RIJY * RIJZ * VIXYYZ +
+     &                RIJX * RIJY * RIJZ * RIJX * VIXYZX +
+     &                RIJX * RIJY * RIJZ * RIJY * VIXYZY +
+     &                RIJX * RIJY * RIJZ * RIJZ * VIXYZZ +
+     &                RIJX * RIJZ * RIJX * RIJX * VIXZXX +
+     &                RIJX * RIJZ * RIJX * RIJY * VIXZXY +
+     &                RIJX * RIJZ * RIJX * RIJZ * VIXZXZ +
+     &                RIJX * RIJZ * RIJY * RIJX * VIXZYX +
+     &                RIJX * RIJZ * RIJY * RIJY * VIXZYY +
+     &                RIJX * RIJZ * RIJY * RIJZ * VIXZYZ +
+     &                RIJX * RIJZ * RIJZ * RIJX * VIXZZX +
+     &                RIJX * RIJZ * RIJZ * RIJY * VIXZZY +
+     &                RIJX * RIJZ * RIJZ * RIJZ * VIXZZZ +
+     &                RIJY * RIJX * RIJX * RIJX * VIYXXX +
+     &                RIJY * RIJX * RIJX * RIJY * VIYXXY +
+     &                RIJY * RIJX * RIJX * RIJZ * VIYXXZ +
+     &                RIJY * RIJX * RIJY * RIJX * VIYXYX +
+     &                RIJY * RIJX * RIJY * RIJY * VIYXYY +
+     &                RIJY * RIJX * RIJY * RIJZ * VIYXYZ +
+     &                RIJY * RIJX * RIJZ * RIJX * VIYXZX +
+     &                RIJY * RIJX * RIJZ * RIJY * VIYXZY +
+     &                RIJY * RIJX * RIJZ * RIJZ * VIYXZZ +
+     &                RIJY * RIJY * RIJX * RIJX * VIYYXX +
+     &                RIJY * RIJY * RIJX * RIJY * VIYYXY +
+     &                RIJY * RIJY * RIJX * RIJZ * VIYYXZ +
+     &                RIJY * RIJY * RIJY * RIJX * VIYYYX +
+     &                RIJY * RIJY * RIJY * RIJY * VIYYYY +
+     &                RIJY * RIJY * RIJY * RIJZ * VIYYYZ +
+     &                RIJY * RIJY * RIJZ * RIJX * VIYYZX +
+     &                RIJY * RIJY * RIJZ * RIJY * VIYYZY +
+     &                RIJY * RIJY * RIJZ * RIJZ * VIYYZZ +
+     &                RIJY * RIJZ * RIJX * RIJX * VIYZXX +
+     &                RIJY * RIJZ * RIJX * RIJY * VIYZXY +
+     &                RIJY * RIJZ * RIJX * RIJZ * VIYZXZ +
+     &                RIJY * RIJZ * RIJY * RIJX * VIYZYX +
+     &                RIJY * RIJZ * RIJY * RIJY * VIYZYY +
+     &                RIJY * RIJZ * RIJY * RIJZ * VIYZYZ +
+     &                RIJY * RIJZ * RIJZ * RIJX * VIYZZX +
+     &                RIJY * RIJZ * RIJZ * RIJY * VIYZZY +
+     &                RIJY * RIJZ * RIJZ * RIJZ * VIYZZZ +
+     &                RIJZ * RIJX * RIJX * RIJX * VIZXXX +
+     &                RIJZ * RIJX * RIJX * RIJY * VIZXXY +
+     &                RIJZ * RIJX * RIJX * RIJZ * VIZXXZ +
+     &                RIJZ * RIJX * RIJY * RIJX * VIZXYX +
+     &                RIJZ * RIJX * RIJY * RIJY * VIZXYY +
+     &                RIJZ * RIJX * RIJY * RIJZ * VIZXYZ +
+     &                RIJZ * RIJX * RIJZ * RIJX * VIZXZX +
+     &                RIJZ * RIJX * RIJZ * RIJY * VIZXZY +
+     &                RIJZ * RIJX * RIJZ * RIJZ * VIZXZZ +
+     &                RIJZ * RIJY * RIJX * RIJX * VIZYXX +
+     &                RIJZ * RIJY * RIJX * RIJY * VIZYXY +
+     &                RIJZ * RIJY * RIJX * RIJZ * VIZYXZ +
+     &                RIJZ * RIJY * RIJY * RIJX * VIZYYX +
+     &                RIJZ * RIJY * RIJY * RIJY * VIZYYY +
+     &                RIJZ * RIJY * RIJY * RIJZ * VIZYYZ +
+     &                RIJZ * RIJY * RIJZ * RIJX * VIZYZX +
+     &                RIJZ * RIJY * RIJZ * RIJY * VIZYZY +
+     &                RIJZ * RIJY * RIJZ * RIJZ * VIZYZZ +
+     &                RIJZ * RIJZ * RIJX * RIJX * VIZZXX +
+     &                RIJZ * RIJZ * RIJX * RIJY * VIZZXY +
+     &                RIJZ * RIJZ * RIJX * RIJZ * VIZZXZ +
+     &                RIJZ * RIJZ * RIJY * RIJX * VIZZYX +
+     &                RIJZ * RIJZ * RIJY * RIJY * VIZZYY +
+     &                RIJZ * RIJZ * RIJY * RIJZ * VIZZYZ +
+     &                RIJZ * RIJZ * RIJZ * RIJX * VIZZZX +
+     &                RIJZ * RIJZ * RIJZ * RIJY * VIZZZY +
+     &                RIJZ * RIJZ * RIJZ * RIJZ * VIZZZZ )
+     &              * RMR * V90 / RIJ12
+     &            + ((RIJX * RIJX + RIJX * RIJX ) * VIXXXX +
+     &                RIJX * RIJY * VIXXXY +
+     &                RIJX * RIJZ * VIXXXZ +
+     &                RIJY * RIJX * VIXXYX +
+     &               (RIJX * RIJX + RIJY * RIJY ) * VIXXYY +
+     &                RIJY * RIJZ * VIXXYZ +
+     &                RIJZ * RIJX * VIXXZX +
+     &                RIJZ * RIJY * VIXXZY +
+     &               (RIJX * RIJX + RIJZ * RIJZ ) * VIXXZZ +
+     &                RIJX * RIJY * VIXYXX +
+     &                RIJX * RIJY * VIXYYY +
+     &                RIJX * RIJY * VIXYZZ +
+     &                RIJX * RIJZ * VIXZXX +
+     &                RIJX * RIJZ * VIXZYY +
+     &                RIJX * RIJZ * VIXZZZ +
+     &                RIJY * RIJX * VIYXXX +
+     &                RIJY * RIJX * VIYXYY +
+     &                RIJY * RIJX * VIYXZZ +
+     &               (RIJY * RIJY + RIJX * RIJX ) * VIYYXX +
+     &                RIJX * RIJY * VIYYXY +
+     &                RIJX * RIJZ * VIYYXZ +
+     &                RIJY * RIJX * VIYYYX +
+     &               (RIJY * RIJY + RIJY * RIJY ) * VIYYYY +
+     &                RIJY * RIJZ * VIYYYZ +
+     &                RIJZ * RIJX * VIYYZX +
+     &                RIJZ * RIJY * VIYYZY +
+     &               (RIJY * RIJY + RIJZ * RIJZ ) * VIYYZZ +
+     &                RIJY * RIJZ * VIYZXX +
+     &                RIJY * RIJZ * VIYZYY +
+     &                RIJY * RIJZ * VIYZZZ +
+     &                RIJZ * RIJX * VIZXXX +
+     &                RIJZ * RIJX * VIZXYY +
+     &                RIJZ * RIJX * VIZXZZ +
+     &                RIJZ * RIJY * VIZYXX +
+     &                RIJZ * RIJY * VIZYYY +
+     &                RIJZ * RIJY * VIZYZZ +
+     &               (RIJZ * RIJZ + RIJX * RIJX ) * VIZZXX +
+     &                RIJX * RIJY * VIZZXY +
+     &                RIJX * RIJZ * VIZZXZ +
+     &                RIJY * RIJX * VIZZYX +
+     &               (RIJZ * RIJZ + RIJY * RIJY ) * VIZZYY +
+     &                RIJY * RIJZ * VIZZYZ +
+     &                RIJZ * RIJX * VIZZZX +
+     &                RIJZ * RIJY * VIZZZY +
+     &               (RIJZ * RIJZ + RIJZ * RIJZ ) * VIZZZZ )
+     &              * RMR * V24 / RIJ10
+     &             - ((RX1 * RIJX + RIJX * RX1 +
+     &                 RX1 * RIJX + RIJX * RX1 ) * VIXXXX +
+     &                (RX1 * RIJY + RIJX * RY1 ) * VIXXXY +
+     &                (RX1 * RIJZ + RIJX * RZ1 ) * VIXXXZ +
+     &                (RY1 * RIJX + RIJY * RX1 ) * VIXXYX +
+     &                (RX1 * RIJX + RIJX * RX1 +
+     &                 RY1 * RIJY + RIJY * RY1 ) * VIXXYY +
+     &                (RY1 * RIJZ + RIJY * RZ1 ) * VIXXYZ +
+     &                (RZ1 * RIJX + RIJZ * RX1 ) * VIXXZX +
+     &                (RZ1 * RIJY + RIJZ * RY1 ) * VIXXZY +
+     &                (RX1 * RIJX + RIJX * RX1 +
+     &                 RZ1 * RIJZ + RIJZ * RZ1 ) * VIXXZZ +
+     &                (RX1 * RIJY + RIJX * RY1 ) * VIXYXX +
+     &                (RX1 * RIJY + RIJX * RY1 ) * VIXYYY +
+     &                (RX1 * RIJY + RIJX * RY1 ) * VIXYZZ +
+     &                (RX1 * RIJZ + RIJX * RZ1 ) * VIXZXX +
+     &                (RX1 * RIJZ + RIJX * RZ1 ) * VIXZYY +
+     &                (RX1 * RIJZ + RIJX * RZ1 ) * VIXZZZ +
+     &                (RY1 * RIJX + RIJY * RX1 ) * VIYXXX +
+     &                (RY1 * RIJX + RIJY * RX1 ) * VIYXYY +
+     &                (RY1 * RIJX + RIJY * RX1 ) * VIYXZZ +
+     &                (RY1 * RIJY + RIJY * RY1 +
+     &                 RX1 * RIJX + RIJX * RX1 ) * VIYYXX +
+     &                (RX1 * RIJY + RIJX * RY1 ) * VIYYXY +
+     &                (RX1 * RIJZ + RIJX * RZ1 ) * VIYYXZ +
+     &                (RY1 * RIJX + RIJY * RX1 ) * VIYYYX +
+     &                (RY1 * RIJY + RIJY * RY1 +
+     &                 RY1 * RIJY + RIJY * RY1 ) * VIYYYY +
+     &                (RY1 * RIJZ + RIJY * RZ1 ) * VIYYYZ +
+     &                (RZ1 * RIJX + RIJZ * RX1 ) * VIYYZX +
+     &                (RZ1 * RIJY + RIJZ * RY1 ) * VIYYZY +
+     &                (RY1 * RIJY + RIJY * RY1 +
+     &                 RZ1 * RIJZ + RIJZ * RZ1 ) * VIYYZZ +
+     &                (RY1 * RIJZ + RIJY * RZ1 ) * VIYZXX +
+     &                (RY1 * RIJZ + RIJY * RZ1 ) * VIYZYY +
+     &                (RY1 * RIJZ + RIJY * RZ1 ) * VIYZZZ +
+     &                (RZ1 * RIJX + RIJZ * RX1 ) * VIZXXX +
+     &                (RZ1 * RIJX + RIJZ * RX1 ) * VIZXYY +
+     &                (RZ1 * RIJX + RIJZ * RX1 ) * VIZXZZ +
+     &                (RZ1 * RIJY + RIJZ * RY1 ) * VIZYXX +
+     &                (RZ1 * RIJY + RIJZ * RY1 ) * VIZYYY +
+     &                (RZ1 * RIJY + RIJZ * RY1 ) * VIZYZZ +
+     &                (RZ1 * RIJZ + RIJZ * RZ1 +
+     &                 RX1 * RIJX + RIJX * RX1 ) * VIZZXX +
+     &                (RX1 * RIJY + RIJX * RY1 ) * VIZZXY +
+     &                (RX1 * RIJZ + RIJX * RZ1 ) * VIZZXZ +
+     &                (RY1 * RIJX + RIJY * RX1 ) * VIZZYX +
+     &                (RZ1 * RIJZ + RIJZ * RZ1 +
+     &                 RY1 * RIJY + RIJY * RY1 ) * VIZZYY +
+     &                (RY1 * RIJZ + RIJY * RZ1 ) * VIZZYZ +
+     &                (RZ1 * RIJX + RIJZ * RX1 ) * VIZZZX +
+     &                (RZ1 * RIJY + RIJZ * RY1 ) * VIZZZY +
+     &                (RZ1 * RIJZ + RIJZ * RZ1 +
+     &                 RZ1 * RIJZ + RIJZ * RZ1 ) * VIZZZZ )
+     &                * THREE / RIJ8
+     &              - (VIXXXX + VIXXYY + VIXXZZ + VIYYXX +
+     &                 VIYYYY + VIYYZZ + VIZZXX + VIZZYY + 
+     &                 VIZZZZ ) * RMR * SIX / RIJ8
+C
 C ---------------------------------------------------------------------------------
 C
 C                    ACCUMULATE DISPERSION FREQUENCY SHIFT
