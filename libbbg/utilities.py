@@ -4602,11 +4602,11 @@ def ParseDistributedPolarizabilitiesFromGamessEfpFile(f):
 
     STR=numpy.array(STR,numpy.float64).reshape(N,3)
     A = numpy.array(A,numpy.float64).reshape(N,3,3)
-    return STR,A
+    return STR, A
 
 def ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile(f):
     """parse distributed polarizabilities wrt imaginary frequency from GAMESS *.efp file"""
-    #STR = []
+    STR = []
     A = []
     d = open(f)
     l = d.readline()
@@ -4614,8 +4614,8 @@ def ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile(f):
     l = d.readline()
     N=0
     while not ("STOP" in l):
-      s = l.split()[1:]
-      #STR.append(s)
+      s = l.split()[2:5]
+      STR.append(s)
       #
       l = d.readline()
       a1 = l.split()
@@ -4636,11 +4636,11 @@ def ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile(f):
       l = d.readline()
       N+=1
 
-    #STR=numpy.array(STR,numpy.float64).reshape(N,3)
     assert not N%12, 'Error in reading DPOLI from EFP file!'
-    A = numpy.array(A,numpy.float64).reshape(3,3,12,N/12)
-    A = A.transpose((3,2,1,0))
-    return A
+    nmos = N/12
+    STR=numpy.array(STR,numpy.float64).reshape(12,nmos,3)
+    A = numpy.array(A,numpy.float64).reshape(12,nmos,3,3)
+    return STR, A
 
 def ParsePolDerFromFchk(f):
     """parse polarizability derivatives wrt nuclear coordinates from file"""
