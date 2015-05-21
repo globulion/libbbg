@@ -22,6 +22,8 @@ GENTCF = Extension(name='libbbg.qm.gentcf',
                    sources=['libbbg/qm/gentcf.f'],)
 CLEMTP = Extension(name='libbbg.qm.clemtp',
                    sources=['libbbg/qm/clemtp.f'])
+CLEMTP2= Extension(name='libbbg.qm.clemtp2',
+                   sources=['libbbg/qm/clemtp2.f'])
 ORBLOC = Extension(name='libbbg.qm.pmloca',
                    sources=['libbbg/qm/pmloca.f'],)
 FT_LIB = Extension(name='libbbg.fourier.ft',
@@ -58,6 +60,6 @@ setup(name='LIBBBG',
                   'libbbg.utilities','libbbg.utilities2',
                   'libbbg.dipderiv','libbbg.re_templates',
                   'libbbg.mpfit','libbbg.letters.greek',],
-      ext_modules=[GENTCF,ORBLOC,CLEMTP,FT_LIB,EFPROT],
+      ext_modules=[GENTCF,ORBLOC,CLEMTP,CLEMTP2,FT_LIB,EFPROT],
      )
 

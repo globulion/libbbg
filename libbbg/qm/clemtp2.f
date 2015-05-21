@@ -9,7 +9,7 @@ C-----|--|---------|---------|---------|---------|---------|---------|--|------|
      &          GIVEC(30),WEIGHT(12),ABSICA(12)
       PARAMETER (ZERO=0.0D+00,ONE=1.0D+00,TWO=2.0D+00,THREE=3.0D+00,
      &           FOUR=4.0D+00,FIVE=5.0D+00,SIX=6.0D+00,
-     &           NINE=9.0D+00,V24=24.0D+00,V90=90.0D+00,
+     &           V9=9.0D+00,V24=24.0D+00,V90=90.0D+00,
      &           TOCMRC=219474.63067873946D+00,PI=3.141592653589793D+00)
 C
 Cf2py INTENT(OUT) DISP
@@ -401,7 +401,7 @@ C
      &                RIJZ * RIJZ * RIJZ * RIJX * VQZZZX +
      &                RIJZ * RIJZ * RIJZ * RIJY * VQZZZY +
      &                RIJZ * RIJZ * RIJZ * RIJZ * VQZZZZ )
-     &                * NINE / RIJ10
+     &                * V9 * RIJ10
      &            - ((RIJX * RIJX + RIJX * RIJX ) * VQXXXX +
      &                RIJX * RIJY * VQXXXY +
      &                RIJX * RIJZ * VQXXXZ +
@@ -447,10 +447,10 @@ C
      &                RIJZ * RIJX * VQZZZX +
      &                RIJZ * RIJY * VQZZZY +
      &               (RIJZ * RIJZ + RIJZ * RIJZ ) * VQZZZZ )
-     &               * THREE / RIJ8
+     &               * THREE * RIJ8
      &            + (VQXXXX + VQXXYY + VQXXZZ + VQYYXX +
      &               VQYYYY + VQYYZZ + VQZZXX + VQZZYY +
-     &               VQZZZZ ) / RIJ6
+     &               VQZZZZ ) * RIJ6
 C
 C                    TERM II
 C
@@ -778,7 +778,7 @@ C
      &                 RIJZ * RZ1 * RIJZ * RIJZ +
      &                 RIJZ * RIJZ * RZ1 * RIJZ +
      &                 RIJZ * RIJZ * RIJZ * RZ1 ) * VIZZZZ )
-     &               * NINE / RIJ10
+     &               * V9 * RIJ10
      &             - (RIJX * RIJX * RIJX * RIJX * VIXXXX +
      &                RIJX * RIJX * RIJX * RIJY * VIXXXY +
      &                RIJX * RIJX * RIJX * RIJZ * VIXXXZ +
@@ -860,7 +860,7 @@ C
      &                RIJZ * RIJZ * RIJZ * RIJX * VIZZZX +
      &                RIJZ * RIJZ * RIJZ * RIJY * VIZZZY +
      &                RIJZ * RIJZ * RIJZ * RIJZ * VIZZZZ )
-     &              * RMR * V90 / RIJ12
+     &              * RMR * V90 * RIJ12
      &            + ((RIJX * RIJX + RIJX * RIJX ) * VIXXXX +
      &                RIJX * RIJY * VIXXXY +
      &                RIJX * RIJZ * VIXXXZ +
@@ -906,7 +906,7 @@ C
      &                RIJZ * RIJX * VIZZZX +
      &                RIJZ * RIJY * VIZZZY +
      &               (RIJZ * RIJZ + RIJZ * RIJZ ) * VIZZZZ )
-     &              * RMR * V24 / RIJ10
+     &              * RMR * V24 * RIJ10
      &             - ((RX1 * RIJX + RIJX * RX1 +
      &                 RX1 * RIJX + RIJX * RX1 ) * VIXXXX +
      &                (RX1 * RIJY + RIJX * RY1 ) * VIXXXY +
@@ -961,10 +961,10 @@ C
      &                (RZ1 * RIJY + RIJZ * RY1 ) * VIZZZY +
      &                (RZ1 * RIJZ + RIJZ * RZ1 +
      &                 RZ1 * RIJZ + RIJZ * RZ1 ) * VIZZZZ )
-     &                * THREE / RIJ8
+     &                * THREE * RIJ8
      &              - (VIXXXX + VIXXYY + VIXXZZ + VIYYXX +
      &                 VIYYYY + VIYYZZ + VIZZXX + VIZZYY + 
-     &                 VIZZZZ ) * RMR * SIX / RIJ8
+     &                 VIZZZZ ) * RMR * SIX * RIJ8
 C
 C ---------------------------------------------------------------------------------
 C
