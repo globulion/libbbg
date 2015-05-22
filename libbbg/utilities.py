@@ -23,7 +23,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
          'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
-         'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk','TIMER'] #'gen_camm'
+         'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk','TIMER',
+         'ParseElectronsFromFchk','ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile',] #'gen_camm'
          
 __version__ = '3.3.2'
 
@@ -97,7 +98,7 @@ class TIMER:
         self.tn = time.time()
         self.length = self.tn - self.tp
         self.occurence_list.append(self.length)
-        self.log += " - %44s %30.5f sec\n" % (self.occurence.ljust(44),self.length)
+        self.log += " - %60s %14.5f sec\n" % (self.occurence.ljust(60),self.length)
         self.tp = self.tn
         return
         
@@ -4729,6 +4730,22 @@ def ParseEnergyFromFchk(file,type='SCF'):
     E = numpy.float64(line.split()[-1])
     data.close()
     return E
+
+def ParseElectronsFromFchk(file):
+    """parse number of alpha and beta electrons"""
+    data = open(file)
+    line = data.readline()
+    ### look for energy
+    querry1 = 'Number of alpha electrons'
+    querry2 = 'Number of beta electrons'
+    while querry1 not in line:
+          line = data.readline()
+    a = int(line.split()[-1])
+    line = data.readline()
+    b = int(line.split()[-1])
+    data.close()
+    return a, b
+
 
 def ParseDipoleMomentFromFchk(file):
     """parse total dipole moment from g09 fchk. 
