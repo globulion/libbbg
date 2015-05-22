@@ -23,7 +23,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
          'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
-         'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk',] #'gen_camm'
+         'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk','TIMER'] #'gen_camm'
          
 __version__ = '3.3.2'
 
@@ -32,7 +32,7 @@ import re, qm, PyQuante,  \
        math, numpy.linalg, dma, units, re_templates,\
        copy, os, math, matplotlib.font_manager,\
        pylab, scitools.numpyutils, scipy.interpolate,\
-       letters, fourier, string #, coulomb.multip
+       letters, fourier, string, time #, coulomb.multip
 
 uAtom = units.Atom
 uUNITS= units.UNITS
@@ -65,6 +65,58 @@ uUNITS= units.UNITS
 #                              interp2d as I2D
 #from letters import greek as let_greek
 #from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+class TIMER:
+    """process timing statistics utility class""" 
+    
+    def __init__(self, name=None):
+        self.name = name
+        self.occurence = 'start'
+        self.t0 = time.time()
+        self.tp = self.t0
+        self.occurence_list = []
+        self.log = "\n"
+        self.log+= " ------------------ \n"
+        self.log+= " Timing information \n"
+        self.log+= " ------------------ \n"
+        self.log+= "\n" 
+        if name: self.log+= " %s\n\n" % name#.capitalize()
+        self.total_time = 0
+        
+    def actualize(self,new_occurence):
+        """actualizes new occurence in the clock history"""
+        
+        self.occurence = new_occurence
+        self.measure()
+        self.total_time = sum(self.occurence_list)
+        return
+        
+    def measure(self):
+        """measures length of occurence"""
+        
+        self.tn = time.time()
+        self.length = self.tn - self.tp
+        self.occurence_list.append(self.length)
+        self.log += " - %44s %30.5f sec\n" % (self.occurence.ljust(44),self.length)
+        self.tp = self.tn
+        return
+        
+    def __repr__(self):
+        """Print the timing of entire process"""
+        
+        suma = sum(self.occurence_list)
+        t = self.total_time
+        log = self.log.split('\n')
+        N = 6 if self.name is None else 8
+        for i in range(len(log) - N):
+            log[i+N-1] += " (%4.1f%%)" % (self.occurence_list[i]/suma*100.0)
+        self.log = '\n'.join(log)
+        self.log+= '\n'
+        self.log+= " =========================================================================================\n"
+        self.log+= " TOTAL TIME:  %d days %d hours %d min %d sec \n" % ( t/86400,t/3600,t/60,int(t) )
+        self.log+= "\n\n"
+        return str(self.log)
+
 
 def distribute(box_size, mol_size, max_n_mol, box_type='cubic'):
     """
