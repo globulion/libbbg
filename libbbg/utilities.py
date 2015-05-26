@@ -5078,7 +5078,7 @@ def CalculateCAMM(basis='6-311++G**'):
                                       charge=0,
                                       units='Bohr')
                             
-        basis_size = len(PyQuante.Ints.getbasis(molecule,'6-311++G**'))
+        basis_size = len(PyQuante.Ints.getbasis(molecule,basis))
         print " - basis size= ",basis_size
         dmat = ParseDmatFromFchk(pliki_fchk[i],basis_size)
        
