@@ -5,7 +5,7 @@
 __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'Periodic','Atomn','DMAMadrixMultiply',
          'PRINT','PRINTV','PRINTL','ParseDmatFromFchk',
-         'Emtp','FrequencyShift','Grid2D','func_to_method',
+         'Emtp','FrequencyShift','func_to_method',
          'Trapezoidal','Simpson','GaussLegendre2','integrate',
          'Read_xyz_file','Vr_dma','Allign','ElectricField',
          'FrequencyShiftPol','Newton','Parse_EDS_InteractionEnergies',
@@ -18,22 +18,34 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
          'ParseEFPInteractionEnergies','secant','RungeKutta',
          'numerov1','numerov2','simpson','simpson_nonuniform','fder5pt',
-         'QMOscillator','ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
+         'ParseDMAFromGamessEfpFile','dihedral','Peak2DIR',
          'text_to_list','QMFile','Emtp_charges','MDOut',
          'ParseLmocFromGamessEfpFile','resol','ft_1d','FF_scheme','diff',
-         'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk','circles',
-         'PotentialContourMap','make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
+         'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk',
+         'make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
          'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk','TIMER',
          'ParseElectronsFromFchk','ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile',] #'gen_camm'
          
-__version__ = '3.3.2'
+__version__ = '3.3.3'
 
-import re, qm, PyQuante,  \
-       scipy.optimize, scipy.integrate, numpy,\
-       math, numpy.linalg, dma, units, re_templates,\
-       copy, os, math, matplotlib.font_manager,\
-       pylab, scitools.numpyutils, scipy.interpolate,\
-       letters, fourier, string, time #, coulomb.multip
+import os
+import_matplotlib = int(os.environ['LIBBBG_IMPORT_MATPLOTLIB'])
+
+if import_matplotlib:
+   import re, qm, PyQuante,  \
+          scipy.optimize, scipy.integrate, numpy,\
+          math, numpy.linalg, dma, units, re_templates,\
+          copy, os, math, matplotlib.font_manager,\
+          pylab, scitools.numpyutils, scipy.interpolate,\
+          letters, fourier, string, time #, coulomb.multip
+   __all__+= ['QMOscillator','circles','PotentialContourMap','Grid2D']
+else:
+   import re, qm, PyQuante,  \
+          scipy.optimize, scipy.integrate, numpy,\
+          math, numpy.linalg, dma, units, re_templates,\
+          copy, os, math,\
+          scipy.interpolate,\
+          letters, fourier, string, time #, coulomb.multip
 
 uAtom = units.Atom
 uUNITS= units.UNITS
@@ -242,450 +254,451 @@ def make_bqc_inp(mol):
     ntmx = 20
     return vlist, eta, ncntr, ntype, nfirst, nlast, ncmx, ngmx, ntmx, nbfns
 
-def circles(x, y, s, c='b', ax=None, vmin=None, vmax=None, **kwargs):
-    """
-    Make a scatter of circles plot of x vs y, where x and y are sequence 
-    like objects of the same lengths. The size of circles are in data scale.
-
-    Parameters
-    ----------
-    x,y : scalar or array_like, shape (n, )
-        Input data
-    s : scalar or array_like, shape (n, ) 
-        Radius of circle in data scale (ie. in data unit)
-    c : color or sequence of color, optional, default : 'b'
-        `c` can be a single color format string, or a sequence of color
-        specifications of length `N`, or a sequence of `N` numbers to be
-        mapped to colors using the `cmap` and `norm` specified via kwargs.
-        Note that `c` should not be a single numeric RGB or
-        RGBA sequence because that is indistinguishable from an array of
-        values to be colormapped.  `c` can be a 2-D array in which the
-        rows are RGB or RGBA, however.
-    ax : Axes object, optional, default: None
-        Parent axes of the plot. It uses gca() if not specified.
-    vmin, vmax : scalar, optional, default: None
-        `vmin` and `vmax` are used in conjunction with `norm` to normalize
-        luminance data.  If either are `None`, the min and max of the
-        color array is used.  (Note if you pass a `norm` instance, your
-        settings for `vmin` and `vmax` will be ignored.)
-
-    Returns
-    -------
-    paths : `~matplotlib.collections.PathCollection`
-
-    Other parameters
+if import_matplotlib:
+   def circles(x, y, s, c='b', ax=None, vmin=None, vmax=None, **kwargs):
+       """
+       Make a scatter of circles plot of x vs y, where x and y are sequence 
+       like objects of the same lengths. The size of circles are in data scale.
+   
+       Parameters
+       ----------
+       x,y : scalar or array_like, shape (n, )
+           Input data
+       s : scalar or array_like, shape (n, ) 
+           Radius of circle in data scale (ie. in data unit)
+       c : color or sequence of color, optional, default : 'b'
+           `c` can be a single color format string, or a sequence of color
+           specifications of length `N`, or a sequence of `N` numbers to be
+           mapped to colors using the `cmap` and `norm` specified via kwargs.
+           Note that `c` should not be a single numeric RGB or
+           RGBA sequence because that is indistinguishable from an array of
+           values to be colormapped.  `c` can be a 2-D array in which the
+           rows are RGB or RGBA, however.
+       ax : Axes object, optional, default: None
+           Parent axes of the plot. It uses gca() if not specified.
+       vmin, vmax : scalar, optional, default: None
+           `vmin` and `vmax` are used in conjunction with `norm` to normalize
+           luminance data.  If either are `None`, the min and max of the
+           color array is used.  (Note if you pass a `norm` instance, your
+           settings for `vmin` and `vmax` will be ignored.)
+   
+       Returns
+       -------
+       paths : `~matplotlib.collections.PathCollection`
+   
+       Other parameters
+       ----------------
+       kwargs : `~matplotlib.collections.Collection` properties
+           eg. alpha, edgecolors, facecolors, linewidths, linestyles, norm, cmap
+   
+       Examples
+       --------
+       a = np.arange(11)
+       circles(a, a, a*0.2, c=a, alpha=0.5, edgecolor='none')
+   
+       License
+       --------
+       This code is under [The BSD 3-Clause License]
+       (http://opensource.org/licenses/BSD-3-Clause)
+       """
+       from matplotlib.patches import Circle
+       from matplotlib.collections import PatchCollection
+       import pylab as plt
+       #import matplotlib.colors as colors
+   
+       if ax is None:
+           ax = plt.gca()    
+   
+       if isinstance(c,basestring):
+           color = c     # ie. use colors.colorConverter.to_rgba_array(c)
+       else:
+           color = None  # use cmap, norm after collection is created
+       kwargs.update(color=color)
+   
+       if isinstance(x, (int, long, float)):
+           patches = [Circle((x, y), s),]
+       elif isinstance(s, (int, long, float)):
+           patches = [Circle((x_,y_), s) for x_,y_ in zip(x,y)]
+       else:
+           patches = [Circle((x_,y_), s_) for x_,y_,s_ in zip(x,y,s)]
+       collection = PatchCollection(patches, **kwargs)
+   
+       if color is None:
+           collection.set_array(np.asarray(c))
+           if vmin is not None or vmax is not None:
+               collection.set_clim(vmin, vmax)
+   
+       ax.add_collection(collection)
+       return collection
+   
+   class PotentialContourMap:
+      """
+    ---------------------------------------------------------------------------------------------------------------------------------------
+    Represents the Potential Contour Map for a molecule. 
+   
+                                                                                                                   Author: Bartosz Błasiak
+    ---------------------------------------------------------------------------------------------------------------------------------------
+   
+    DESCRIPTION:
+   
+       Makes the contour plot of generalized potential (normal elextrostatic, solvatochromic transition etc) for a given molecular data.
+    It masks areas where multipole expansion diverges.  
+   
+   
+    USAGE:
+   
+               from libbbg.utilities import PotentialContourMap as PCM                  
+                                                                                        
+               map = PCM(dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), 
+                         pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
+                         pad_left=None, pad_right=None, pad_down=None, pad_up=None, 
+                         radii=None, dmat=None, vec=None, basis=None, 
+                         dma_pot=None, qm_mask_thr=0.01, 
+                         colors =[(0.0, 0.1, 1.0),
+                                  (1.0, 1.0, 1.0),
+                                  (1.0, 0.1, 0.0)], levs=60, linthresh = 0.0014,
+                         label=False, fmt='%2.1f', font_size=6, block=False, name=None,
+                         atom_colors=None, bond_width=4.0, bond_fmt='k-',
+                         )
+                                                                                        
+               map.make()
+   
+   
+    ARGUMENTS:
+   
+    Basic inputs:
+    -------------
+    dma         - libbbg.dma.DMA object
+    
+    atoms       - list of atoms to be drawn on the plane of a contour plot. (normal numbers)
+                  Example: [1,2,3,4]
+    
+    bonds       - list of lists of bonds to be drawn on the plane of a contour plot. (normal numbers)
+                  Example: [[1,2], [3,2]] 
+   
+    allign_atid - allignment specification for the molecule. Describes the new axes of coordinate system. 
+                  See libbbg.utilities.Allign class for more information.
+   
+    allign_axes - permutation indices for axes. 
+                  See libbbg.utilities.Allign class for more information.
+                  Example: allign_atid=[3,1,4] 
+                           allign_axes=[1,2,0]
+                           it places 3-rd atom at the origin, 1-st atom specifies y-axis, 
+                           4-th atom lies in the plane of contour plot, z-axis is perpendicular to the plane of contour plot.
+   
+    max_moment  - maximum rank of multipole moment included in map generation (for dma object only). Default is 3 (octupole),
+                  2 - quadrupole, 1 - dipole and 0 - charge).
+   
+   
+    Masking options:
     ----------------
-    kwargs : `~matplotlib.collections.Collection` properties
-        eg. alpha, edgecolors, facecolors, linewidths, linestyles, norm, cmap
-
-    Examples
-    --------
-    a = np.arange(11)
-    circles(a, a, a*0.2, c=a, alpha=0.5, edgecolor='none')
-
-    License
-    --------
-    This code is under [The BSD 3-Clause License]
-    (http://opensource.org/licenses/BSD-3-Clause)
-    """
-    from matplotlib.patches import Circle
-    from matplotlib.collections import PatchCollection
-    import pylab as plt
-    #import matplotlib.colors as colors
-
-    if ax is None:
-        ax = plt.gca()    
-
-    if isinstance(c,basestring):
-        color = c     # ie. use colors.colorConverter.to_rgba_array(c)
-    else:
-        color = None  # use cmap, norm after collection is created
-    kwargs.update(color=color)
-
-    if isinstance(x, (int, long, float)):
-        patches = [Circle((x, y), s),]
-    elif isinstance(s, (int, long, float)):
-        patches = [Circle((x_,y_), s) for x_,y_ in zip(x,y)]
-    else:
-        patches = [Circle((x_,y_), s_) for x_,y_,s_ in zip(x,y,s)]
-    collection = PatchCollection(patches, **kwargs)
-
-    if color is None:
-        collection.set_array(np.asarray(c))
-        if vmin is not None or vmax is not None:
-            collection.set_clim(vmin, vmax)
-
-    ax.add_collection(collection)
-    return collection
-
-class PotentialContourMap:
+   
+    Choose either *radii* or the remaining options. 
+   
+    radii       - van der Waals radii for atoms. It is used to mask the regions where multipole expansion diverges. 
+                  If radii=None you must specify density matrix, basis set and the appropriate DMA object computed at the same level of theory. 
+                  Then the region with deviations 
+                  larger than qm_mask_thr (in absolute value in AU units of potential) from the exact QM potential are masked.
+   
+                                - OR -
+   
+    basis       - basis set (eg. 6-311++G**)
+   
+    dmat        - density matrix for a molecule in alligned geometry! To obtain this geometry first make a map using van der Waals radii. The
+                  program will print the alligned geometry. For THIS geometry compute the density matrix. Otherwise the result will be incorrect.
+   
+    vec         - optional to dmat, specify the eigenvectors (wavefunction LCAO coefficients). These eigenvectors will be rotated so
+                  they should be in the geometry identical to the DMA supplied (dma). From the rotated eigenvectors density matrix is computed.
+                  This option is still buggy and provides poor masking since rotation of wavefunction is either buggy or just not accurate enough.
+   
+    dma_pot     - dma distribution in exactly the same orientation as DMA suppplied (the one which is to be plotted). dma_pot represents
+                  the elecrostatic potential and is assumed to have the same divergence spheres as DMA to be plotted.
+   
+    atnos       - atomic numbers of all atoms in DMA distribution. 
+   
+   
+    Plot options:
+    -------------
+   
+    pad_x/pad_y - padding in x/y directions (in Bohr)
+   
+    dx/dy       - grid spacing in x/y directions (in Bohr)
+   
+    levels      - Levels of contour plot. If None, default ones will be used by matplotlib.contour
+   
+    label       - if True, the isovalues of potential are printed within isobars. Default is False.
+   
+    fmt         - format of labels. Relevant if label=True.
+   
+    font_size   - Size of labels. Relevant if label=True.
+   
+    block       - show the plot before ending the execution of the main script. Default is False.
+   
+    name        - if not None, the map will be saved to the file=name. Default is None.
+   
+    atom_colors - list of size len(atoms) specifying matplotlib.colors for atoms. Default all black.
+   
+    bond_width  - number specifying width of stick representation of bonds. Default 4.0
+   
+    bond_fmt    - format of bond line. Default 'k-'.
+   
+    colors      - RGB values for color map. Default is Red(+)-White(0)-Blue(-)
+   
+    levs        - number of levels in the colorbar
+   
+    linthresh   - Number specifying the maximum value (for positive and negative potential regions) where the normalization is linear. 
+                  In other points the normalization is logarithmic. This is necessary parameter because otherwise the zero-valued regions
+                  would blow up to infinity during logarithmic normalization.
+   
+   
+    ---------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                         Last Revision: 14 Jan 2015
    """
- ---------------------------------------------------------------------------------------------------------------------------------------
- Represents the Potential Contour Map for a molecule. 
-
-                                                                                                                Author: Bartosz Błasiak
- ---------------------------------------------------------------------------------------------------------------------------------------
-
- DESCRIPTION:
-
-    Makes the contour plot of generalized potential (normal elextrostatic, solvatochromic transition etc) for a given molecular data.
- It masks areas where multipole expansion diverges.  
-
-
- USAGE:
-
-            from libbbg.utilities import PotentialContourMap as PCM                  
-                                                                                     
-            map = PCM(dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), 
-                      pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
-                      pad_left=None, pad_right=None, pad_down=None, pad_up=None, 
-                      radii=None, dmat=None, vec=None, basis=None, 
-                      dma_pot=None, qm_mask_thr=0.01, 
-                      colors =[(0.0, 0.1, 1.0),
-                               (1.0, 1.0, 1.0),
-                               (1.0, 0.1, 0.0)], levs=60, linthresh = 0.0014,
-                      label=False, fmt='%2.1f', font_size=6, block=False, name=None,
-                      atom_colors=None, bond_width=4.0, bond_fmt='k-',
-                      )
-                                                                                     
-            map.make()
-
-
- ARGUMENTS:
-
- Basic inputs:
- -------------
- dma         - libbbg.dma.DMA object
- 
- atoms       - list of atoms to be drawn on the plane of a contour plot. (normal numbers)
-               Example: [1,2,3,4]
- 
- bonds       - list of lists of bonds to be drawn on the plane of a contour plot. (normal numbers)
-               Example: [[1,2], [3,2]] 
-
- allign_atid - allignment specification for the molecule. Describes the new axes of coordinate system. 
-               See libbbg.utilities.Allign class for more information.
-
- allign_axes - permutation indices for axes. 
-               See libbbg.utilities.Allign class for more information.
-               Example: allign_atid=[3,1,4] 
-                        allign_axes=[1,2,0]
-                        it places 3-rd atom at the origin, 1-st atom specifies y-axis, 
-                        4-th atom lies in the plane of contour plot, z-axis is perpendicular to the plane of contour plot.
-
- max_moment  - maximum rank of multipole moment included in map generation (for dma object only). Default is 3 (octupole),
-               2 - quadrupole, 1 - dipole and 0 - charge).
-
-
- Masking options:
- ----------------
-
- Choose either *radii* or the remaining options. 
-
- radii       - van der Waals radii for atoms. It is used to mask the regions where multipole expansion diverges. 
-               If radii=None you must specify density matrix, basis set and the appropriate DMA object computed at the same level of theory. 
-               Then the region with deviations 
-               larger than qm_mask_thr (in absolute value in AU units of potential) from the exact QM potential are masked.
-
-                             - OR -
-
- basis       - basis set (eg. 6-311++G**)
-
- dmat        - density matrix for a molecule in alligned geometry! To obtain this geometry first make a map using van der Waals radii. The
-               program will print the alligned geometry. For THIS geometry compute the density matrix. Otherwise the result will be incorrect.
-
- vec         - optional to dmat, specify the eigenvectors (wavefunction LCAO coefficients). These eigenvectors will be rotated so
-               they should be in the geometry identical to the DMA supplied (dma). From the rotated eigenvectors density matrix is computed.
-               This option is still buggy and provides poor masking since rotation of wavefunction is either buggy or just not accurate enough.
-
- dma_pot     - dma distribution in exactly the same orientation as DMA suppplied (the one which is to be plotted). dma_pot represents
-               the elecrostatic potential and is assumed to have the same divergence spheres as DMA to be plotted.
-
- atnos       - atomic numbers of all atoms in DMA distribution. 
-
-
- Plot options:
- -------------
-
- pad_x/pad_y - padding in x/y directions (in Bohr)
-
- dx/dy       - grid spacing in x/y directions (in Bohr)
-
- levels      - Levels of contour plot. If None, default ones will be used by matplotlib.contour
-
- label       - if True, the isovalues of potential are printed within isobars. Default is False.
-
- fmt         - format of labels. Relevant if label=True.
-
- font_size   - Size of labels. Relevant if label=True.
-
- block       - show the plot before ending the execution of the main script. Default is False.
-
- name        - if not None, the map will be saved to the file=name. Default is None.
-
- atom_colors - list of size len(atoms) specifying matplotlib.colors for atoms. Default all black.
-
- bond_width  - number specifying width of stick representation of bonds. Default 4.0
-
- bond_fmt    - format of bond line. Default 'k-'.
-
- colors      - RGB values for color map. Default is Red(+)-White(0)-Blue(-)
-
- levs        - number of levels in the colorbar
-
- linthresh   - Number specifying the maximum value (for positive and negative potential regions) where the normalization is linear. 
-               In other points the normalization is logarithmic. This is necessary parameter because otherwise the zero-valued regions
-               would blow up to infinity during logarithmic normalization.
-
-
- ---------------------------------------------------------------------------------------------------------------------------------------
-                                                                                                      Last Revision: 14 Jan 2015
-"""
-   def __init__(self, dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), max_moment=3,
-                      pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
-                      pad_left=None, pad_right=None, pad_down=None, pad_up=None, 
-                      radii=None, vec=None, dmat=None, dma_pot=None, qm_mask_thr=0.10,
-                      atnos=None, basis=None,
-                      colors =[(0.0, 0.1, 1.0),
-                               (1.0, 1.0, 1.0),
-                               (1.0, 0.1, 0.0)], levs=60, linthresh = 0.0014,
-                      label=False, fmt='%2.1f', font_size=6, block=False, name=None, 
-                      atom_colors=None, bond_width=4.0, bond_fmt='k-',
-                      ):
-       self.__dma = dma.copy()
-       self.__atoms = numpy.array(atoms,int)-1
-       self.__bonds = numpy.array(bonds,int)-1
-       self.__levels = levels
-       self.__allign = (allign_atid, allign_axes)
-       self.__max_moment = max_moment
-       if radii is None: self.__radii = None
-       else: self.__radii = numpy.array(radii)
-       self.__atnos = atnos
-       self.__basis = basis
-       self.__vec = vec
-       self.__dmat = dmat
-       self.__dma_pot = dma_pot; self.__qm_mask_thr = qm_mask_thr
-       if pad_left is None and pad_right is not None or pad_right is None and pad_left is not None:
-          print " You must specify padding in both right and left directions!"; exit()
-       if pad_down is None and pad_up is not None or pad_up is None and pad_down is not None:
-          print " You must specify padding in both up and down directions!"; exit()
-       if pad_left is None and pad_right is None:
-          self.__pad_left = pad_x ; self.__pad_right= pad_x
-       else:
-          self.__pad_left= pad_left ; self.__pad_right= pad_right
-       if pad_down is None and pad_up is None:
-          self.__pad_down= pad_y ; self.__pad_up= pad_y
-       else:
-          self.__pad_down= pad_down ; self.__pad_up= pad_up
-       self.__dx = dx       ; self.__dy = dy
-       self.__colors = colors; self.__levs = levs; self.__linthresh = linthresh
-       self.__label = label ; self.__fmt = fmt; self.__font_size = font_size
-       self.__block = block ; self.__name = name
-       self.__atom_colors = atom_colors
-       self.__bond_width = bond_width; self.__bond_fmt = bond_fmt
-       if atom_colors is None: 
-          self.__atom_colors = ['black'] * len(atoms)
-       if radii is None:
-          error = " Van der Waals radii not specified so you must provide basis set (basis) and density matrix (dmat) for alligned molecule!"
-          assert (dmat is not None or vec is not None) , error
-          self.__mask_with_qm = True
-       else: self.__mask_with_qm = False
-
-       self._create_cmap()
-       self._prepare()
-
-   def make(self):
-       """Main routine for map generation"""
-       self._allign_molecule()
-       self._calc_potential()
-       self._mask()
-       self._make_plot()
-       return
-
-   def _allign_molecule(self):
-       """Alligns the molecule (structure and DMA)"""
-       atid, axes = self.__allign
-       alligner = Allign(self.__xyz, atid=atid, axes=axes, dma=self.__dma)
-       if self.__mask_with_qm:
-          alligner2 = Allign(self.__xyz, atid=atid, axes=axes, dma=self.__dma_pot)
-       self.__dma, self.__xyz = alligner.get_transformed()
-       self.__dma.MAKE_FULL()
-       self.__dma.MakeTraceless()
-       self.__dma.makeDMAfromFULL()
-       rot = alligner.rot
-
-       # rotate (allign) the additional electrostatic distribution
-       if self.__mask_with_qm:
-          self.__dma_pot, smiec = alligner2.get_transformed()
-          self.__dma_pot.MAKE_FULL()
-          self.__dma_pot.MakeTraceless()
-          self.__dma_pot.makeDMAfromFULL()
-          self._create_mol()
-       print " The alligned coordinates [Angstrom]:\n"
-       PRINTL(self.__xyz*units.UNITS.BohrToAngstrom,'','')
-       # generate the rotated density matrix
-       if self.__mask_with_qm:
-          if self.__dmat is None:
-             typs= self.__bfs.get_bfst().sum(axis=1)                       
-             nbasis = len(self.__bfs)
-             self.__vec = qm.efprot.vecrot(self.__vec, rot.T, typs)
-             self.__dmat = numpy.zeros((nbasis,nbasis),numpy.float64)
-             for i in range(len(self.__vec)):
-                 v = self.__vec[i]
-                 self.__dmat += numpy.outer(v,v)
-             self.__dmat = self.__dmat.ravel() * 2.0   
+      def __init__(self, dma, atoms, bonds, allign_atid, allign_axes=(1,2,0), max_moment=3,
+                         pad_x=4.0, pad_y=4.0, dx=0.5, dy=0.5, levels=None,
+                         pad_left=None, pad_right=None, pad_down=None, pad_up=None, 
+                         radii=None, vec=None, dmat=None, dma_pot=None, qm_mask_thr=0.10,
+                         atnos=None, basis=None,
+                         colors =[(0.0, 0.1, 1.0),
+                                  (1.0, 1.0, 1.0),
+                                  (1.0, 0.1, 0.0)], levs=60, linthresh = 0.0014,
+                         label=False, fmt='%2.1f', font_size=6, block=False, name=None, 
+                         atom_colors=None, bond_width=4.0, bond_fmt='k-',
+                         ):
+          self.__dma = dma.copy()
+          self.__atoms = numpy.array(atoms,int)-1
+          self.__bonds = numpy.array(bonds,int)-1
+          self.__levels = levels
+          self.__allign = (allign_atid, allign_axes)
+          self.__max_moment = max_moment
+          if radii is None: self.__radii = None
+          else: self.__radii = numpy.array(radii)
+          self.__atnos = atnos
+          self.__basis = basis
+          self.__vec = vec
+          self.__dmat = dmat
+          self.__dma_pot = dma_pot; self.__qm_mask_thr = qm_mask_thr
+          if pad_left is None and pad_right is not None or pad_right is None and pad_left is not None:
+             print " You must specify padding in both right and left directions!"; exit()
+          if pad_down is None and pad_up is not None or pad_up is None and pad_down is not None:
+             print " You must specify padding in both up and down directions!"; exit()
+          if pad_left is None and pad_right is None:
+             self.__pad_left = pad_x ; self.__pad_right= pad_x
           else:
-             self.__dmat = self.__dmat.ravel()
-       return
-
-   def _calc_potential(self):
-       """Calculate potential from DMA and WFN if needed"""
-       ndma = numpy.array([len(self.__dma),],int)
-       rdma = self.__dma.get_origin().ravel()
-       chg  = self.__dma.get_charges()
-       dip  = self.__dma.get_dipoles().ravel()
-       qad  = self.__dma.get_quadrupoles().ravel()
-       oct  = self.__dma.get_octupoles().ravel()
-       points = numpy.zeros((self.__nx*self.__ny*8), numpy.float64)
-       points = qm.make_points.make_points(self.__nx,self.__ny,self.__dx,self.__dy,self.__x_min,self.__y_min,points)
-       if self.__mask_with_qm: 
-          points2 = points.copy()
-          points3 = points.copy()
-       points = qm.clemtp.potdma(points,rdma,ndma,chg,dip,qad,oct)
-       points = points.reshape(self.__nx,self.__ny,8)
-       if self.__max_moment == 3:
-          self.__z = points[:,:,-1]
-       elif self.__max_moment == 2:
-          self.__z = points[:,:,-5] + points[:,:,-4] + points[:,:,-3]
-       elif self.__max_moment == 1:
-          self.__z = points[:,:,-5] + points[:,:,-4]
-       elif self.__max_moment == 0:
-          self.__z = points[:,:,-5]
-       if self.__mask_with_qm:
-          # exact QM potential
-          vlist, eta, ncntr, ntype, nfirst, nlast, ncmx, ngmx, ntmx, nbfns = make_bqc_inp(self.__mol)
-          points2 = qm.wfn.scawf2(points2,self.__dmat,eta,nfirst,nlast,ntype,vlist)
-          points2 = points2.reshape(self.__nx,self.__ny,8)
-          self.__z_exact = points2[:,:,4]
-          # potential from DMA
-          ndma = numpy.array([len(self.__dma_pot),],int)  
-          rdma = self.__dma_pot.get_origin().ravel()
-          chg  = self.__dma_pot.get_charges()
-          dip  = self.__dma_pot.get_dipoles().ravel()
-          qad  = self.__dma_pot.get_quadrupoles().ravel()
-          oct  = self.__dma_pot.get_octupoles().ravel()
-          points3 = qm.clemtp.potdma(points3,rdma,ndma,chg,dip,qad,oct)
-          points3 = points3.reshape(self.__nx,self.__ny,8)
-          self.__z_test = points3[:,:,-1]
-          del points2, points3
-       del points
-       return
-
-   def _mask(self):
-       """masks the region where multipole expansion diverges"""
-       # masking according to QM calculation
-       if self.__mask_with_qm:
-          ke = self.__z_exact.reshape(self.__nx*self.__ny)
-          kt = self.__z_test .reshape(self.__nx*self.__ny)
-          #for i in range(len(ke)):
-          #    ff = numpy.abs(ke[i]-kt[i])/numpy.abs(ke[i]) * 100.0
-          #    print " %16.5E %16.5E %16.5f %16.5f" % (ke[i], kt[i], numpy.abs(ke[i]-kt[i]), ff)
-          #interior = numpy.abs(self.__z_exact - self.__z_test)/numpy.abs(self.__z_exact) > self.__qm_mask_thr
-          interior = numpy.abs(self.__z_exact - self.__z_test) > self.__qm_mask_thr
-          self.__z[interior] = numpy.NaN #numpy.ma.masked
-       # masking according to vdW radii
-       else:
-           X,Y = numpy.meshgrid(self.__y,self.__x)
-           atoms = self.__xyz[self.__atoms]
-           for i in range(len(atoms)):
-               interior = numpy.sqrt(((X-atoms[i,1])**2) + ((Y-atoms[i,0])**2)) < self.__radii[i]
-               self.__z[interior] = numpy.ma.masked
-       return
-
-   def _make_plot(self):
-       """Makes the contour plot"""
-       # [1] mask
-       X,Y = numpy.meshgrid(self.__y,self.__x)
-       Z = self.__z 
-
-       # [2] make contour plot
-       CP1 = pylab.contour(X,Y,Z,levels=self.__levels,colors='k')
-       if self.__label: pylab.clabel(CP1, colors='k', fmt=self.__fmt, nline=True, fontsize=self.__font_size)
-       pylab.gca().patch.set_color('1.0')
-       CP2 = pylab.contourf(X,Y,Z,levels=self.__levels,cmap=self.__cmap,norm=matplotlib.colors.SymLogNorm(self.__linthresh))
-       pylab.colorbar(CP2)
-       pylab.title('Contour plot')
-       pylab.xlabel('x')
-       pylab.ylabel('y')
-
-       x = self.__xyz[:,0]
-       y = self.__xyz[:,1]
-
-       # [3] plot circles on mapped areas
-       if not self.__mask_with_qm:
-          s = self.__radii[self.__atoms]
-
-          circles(y[self.__atoms], x[self.__atoms], s=s, alpha=1.0, c='white',facecolor='white')
-
-       # [4] plot bonds
-       for bond in self.__bonds:
-           pylab.plot(y[bond], x[bond], self.__bond_fmt, lw=self.__bond_width)
-
-       # [5] plot atoms
-       for i in range(len(self.__atoms)):
-           circles(y[self.__atoms[i]], x[self.__atoms[i]], s=0.3, alpha=1.0, c='black',facecolor=self.__atom_colors[i])
+             self.__pad_left= pad_left ; self.__pad_right= pad_right
+          if pad_down is None and pad_up is None:
+             self.__pad_down= pad_y ; self.__pad_up= pad_y
+          else:
+             self.__pad_down= pad_down ; self.__pad_up= pad_up
+          self.__dx = dx       ; self.__dy = dy
+          self.__colors = colors; self.__levs = levs; self.__linthresh = linthresh
+          self.__label = label ; self.__fmt = fmt; self.__font_size = font_size
+          self.__block = block ; self.__name = name
+          self.__atom_colors = atom_colors
+          self.__bond_width = bond_width; self.__bond_fmt = bond_fmt
+          if atom_colors is None: 
+             self.__atom_colors = ['black'] * len(atoms)
+          if radii is None:
+             error = " Van der Waals radii not specified so you must provide basis set (basis) and density matrix (dmat) for alligned molecule!"
+             assert (dmat is not None or vec is not None) , error
+             self.__mask_with_qm = True
+          else: self.__mask_with_qm = False
+   
+          self._create_cmap()
+          self._prepare()
+   
+      def make(self):
+          """Main routine for map generation"""
+          self._allign_molecule()
+          self._calc_potential()
+          self._mask()
+          self._make_plot()
+          return
+   
+      def _allign_molecule(self):
+          """Alligns the molecule (structure and DMA)"""
+          atid, axes = self.__allign
+          alligner = Allign(self.__xyz, atid=atid, axes=axes, dma=self.__dma)
+          if self.__mask_with_qm:
+             alligner2 = Allign(self.__xyz, atid=atid, axes=axes, dma=self.__dma_pot)
+          self.__dma, self.__xyz = alligner.get_transformed()
+          self.__dma.MAKE_FULL()
+          self.__dma.MakeTraceless()
+          self.__dma.makeDMAfromFULL()
+          rot = alligner.rot
+   
+          # rotate (allign) the additional electrostatic distribution
+          if self.__mask_with_qm:
+             self.__dma_pot, smiec = alligner2.get_transformed()
+             self.__dma_pot.MAKE_FULL()
+             self.__dma_pot.MakeTraceless()
+             self.__dma_pot.makeDMAfromFULL()
+             self._create_mol()
+          print " The alligned coordinates [Angstrom]:\n"
+          PRINTL(self.__xyz*units.UNITS.BohrToAngstrom,'','')
+          # generate the rotated density matrix
+          if self.__mask_with_qm:
+             if self.__dmat is None:
+                typs= self.__bfs.get_bfst().sum(axis=1)                       
+                nbasis = len(self.__bfs)
+                self.__vec = qm.efprot.vecrot(self.__vec, rot.T, typs)
+                self.__dmat = numpy.zeros((nbasis,nbasis),numpy.float64)
+                for i in range(len(self.__vec)):
+                    v = self.__vec[i]
+                    self.__dmat += numpy.outer(v,v)
+                self.__dmat = self.__dmat.ravel() * 2.0   
+             else:
+                self.__dmat = self.__dmat.ravel()
+          return
+   
+      def _calc_potential(self):
+          """Calculate potential from DMA and WFN if needed"""
+          ndma = numpy.array([len(self.__dma),],int)
+          rdma = self.__dma.get_origin().ravel()
+          chg  = self.__dma.get_charges()
+          dip  = self.__dma.get_dipoles().ravel()
+          qad  = self.__dma.get_quadrupoles().ravel()
+          oct  = self.__dma.get_octupoles().ravel()
+          points = numpy.zeros((self.__nx*self.__ny*8), numpy.float64)
+          points = qm.make_points.make_points(self.__nx,self.__ny,self.__dx,self.__dy,self.__x_min,self.__y_min,points)
+          if self.__mask_with_qm: 
+             points2 = points.copy()
+             points3 = points.copy()
+          points = qm.clemtp.potdma(points,rdma,ndma,chg,dip,qad,oct)
+          points = points.reshape(self.__nx,self.__ny,8)
+          if self.__max_moment == 3:
+             self.__z = points[:,:,-1]
+          elif self.__max_moment == 2:
+             self.__z = points[:,:,-5] + points[:,:,-4] + points[:,:,-3]
+          elif self.__max_moment == 1:
+             self.__z = points[:,:,-5] + points[:,:,-4]
+          elif self.__max_moment == 0:
+             self.__z = points[:,:,-5]
+          if self.__mask_with_qm:
+             # exact QM potential
+             vlist, eta, ncntr, ntype, nfirst, nlast, ncmx, ngmx, ntmx, nbfns = make_bqc_inp(self.__mol)
+             points2 = qm.wfn.scawf2(points2,self.__dmat,eta,nfirst,nlast,ntype,vlist)
+             points2 = points2.reshape(self.__nx,self.__ny,8)
+             self.__z_exact = points2[:,:,4]
+             # potential from DMA
+             ndma = numpy.array([len(self.__dma_pot),],int)  
+             rdma = self.__dma_pot.get_origin().ravel()
+             chg  = self.__dma_pot.get_charges()
+             dip  = self.__dma_pot.get_dipoles().ravel()
+             qad  = self.__dma_pot.get_quadrupoles().ravel()
+             oct  = self.__dma_pot.get_octupoles().ravel()
+             points3 = qm.clemtp.potdma(points3,rdma,ndma,chg,dip,qad,oct)
+             points3 = points3.reshape(self.__nx,self.__ny,8)
+             self.__z_test = points3[:,:,-1]
+             del points2, points3
+          del points
+          return
+   
+      def _mask(self):
+          """masks the region where multipole expansion diverges"""
+          # masking according to QM calculation
+          if self.__mask_with_qm:
+             ke = self.__z_exact.reshape(self.__nx*self.__ny)
+             kt = self.__z_test .reshape(self.__nx*self.__ny)
+             #for i in range(len(ke)):
+             #    ff = numpy.abs(ke[i]-kt[i])/numpy.abs(ke[i]) * 100.0
+             #    print " %16.5E %16.5E %16.5f %16.5f" % (ke[i], kt[i], numpy.abs(ke[i]-kt[i]), ff)
+             #interior = numpy.abs(self.__z_exact - self.__z_test)/numpy.abs(self.__z_exact) > self.__qm_mask_thr
+             interior = numpy.abs(self.__z_exact - self.__z_test) > self.__qm_mask_thr
+             self.__z[interior] = numpy.NaN #numpy.ma.masked
+          # masking according to vdW radii
+          else:
+              X,Y = numpy.meshgrid(self.__y,self.__x)
+              atoms = self.__xyz[self.__atoms]
+              for i in range(len(atoms)):
+                  interior = numpy.sqrt(((X-atoms[i,1])**2) + ((Y-atoms[i,0])**2)) < self.__radii[i]
+                  self.__z[interior] = numpy.ma.masked
+          return
+   
+      def _make_plot(self):
+          """Makes the contour plot"""
+          # [1] mask
+          X,Y = numpy.meshgrid(self.__y,self.__x)
+          Z = self.__z 
+   
+          # [2] make contour plot
+          CP1 = pylab.contour(X,Y,Z,levels=self.__levels,colors='k')
+          if self.__label: pylab.clabel(CP1, colors='k', fmt=self.__fmt, nline=True, fontsize=self.__font_size)
+          pylab.gca().patch.set_color('1.0')
+          CP2 = pylab.contourf(X,Y,Z,levels=self.__levels,cmap=self.__cmap,norm=matplotlib.colors.SymLogNorm(self.__linthresh))
+          pylab.colorbar(CP2)
+          pylab.title('Contour plot')
+          pylab.xlabel('x')
+          pylab.ylabel('y')
+   
+          x = self.__xyz[:,0]
+          y = self.__xyz[:,1]
+   
+          # [3] plot circles on mapped areas
+          if not self.__mask_with_qm:
+             s = self.__radii[self.__atoms]
+   
+             circles(y[self.__atoms], x[self.__atoms], s=s, alpha=1.0, c='white',facecolor='white')
+   
+          # [4] plot bonds
+          for bond in self.__bonds:
+              pylab.plot(y[bond], x[bond], self.__bond_fmt, lw=self.__bond_width)
+   
+          # [5] plot atoms
+          for i in range(len(self.__atoms)):
+              circles(y[self.__atoms[i]], x[self.__atoms[i]], s=0.3, alpha=1.0, c='black',facecolor=self.__atom_colors[i])
+             
           
-       
-       pylab.axes().set_aspect('equal', 'datalim')
-       if self.__name is not None: pylab.savefig(self.__name)
-       pylab.show(block=self.__block)
-       return
-
-   # helper methods
-   def _create_mol(self):
-       """Make PyQuante.Molecule object in the alligned geometry"""
-       xyz = self.__xyz.copy()
-       Coords = list()
-       for i in range(len(xyz)):
-           atom  = (self.__atnos[i], (xyz[i,0],
-                                      xyz[i,1],
-                                      xyz[i,2]) )
-           Coords.append(atom)
-       Mol = PyQuante.Molecule('buddy',Coords,units='Bohr',
-                               multiplicity=1,charge=0,
-                               basis=self.__basis)
-       self.__mol = Mol
-       self.__bfs = Mol.get_bfs()
-       return
- 
-   def _prepare(self):
-       """Generate the X and Y axis and initialize points' values Z"""
-       xyz = self.__dma.get_pos()
-       x_min = xyz[:,0].min()-self.__pad_left; x_max = xyz[:,0].max()+self.__pad_right
-       y_min = xyz[:,1].min()-self.__pad_down; y_max = xyz[:,1].max()+self.__pad_up
-       nx = numpy.int64((x_max-x_min)/self.__dx + 1)
-       ny = numpy.int64((y_max-y_min)/self.__dy + 1)
-       x = numpy.linspace(x_min, x_max, nx)
-       y = numpy.linspace(y_min, y_max, ny)
-       self.__xyz = xyz
-       self.__x_min = x_min; self.__x_max = x_max
-       self.__y_min = y_min; self.__y_max = y_max
-       self.__nx = nx
-       self.__ny = ny
-       self.__x = x
-       self.__y = y
-       self.__z = numpy.zeros((nx,ny),numpy.float64)
-       print " This map will contain %10d points" % (nx*ny)
-       return 
-
-   def _create_cmap(self):
-       levs = range(self.__levs)
-       assert len(levs) % 2 == 0, 'N levels must be even.'
-       cmap = matplotlib.colors.LinearSegmentedColormap.from_list(name='red_white_blue', 
-                                                                  colors =self.__colors, 
-                                                                  N=len(levs)-1, )
-       self.__cmap = cmap
-       return
+          pylab.axes().set_aspect('equal', 'datalim')
+          if self.__name is not None: pylab.savefig(self.__name)
+          pylab.show(block=self.__block)
+          return
+   
+      # helper methods
+      def _create_mol(self):
+          """Make PyQuante.Molecule object in the alligned geometry"""
+          xyz = self.__xyz.copy()
+          Coords = list()
+          for i in range(len(xyz)):
+              atom  = (self.__atnos[i], (xyz[i,0],
+                                         xyz[i,1],
+                                         xyz[i,2]) )
+              Coords.append(atom)
+          Mol = PyQuante.Molecule('buddy',Coords,units='Bohr',
+                                  multiplicity=1,charge=0,
+                                  basis=self.__basis)
+          self.__mol = Mol
+          self.__bfs = Mol.get_bfs()
+          return
+    
+      def _prepare(self):
+          """Generate the X and Y axis and initialize points' values Z"""
+          xyz = self.__dma.get_pos()
+          x_min = xyz[:,0].min()-self.__pad_left; x_max = xyz[:,0].max()+self.__pad_right
+          y_min = xyz[:,1].min()-self.__pad_down; y_max = xyz[:,1].max()+self.__pad_up
+          nx = numpy.int64((x_max-x_min)/self.__dx + 1)
+          ny = numpy.int64((y_max-y_min)/self.__dy + 1)
+          x = numpy.linspace(x_min, x_max, nx)
+          y = numpy.linspace(y_min, y_max, ny)
+          self.__xyz = xyz
+          self.__x_min = x_min; self.__x_max = x_max
+          self.__y_min = y_min; self.__y_max = y_max
+          self.__nx = nx
+          self.__ny = ny
+          self.__x = x
+          self.__y = y
+          self.__z = numpy.zeros((nx,ny),numpy.float64)
+          print " This map will contain %10d points" % (nx*ny)
+          return 
+   
+      def _create_cmap(self):
+          levs = range(self.__levs)
+          assert len(levs) % 2 == 0, 'N levels must be even.'
+          cmap = matplotlib.colors.LinearSegmentedColormap.from_list(name='red_white_blue', 
+                                                                     colors =self.__colors, 
+                                                                     N=len(levs)-1, )
+          self.__cmap = cmap
+          return
 
 def autocorr(y, normalize=True, t_min=0.0, t_max=1.0 ):
     """Auto-correlation"""
@@ -1652,14 +1665,15 @@ class RungeKutta:
        self.__result = y
        return
 
-class Graph:
-    "graph environment"
-    fs = 20
-    font0 = matplotlib.font_manager.FontProperties()
-    font1 = font0.copy()
-    font1.set_family('sans-serif')
-    font1.set_weight('bold')
-    marker = 'o'
+if import_matplotlib:
+   class Graph:
+       "graph environment"
+       fs = 20
+       font0 = matplotlib.font_manager.FontProperties()
+       font1 = font0.copy()
+       font1.set_family('sans-serif')
+       font1.set_weight('bold')
+       marker = 'o'
     
 class QMFile(units.UNITS):
    """
@@ -2296,146 +2310,147 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
 
    
 
-class QMOscillator(Graph):
-    """Solver for 1D QM oscillator confined to a given potential.
-
-Usage:
-
-wfn = QMOscillator()
-wfn.set(self,V,x0,xn,np=500,y1=0.01,match_center=False,**kwargs)
-e,x,y = wfn.eval(<your guess for eigenvalue>)
-e,x,y = wfn.get()
-wfn.plot(name='fig.eps')
-
-Notes:
-
-Inputs to set():
------------------------------------------------------------------------
-V   - function object for the potential 
-kwargs - optional arguments for V
-x0  - starting point
-xn  - ending point
-y1  - arbitrary second small value needed to start Numerov integrations
-np  - number of intervals between x0 and xn
-match_center - if True - the matching will be done in the center 
-               of the argument range; else: in the xr point being
-               the argument for V(xr) = guess
-
-Returned by eval():
------------------------------------------------------------------------
-e   - eigenvalue for the solution
-x,y - argument and wave-function values for these arguments
-"""
-    
-    def __init__(self,**kwargs):
-        if kwargs: self.set(**kwargs)
-        return
-
-    # public
-
-    def set(self,V,x0,xn,np=500,y1=0.01,match_center=False,**kwargs):
-        "set the potential function and other parameters"
-        self.__V = V
-        self.__Vxr = lambda xr,guess: self.__V(xr,**kwargs) - guess
-        self.__x0 = numpy.float64(x0)
-        self.__xn = numpy.float64(xn)
-        self.__y0 = 0.000
-        self.__y1 = numpy.float64(y1)
-        self.__np = np
-        self.__step = (xn-x0)/np
-        self.__x = numpy.linspace(x0,xn,np+1)
-        self.__v = V(self.__x,**kwargs)
-        self.__match_center = match_center
-        self.__fig1 = None
-        return
-
-    def eval(self,guess):
-        "calculate eigenvalue and eigenfunction"
-        xr = self._find_xr(guess)
-        self.__eps = secant(self._eigen,guess,xr=xr)
-        # normalize the wavefunction
-        prob = self.__wfn*self.__wfn
-        Nsq  = simpson(prob,self.__step)
-        self.__wfn /= math.sqrt(Nsq)
-        return self.__eps, self.__x, self.__wfn
-    
-    def get(self):
-        "return the final quantities"
-        return self.__eps, self.__x, self.__wfn
-
-    def plot(self,name='fig.eps'):
-        "plot the wavefunction"
-        #if self.__fig1 is None:
-        self.__fig1 = pylab.figure(figsize=(12,9))
-        axes11 = self.__fig1.add_subplot(111)
-        axes12 = axes11.twinx()
-        
-        axes11.set_xlabel('$x$',fontsize=self.fs)
-        axes11.set_ylabel('$V(x)$',fontsize=self.fs)
-        axes12.set_ylabel('$\\psi(x)$',fontsize=self.fs)
-        
-        axes11.plot(self.__x,self.__v,'-',color='gray',
-                    label='$V(x)$',lw=1)
-        axes11.legend(loc=1,numpoints=1,
-                      prop={'size':20}).draw_frame(False)
-                      
-        axes12.plot(self.__x,self.__wfn,'-',color='green',
-                    label='$\\epsilon=%4.5f$'%self.__eps,lw=2)
-        axes12.legend(loc=2,numpoints=1,
-                      prop={'size':20}).draw_frame(False)
-                      
-        pylab.plt.xticks(fontsize=10, fontproperties=self.font1)
-        pylab.plt.yticks(fontsize=10, fontproperties=self.font1)
-        pylab.plt.draw()
-        pylab.plt.show()
-        pylab.plt.savefig(name)
-        return
-    
-    # protected
-
-    def _eigen(self,guess,xr):
-        "calculate eigenvalue"
-        # find matching point
-        if self.__match_center:
-           ixl = self.__np/2+6
-        else:
-            for i in range(self.__np):
-               if self.__x[i] > xr:
-                  break
-            ixl = i
-        ixr = self.__np-ixl
-        # left pre-solution
-        q  = 2.0 * (guess - self.__v[:ixl+2])
-        x,yl = numerov2(q,self.__x0,self.__y0,self.__y1,
-                        ixl+2,self.__step)
-
-        f2 = yl[ixl]
-        # right pre-solution 
-        q  = 2.0 * (guess - self.__v[ixl-1:])
-        q  = q[::-1]
-        x,yr = numerov2(q,self.__xn,self.__y0,self.__y1,
-                        ixr+2,self.__step)
-        k1 = yr[ixr-1] # r+h
-        k2 = yr[ixr  ] # r
-        k3 = yr[ixr+1] # r-h
-        # rescale the left pre-solution
-        yl *= k2/f2
-        f1 = yl[ixl+1]   # l+h
-        f2 = yl[ixl  ]   # l
-        f3 = yl[ixl-1]   # l-h
-        #
-        yr = yr[::-1]
-        f = ((f1-f3)-(k1-k3))/(2.0*self.__step*k2)
-        # store the wave functions
-        self.__yl = yl
-        self.__yr = yr
-        self.__wfn = numpy.concatenate([yl[:-2],yr[1:]])
-        return f
-
-    def _find_xr(self,guess):
-        "find the matching point"
-        xr = secant(self.__Vxr, 1.0 , guess=guess)
-        return xr
+if import_matplotlib:
+   class QMOscillator(Graph):
+       """Solver for 1D QM oscillator confined to a given potential.
+   
+   Usage:
+   
+   wfn = QMOscillator()
+   wfn.set(self,V,x0,xn,np=500,y1=0.01,match_center=False,**kwargs)
+   e,x,y = wfn.eval(<your guess for eigenvalue>)
+   e,x,y = wfn.get()
+   wfn.plot(name='fig.eps')
+   
+   Notes:
+   
+   Inputs to set():
+   -----------------------------------------------------------------------
+   V   - function object for the potential 
+   kwargs - optional arguments for V
+   x0  - starting point
+   xn  - ending point
+   y1  - arbitrary second small value needed to start Numerov integrations
+   np  - number of intervals between x0 and xn
+   match_center - if True - the matching will be done in the center 
+                  of the argument range; else: in the xr point being
+                  the argument for V(xr) = guess
+   
+   Returned by eval():
+   -----------------------------------------------------------------------
+   e   - eigenvalue for the solution
+   x,y - argument and wave-function values for these arguments
+   """
+       
+       def __init__(self,**kwargs):
+           if kwargs: self.set(**kwargs)
+           return
+   
+       # public
+   
+       def set(self,V,x0,xn,np=500,y1=0.01,match_center=False,**kwargs):
+           "set the potential function and other parameters"
+           self.__V = V
+           self.__Vxr = lambda xr,guess: self.__V(xr,**kwargs) - guess
+           self.__x0 = numpy.float64(x0)
+           self.__xn = numpy.float64(xn)
+           self.__y0 = 0.000
+           self.__y1 = numpy.float64(y1)
+           self.__np = np
+           self.__step = (xn-x0)/np
+           self.__x = numpy.linspace(x0,xn,np+1)
+           self.__v = V(self.__x,**kwargs)
+           self.__match_center = match_center
+           self.__fig1 = None
+           return
+   
+       def eval(self,guess):
+           "calculate eigenvalue and eigenfunction"
+           xr = self._find_xr(guess)
+           self.__eps = secant(self._eigen,guess,xr=xr)
+           # normalize the wavefunction
+           prob = self.__wfn*self.__wfn
+           Nsq  = simpson(prob,self.__step)
+           self.__wfn /= math.sqrt(Nsq)
+           return self.__eps, self.__x, self.__wfn
+       
+       def get(self):
+           "return the final quantities"
+           return self.__eps, self.__x, self.__wfn
+   
+       def plot(self,name='fig.eps'):
+           "plot the wavefunction"
+           #if self.__fig1 is None:
+           self.__fig1 = pylab.figure(figsize=(12,9))
+           axes11 = self.__fig1.add_subplot(111)
+           axes12 = axes11.twinx()
+           
+           axes11.set_xlabel('$x$',fontsize=self.fs)
+           axes11.set_ylabel('$V(x)$',fontsize=self.fs)
+           axes12.set_ylabel('$\\psi(x)$',fontsize=self.fs)
+           
+           axes11.plot(self.__x,self.__v,'-',color='gray',
+                       label='$V(x)$',lw=1)
+           axes11.legend(loc=1,numpoints=1,
+                         prop={'size':20}).draw_frame(False)
+                         
+           axes12.plot(self.__x,self.__wfn,'-',color='green',
+                       label='$\\epsilon=%4.5f$'%self.__eps,lw=2)
+           axes12.legend(loc=2,numpoints=1,
+                         prop={'size':20}).draw_frame(False)
+                         
+           pylab.plt.xticks(fontsize=10, fontproperties=self.font1)
+           pylab.plt.yticks(fontsize=10, fontproperties=self.font1)
+           pylab.plt.draw()
+           pylab.plt.show()
+           pylab.plt.savefig(name)
+           return
+       
+       # protected
+   
+       def _eigen(self,guess,xr):
+           "calculate eigenvalue"
+           # find matching point
+           if self.__match_center:
+              ixl = self.__np/2+6
+           else:
+               for i in range(self.__np):
+                  if self.__x[i] > xr:
+                     break
+               ixl = i
+           ixr = self.__np-ixl
+           # left pre-solution
+           q  = 2.0 * (guess - self.__v[:ixl+2])
+           x,yl = numerov2(q,self.__x0,self.__y0,self.__y1,
+                           ixl+2,self.__step)
+   
+           f2 = yl[ixl]
+           # right pre-solution 
+           q  = 2.0 * (guess - self.__v[ixl-1:])
+           q  = q[::-1]
+           x,yr = numerov2(q,self.__xn,self.__y0,self.__y1,
+                           ixr+2,self.__step)
+           k1 = yr[ixr-1] # r+h
+           k2 = yr[ixr  ] # r
+           k3 = yr[ixr+1] # r-h
+           # rescale the left pre-solution
+           yl *= k2/f2
+           f1 = yl[ixl+1]   # l+h
+           f2 = yl[ixl  ]   # l
+           f3 = yl[ixl-1]   # l-h
+           #
+           yr = yr[::-1]
+           f = ((f1-f3)-(k1-k3))/(2.0*self.__step*k2)
+           # store the wave functions
+           self.__yl = yl
+           self.__yr = yr
+           self.__wfn = numpy.concatenate([yl[:-2],yr[1:]])
+           return f
+   
+       def _find_xr(self,guess):
+           "find the matching point"
+           xr = secant(self.__Vxr, 1.0 , guess=guess)
+           return xr
     
 
 def check_sim(l):
@@ -5938,61 +5953,61 @@ class ROTATE:
                   
               ### set status to rotated
               object.set_status(rotated=True)
-    
-class Grid2D:
-    """represents 2D-grid of points"""
-    def __init__(self,
-                 xmin=0, xmax=1, dx=0.5,
-                 ymin=0, ymax=1, dy=0.5,):
-        # coordinates in each space direction
-        nx = numpy.int64((xmax-xmin)/dx + 1)
-        ny = numpy.int64((ymax-ymin)/dy + 1)
-        
-        x,y = numpy.mgrid[0:nx,0:ny]
-        
-        # store for convenience
-        self.dx = dx; self.dy = dy
-        self.nx = nx; self.ny = ny
-        self.shape = (self.nx,self.ny)
-        
-        # make 3D versions of the coordinate arrays
-        # (needed for vectorized  function evaluators)
-        self.xcoorv = numpy.float64(x)*dx + xmin
-        self.ycoorv = numpy.float64(y)*dy + ymin
-
-    def __init________(self,
-                 xmin=0, xmax=1, dx=0.5,
-                 ymin=0, ymax=1, dy=0.5):
-        # coordinates in each space direction
-        self.xcoor = scitools.numpyutils.seq(xmin, xmax, dx)
-        self.ycoor = scitools.numpyutils.seq(ymin, ymax, dy)
-        
-        # store for convenience
-        self.dx = dx;  self.dy = dy
-        self.nx = self.xcoor.size;  self.ny = self.ycoor.size
-        self.shape = (self.nx,self.ny)
-        # make 2D versions of the coordinate arrays
-        # (needed for vectorized  function evaluators)
-        ###self.xcoorv = self.xcoor[:, numpy.newaxis]
-        ###self.ycoorv = self.ycoor[numpy.newaxis, :]
-        self.ycoorv, self.xcoorv = numpy.meshgrid(self.ycoor,self.xcoor)
-    
-    def eval(self,f,**kwargs):
-        """Evaluate vectorized function f at each grid point"""
-        return f(self.xcoorv,self.ycoorv,**kwargs)
-
-    def newaxis(self,axis,val):
-        """change values of axis to new values"""
-        # x-axis
-        if   axis==0:
-             self.xcoorv.fill(1.)
-             self.xcoorv*= val[:,numpy.newaxis]
-        # y-axis
-        elif axis==1:
-             self.ycoorv.fill(1.)
-             self.ycoorv*= val[numpy.newaxis,:]
-        else: raise IndexError
-        return
+if import_matplotlib:    
+   class Grid2D:
+       """represents 2D-grid of points"""
+       def __init__(self,
+                    xmin=0, xmax=1, dx=0.5,
+                    ymin=0, ymax=1, dy=0.5,):
+           # coordinates in each space direction
+           nx = numpy.int64((xmax-xmin)/dx + 1)
+           ny = numpy.int64((ymax-ymin)/dy + 1)
+           
+           x,y = numpy.mgrid[0:nx,0:ny]
+           
+           # store for convenience
+           self.dx = dx; self.dy = dy
+           self.nx = nx; self.ny = ny
+           self.shape = (self.nx,self.ny)
+           
+           # make 3D versions of the coordinate arrays
+           # (needed for vectorized  function evaluators)
+           self.xcoorv = numpy.float64(x)*dx + xmin
+           self.ycoorv = numpy.float64(y)*dy + ymin
+   
+       def __init________(self,
+                    xmin=0, xmax=1, dx=0.5,
+                    ymin=0, ymax=1, dy=0.5):
+           # coordinates in each space direction
+           self.xcoor = scitools.numpyutils.seq(xmin, xmax, dx)
+           self.ycoor = scitools.numpyutils.seq(ymin, ymax, dy)
+           
+           # store for convenience
+           self.dx = dx;  self.dy = dy
+           self.nx = self.xcoor.size;  self.ny = self.ycoor.size
+           self.shape = (self.nx,self.ny)
+           # make 2D versions of the coordinate arrays
+           # (needed for vectorized  function evaluators)
+           ###self.xcoorv = self.xcoor[:, numpy.newaxis]
+           ###self.ycoorv = self.ycoor[numpy.newaxis, :]
+           self.ycoorv, self.xcoorv = numpy.meshgrid(self.ycoor,self.xcoor)
+       
+       def eval(self,f,**kwargs):
+           """Evaluate vectorized function f at each grid point"""
+           return f(self.xcoorv,self.ycoorv,**kwargs)
+   
+       def newaxis(self,axis,val):
+           """change values of axis to new values"""
+           # x-axis
+           if   axis==0:
+                self.xcoorv.fill(1.)
+                self.xcoorv*= val[:,numpy.newaxis]
+           # y-axis
+           elif axis==1:
+                self.ycoorv.fill(1.)
+                self.ycoorv*= val[numpy.newaxis,:]
+           else: raise IndexError
+           return
     
 class Grid3D:
     """represents 3D-grid of points"""
