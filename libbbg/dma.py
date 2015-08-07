@@ -136,7 +136,7 @@ class SVDSuperimposer(object):
         "Root mean square deviation of superimposed coordinates."
         if self.rms is None:
             transformed_coords=self.get_transformed()
-            self.celess=is_tracelessrms=self._rms(transformed_coords, self.reference_coords)
+            self.rms = self._rms(transformed_coords, self.reference_coords)
         return self.rms
 
 
