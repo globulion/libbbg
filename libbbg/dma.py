@@ -759,6 +759,7 @@ expansions should sum up to the total molecular expansion with respect to origin
                hex  += tmp.DMA_FULL[5][atom]
 
         ### set the molecular moments into the DMA solvent object
+        overall.DMA[0][0] = sum(tmp[0])
         overall.DMA[1][0] = mu
            
         overall.DMA[2][0,0] = quad[0,0]           
@@ -844,6 +845,7 @@ H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
                hex  += qatom * numpy.outer( r, numpy.outer (r, numpy.outer(r,r) ) ).reshape(3,3,3,3)
 
         ### set the molecular moments into the DMA solvent object
+        overall.DMA[0][0] = sum(tmp[0])
         overall.DMA[1][0] = mu
            
         overall.DMA[2][0,0] = quad[0,0]           
