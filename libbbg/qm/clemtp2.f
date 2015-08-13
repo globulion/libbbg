@@ -77,6 +77,10 @@ C
             VAIZX = DPOL(NNIX9+6)
             VAIZY = DPOL(NNIX9+7)
             VAIZZ = DPOL(NNIX9+8)
+c            WRITE(*,*) I,N
+c            WRITE(*,*) VAIXX,VAIXY,VAIXZ
+c            WRITE(*,*) VAIYX,VAIYY,VAIYZ
+c            WRITE(*,*) VAIZX,VAIZY,VAIZZ
 C
 C           ITERATE OVER NORMAL MODES OF IR MOLECULE
 C 

@@ -1744,7 +1744,7 @@ Notes:
        if format is None:
           if   file.endswith('.xyz'):   self._open_xyz(file,units,name,mult,charge,method,basis,mol)
           elif file.endswith('.dma'):   self._open_dma(file)
-          elif file.endswith('.fchk'):  self._open_fchk(file,units,name,mult,charge,method,basis)
+          elif file.endswith('.fchk'):  self._open_fchk(file,units,name,method,basis)
           elif (file.endswith('.g09') or file.endswith('.log')):   self._open_g09(file,freq,anh,oniom,pol)
        else:
           self.__format_dict[format](file,units,name,mult,charge,method,basis,mol)
@@ -2097,12 +2097,25 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
        self.__coord_list = coord
        return
 
-   def _open_fchk(self,file,units,name,mult,charge,method,basis):
+   def _open_fchk(self,file,units,name,method,basis):
        """open fchk file"""
        file = open(file)
        self.__file_obj = file
        line = file.readline()
        g = lambda n,m: n/m+bool(n%m)
+
+       # search for charge and multiplicity
+       querry = "Charge"
+       while True:
+           if querry in line: break
+           line = file.readline()
+       charge = int(line.split()[-1])
+
+       querry = "Multiplicity"
+       while True:
+           if querry in line: break
+           line = file.readline()
+       multiplicity = int(line.split()[-1])
        
        # search for atomic numbers
        querry = "Atomic numbers"
@@ -2142,7 +2155,7 @@ atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
                                coord[i][2]) )
            Coords.append(atom)
        Mol = PyQuante.Molecule(name,Coords,units='Bohr',
-                               multiplicity=mult,charge=charge,
+                               multiplicity=multiplicity,charge=charge,
                                basis=basis,method=method)
    
        self.__mol = Mol                        
@@ -4185,6 +4198,7 @@ ar     - return also array with only coordinates
 
     ### handle g09.fchk files
     elif file[-4:].lower() == 'fchk':
+       print "WARNING: set charge and multiplicity correctly because they are not read from FCHK!"
        file = open(file)
        line = file.readline()
        g = lambda n,m: n/m+bool(n%m)
