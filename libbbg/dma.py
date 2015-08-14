@@ -985,6 +985,23 @@ premute all moments, positions and origins using ind list
         self.origin = self.origin[contrlist]
         return
 
+    def concatenate(self, other):
+        """add multipole sites to the self.DMA object. The sites of other.DMA will be appended at the end"""
+        assert isinstance(other, DMA), " Argument has to be a DMA instance!"
+        assert (self.is_traceless and other.is_traceless or not self.is_traceless and not other.is_traceless), \
+                " The objects have to have the same forms!(primitive or traceless)"
+
+        N_moments = 4
+        if self.has_hexadecapoles and other.has_hexadecapoles: N_moments = 5
+
+        for i in range(N_moments):
+            self.DMA[i] = numpy.concatenate((self.DMA[i],other.DMA[i].copy()))
+        self.pos        = numpy.concatenate((self.pos, other.pos.copy()))
+        self.origin     = numpy.concatenate((self.origin, other.origin.copy()))
+        self.nfrag      = len(self.DMA[0])
+        self.atoms     += other.atoms
+        return
+
     def replace(self, other):
         """Copy the contents from one DMA instance to another"""
         o = other.copy()
