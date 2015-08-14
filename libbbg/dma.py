@@ -917,6 +917,25 @@ H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
         if equal:
            self.origin = pos.copy()
 
+    def set_charges       (self, charges       ): self.set_moments(charges       = charges       )
+    def set_dipoles       (self, dipoles       ): self.set_moments(dipoles       = dipoles       )
+    def set_quadrupoles   (self, quadrupoles   ): self.set_moments(quadrupoles   = quadrupoles   )
+    def set_octupoles     (self, octupoles     ): self.set_moments(octupoles     = octupoles     )
+    def set_hexadecapoles (self, hexadecapoles ): self.set_moments(hexadecapoles = hexadecapoles )
+
+    def set_moments(self,charges=None,dipoles=None,
+                         quadrupoles=None,octupoles=None,
+                         hexadecapoles=None):
+        """\
+set multipoles given as n-d numpy.array
+where n is rank of multipole moment"""
+        if charges       is not None: self.DMA[0] = numpy.array(charges       ).copy()
+        if dipoles       is not None: self.DMA[1] = numpy.array(dipoles       ).copy()
+        if quadrupoles   is not None: self.DMA[2] = numpy.array(quadrupoles   ).copy()
+        if octupoles     is not None: self.DMA[3] = numpy.array(octupoles     ).copy()
+        if hexadecapoles is not None: self.DMA[4] = numpy.array(hexadecapoles ).copy()
+        return
+
     def set_moments_all(self, other):
         """Copy the moments from other to self"""
         o = other.copy()
@@ -931,19 +950,6 @@ H. Lee, J.-H. Choi and M. Cho, J. Chem. Phys. 137(11), 114307 (2012)
         return
 
 
-    def set_moments(self,charges=None,dipoles=None,
-                         quadrupoles=None,octupoles=None,
-                         hexadecapoles=None):
-        """\
-set multipoles given as n-d numpy.array
-where n is rank of multipole moment"""
-        if charges       is not None: self.DMA[0] = charges       .copy()
-        if dipoles       is not None: self.DMA[1] = dipoles       .copy()
-        if quadrupoles   is not None: self.DMA[2] = quadrupoles   .copy()
-        if octupoles     is not None: self.DMA[3] = octupoles     .copy()
-        if hexadecapoles is not None: self.DMA[4] = hexadecapoles .copy()
-        return
-  
     # ---- property descriptor methods
  
     def if_traceless(self):
