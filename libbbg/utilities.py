@@ -5614,7 +5614,7 @@ a.u. as well. """
     get_elmtp.log = log
     
     if return_all: return get_elmtp.A, get_elmtp.B, get_elmtp.C, get_elmtp.D, get_elmtp.E, get_elmtp.F, get_elmtp.G, get_elmtp.H
-    else:                 get_elmtp.A, get_elmtp.B, get_elmtp.C, get_elmtp.D, get_elmtp.E
+    else:          return get_elmtp.A, get_elmtp.B, get_elmtp.C, get_elmtp.D, get_elmtp.E
 
 def Emtpc(DMA1,DMA2,threshold=1000,hash=True):
     """Compiled version of EMtp. calculates E(EL)MTP from two DMA distributions.
