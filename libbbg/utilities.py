@@ -24,7 +24,8 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'calc_tcf','autocorr','crosscorr','ParseEnergyFromFchk',
          'make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
          'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk','TIMER',
-         'ParseElectronsFromFchk','ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile',] #'gen_camm'
+         'ParseElectronsFromFchk','ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile',
+         'ParseChargesFromFchk',] #'gen_camm'
          
 __version__ = '3.3.3'
 
@@ -4789,6 +4790,32 @@ Note that level of theory is dependent of the keyword used in g09 input file!"""
     D = numpy.float64(line.split())
     data.close()
     return D
+
+def ParseChargesFromFchk(file, type='Mulliken'):
+    """Parse the charges from the g09 FCHK file. 
+Please specify type if other than 'Mulliken' charges
+are to be parsed (by name from FCHK so 'ESP Charges', 'NPA Charges' 
+and so on are valid"""
+    data = open(file)
+    line = data.readline()
+    if   type.lower().startswith('mul'): querry = 'Mulliken Charges'
+    elif type.lower().startswith('esp'): querry = 'ESP Charges'
+    elif type.lower().startswith('npa'): querry = 'NPA Charges'
+    elif type.lower().startswith('oni'): querry = 'ONIOM Charges'
+    while 1:
+        if querry in line: break
+        line = data.readline()
+    M = int(line.split()[-1])
+    line = data.readline()
+    G = []
+    g = lambda n: n/5+bool(n%5)
+    for i in range(g(M)):
+        G+= line.split()
+        line = data.readline()
+    data.close()
+    
+    G = numpy.array(G,numpy.float64)
+    return G
 
 def ParseVecFromFchk(file):
     """parse Ci\mu coeeficients from g09 fchk"""
