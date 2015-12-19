@@ -460,7 +460,7 @@ and changing to AU units (frequencies and reduced masses)"""
           ulazulahyta = numpy.zeros((self.Nmodes,3),dtype=numpy.float64)
           for cart in [0,1,2]:
               for mode in range(self.Nmodes):
-                  ulazulahyta[mode][cart] = F[mode][cart]**2 * sqrt(2*pi) * 1./2. * self.freq[mode] * self.BohrElectronToDebye**2
+                  ulazulahyta[mode][cart] = F[mode][cart]**2 * math.sqrt(2*math.pi) * 1./2. * self.freq[mode] * self.BohrElectronToDebye**2
 
           intens = numpy.sum(ulazulahyta,axis=1)
 
