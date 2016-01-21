@@ -641,13 +641,13 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
         c3 = numpy.zeros(self.nfrag, numpy.float64)
         c4 = numpy.zeros(self.nfrag, numpy.float64)
         for i in range(self.nfrag):
-            Q11 = v3[i,0] 
-            Q22 = v3[i,1]
-            Q33 = v3[i,2]
-            Q12 = v3[i,3]
-            Q13 = v3[i,4]
-            Q23 = v3[i,5]
-            v = 1./4. * Q33**2 + 1./6. * (Q12**2 + Q13**2 + Q23**2) + 1./24. * (Q11 - Q22)**2
+            QXX = v3[i,0] 
+            QYY = v3[i,1]
+            QZZ = v3[i,2]
+            QXY = v3[i,3]
+            QXZ = v3[i,4]
+            QYZ = v3[i,5]
+            v = 1./4. * QZZ**2 + 2./6. * (QXY**2 + QXZ**2 + QYZ**2) + 2./24. * (QXX - QYY)**2
             c3[i] = numpy.sqrt(v)
         return c1, c2, c3, c4
 
