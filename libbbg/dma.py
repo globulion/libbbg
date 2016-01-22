@@ -623,8 +623,6 @@ mathematical operations:
     def get_magnitudes(self):
         """
 Return the magnitudes of distributed multipoles. Octupoles and hexadecapoles NOT implemented yet!
-To obtain magnitude of quadrupole according to Jackson convention just multiply
-the magnitudes by 2.0
 
 Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not returned at all yet!"""
         # charges
@@ -647,7 +645,7 @@ Warning: The 0 value is returned for octupoles. Hexadecapole magnitude is not re
             QXY = v3[i,3]
             QXZ = v3[i,4]
             QYZ = v3[i,5]
-            v = 1./4. * QZZ**2 + 2./6. * (QXY**2 + QXZ**2 + QYZ**2) + 2./24. * (QXX - QYY)**2
+            v = QZZ**2 + 4./3. * (QXY**2 + QXZ**2 + QYZ**2) + 1./3. * (QXX - QYY)**2
             c3[i] = numpy.sqrt(v)
         return c1, c2, c3, c4
 
