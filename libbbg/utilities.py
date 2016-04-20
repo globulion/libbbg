@@ -1855,7 +1855,7 @@ Notes:
        f.close()
        return
    
-   def insert(self,xyz,id=0,atoms=None):
+   def insert(self,xyz=None,id=0,atoms=None,mol=None):
        """
 Insert atoms into the structure.
 
@@ -1864,15 +1864,23 @@ Usage:
 xyz   - array of coordinates in Bohr (and charges, optional)
 id    - insert xyz after (id)th atom. Default is 0 (insert at the beginnig)
 atoms - list of atomic symbols. Default is None (dummy atoms, 'X')
+mol   - molecule object that will be inserted (only coordinates and atoms)
 """
-       N,M = self.__pos.shape
-       n,m = xyz.shape
-       # case where there is mismatch in number of columns
-       if m+1==M:
-          xew = numpy.zeros((n,m+1),numpy.float64)
-          xew[:,:3] = xyz
-          xyz = xew
-       I = id
+       if id==-1: id = len(self.__atoms)
+       N,M = self.__pos.shape                              
+
+       if mol is not None:
+          xyz = mol.get_pos()
+          atoms = mol.get_atoms()
+          n,m = xyz.shape; I=id
+       else:
+          n,m = xyz.shape
+          # case where there is mismatch in number of columns
+          if m+1==M:
+             xew = numpy.zeros((n,m+1),numpy.float64)
+             xew[:,:3] = xyz
+             xyz = xew
+          I = id
        # insert the structure
        new = numpy.zeros((N+n,M),numpy.float64)
        new[:I] = self.__pos[:I]
