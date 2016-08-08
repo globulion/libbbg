@@ -1786,7 +1786,7 @@ Notes:
        self.__misc = text
        return
  
-   def write(self, name='default', pkg=None, template=None, delim='@', ext=None, **kwargs):
+   def write(self, name='default', pkg=None, template=None, delim='@', ext=None, overwrite=False, **kwargs):
        """
  Write the structure into the XYZ file or input file for GAMESS, Gaussian or Coulomb.
 
@@ -1821,11 +1821,13 @@ Notes:
  Warning: keyword pkg is not working yet (so if wanted to make GAMESS inputs it will not add atomic numbers
           and you will have to add them manually or using external script.
 """
-       if ext is None:
-          if template is None: ext = '.xyz' 
-          else               : ext = '.inp'
-       if not name.endswith(ext):  name = name + ext
-       f = open(name,'w')
+       if not overwrite:
+          if ext is None:                               
+             if template is None: ext = '.xyz' 
+             else               : ext = '.inp'
+          if not name.endswith(ext):  name = name + ext
+          f = open(name,'w')
+       else            : f = name
 
        if template is None:
           f.write('%d\n' % len(self.__atoms))
@@ -1845,14 +1847,14 @@ Notes:
               log+= '%14.6f %14.6f %14.6f' % tuple(self.__pos[i,:3]*self.BohrToAngstrom)
               log+= '%14.6f\n' % self.__pos[i,3]
 
-       if template is None: f.write(log+'\n')
+       if template is None: f.write(log)
        else:
           class LocalTemplate(string.Template): delimiter=delim
           template = LocalTemplate(template)
           txt = template.substitute(COORD=log, **kwargs)
           f.write(txt)
           
-       f.close()
+       if not overwrite: f.close()
        return
    
    def insert(self,xyz=None,id=0,atoms=None,mol=None):
