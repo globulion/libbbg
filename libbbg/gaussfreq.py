@@ -119,7 +119,8 @@ and changing to AU units (frequencies and reduced masses)"""
                 if querry in line.lower(): break
                 line = data.readline()
           line = data.readline()
-          line = data.readline()
+          if line.lower().startswith(' charge ='):
+             line = data.readline()
           atoms = []
           for i in range(self.Natoms):
               atoms.append( units.Atom(line.split()[0]) )
