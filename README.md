@@ -13,11 +13,11 @@ After installation (see tutorial) you can easily import these modules by typing:
 
 ```
 $ python
->>> import utilities
+>>> import libbbg.utilities
 ```
 or 
 ```
->>> from utilities import *
+>>> from libbbg.utilities import *
 ```
 
 The tutorial is under preparation.
@@ -33,10 +33,11 @@ To install the LIBBBG package you have to make the main directory for LIBBBG,
 download the files on this directory and type:
 
 ```
-$ sudo python setup.py install
+$ ./install -p installatio_directory
 ```
 
-in the main directory. Good Luck!
+in the main directory. Perhaps you might need super user priviledges if the installation 
+path cannot be accessed in other way. Good Luck!
 
 Tutorial
 --------
@@ -45,7 +46,7 @@ Tutorial
 
 Type in your Python console:
 ```
-from units import *
+from libbbg.units import UNITS
 ```
 Now you have an access to the tools of units module.
 
@@ -57,7 +58,7 @@ To see all of the converters type:
 t = UNITS()
 print t
 ```
-For instance, to change Bohrs to Angstroms you can do it like this:
+For instance, the converter from Bohrs to Angstroms is `UNITS().BohrToAngstrom`. Therefore, the following example shows how to convert distances by using Python:
 ```
-print t.BohrToAngstrom
+dist_angs = dist_bohr * t.BohrToAngstrom
 ```
