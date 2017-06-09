@@ -2195,13 +2195,20 @@ mol   - molecule object that will be inserted (only coordinates and atoms)
        line = file.readline()
        ### search for atomic symbols, charge and multiplicity
        atoms = []
-       querry = "symbolic z-matrix:"
+       querry1 = " symbolic z-matrix:"
+       querry2a= " charge = "
+       querry2b= " multiplicity = "
        while True:
-           if querry in line.lower(): break
+           if (querry1 in line.lower() or querry2a in line.lower() and querry2b in line.lower()): break
            line = file.readline()
-       line = file.readline()
-       chg = numpy.float64(line.split()[2])
-       mult= numpy.float64(line.split()[5])
+       if line.lower().startswith(' charge ='):
+          chg = numpy.float64(line.split()[2])
+          mult= numpy.float64(line.split()[5])
+          line = file.readline()
+       else:
+          line = file.readline()
+          chg = numpy.float64(line.split()[2])
+          mult= numpy.float64(line.split()[5])
        line = file.readline()
        if oniom: 
           line = file.readline()
