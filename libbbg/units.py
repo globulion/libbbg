@@ -34,7 +34,8 @@ class Atom:
                     'Cl':34.9688527,  'P':30.9737634, 'Li':7.0000    ,
                     'Mg':23.985045 }
           # isotopes
-          masses.update({'D': 2.0141018, 'H(iso=2)': 2.0141018, 'Bq': 0.00000})
+          masses.update({'D': 2.0141018, 'H(iso=2)': 2.0141018, 'Bq': 0.00000,
+                         'C(iso=13)': 13.003355, 'N(iso=15)': 15.000109, })
           
           return masses[symbol]
 
@@ -45,9 +46,9 @@ class Atom:
                              'N': 7,  'O': 8, 'F': 9,
                              'S':16, 'Fe':26, 'Na': 11, 'X': 0,
                             'Cl':17,  'P':15, 'Li': 3,
-                            'Mg':12 }
+                            'Mg':12, 'H(iso=2)': 1, 'C(iso=13)': 6, 'N(iso=15)': 7 }
           # isotopes
-          atomic_numbers.update({'D': 1, 'H(iso=2)': 1, 'Bq': 0})
+          atomic_numbers.update({'D': 1, 'H(iso=2)': 1, 'Bq': 0, 'C(iso=13)': 6, 'N(iso=15)': 7})
                              
           return atomic_numbers[symbol]
 
@@ -60,7 +61,8 @@ class Atom:
                             'Cl':1.9000, 'P' :1.1, 'Li': 1.7,
                             'Mg':2.9000 }
           # isotopes
-          wdW_radius.update({'D': 0.5000, 'H(iso=2)': 0.5000, 'Bq': 0.0001})
+          wdW_radius.update({'D': 0.5000, 'H(iso=2)': 0.5000, 'Bq': 0.0001,
+                             'C(iso=13)': 2.0000, 'N(iso=15)': 2.0000})
                              
           return wdW_radius[symbol]
 
@@ -129,7 +131,8 @@ class UNITS:
       ### atomic numbers of atoms in AMU
       atomic_numbers = { 'H': 1, 'He': 2, 'C': 6,
                          'N': 7,  'O': 8, 'F': 9,
-                         'S':16, 'Fe':26, 'Na': 11 }
+                         'S':16, 'Fe':26, 'Na': 11,
+                         'H(iso=2)':1, 'C(iso=13)':6, 'N(iso=15)':7 }
 
       ### non-global methods (object-specific unit conversion etc...)
       def Convert():
