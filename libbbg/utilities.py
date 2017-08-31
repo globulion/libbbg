@@ -25,7 +25,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
          'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk','TIMER',
          'ParseElectronsFromFchk','ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile',
-         'ParseChargesFromFchk',] #'gen_camm'
+         'ParseChargesFromFchk','glue'] #'gen_camm'
          
 __version__ = '3.3.3'
 
@@ -79,6 +79,68 @@ uUNITS= units.UNITS
 #                              interp2d as I2D
 #from letters import greek as let_greek
 #from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+def glue(a, b, axis=None, buff=10, update_time_axis=None, lprint=False):
+    """
+ --------------------------------------------------------------------------------------------
+ Concatenate overlapping numpy.ndarrays. 
+ --------------------------------------------------------------------------------------------
+ Assumes that 'a' ends with slice that overlaps with the beginning of 'b'. 'a' and 'b' can 
+ have arbitrary but equal shape. If overlap is found returns the concatenated numpy.ndarray,
+ otherwise returns the None object.
+
+ Usage:
+
+    c = glue(a, b, axis=None, buff=10, update_time_axis=None, lprint=False)
+ 
+ where:
+
+    o a, b             - input numpy.ndarrays containing numbers
+    o c                - the resulting concatenated numpy.ndarray                      
+    o axis             - column id to compare the overlap. If index=None it is assumed
+                         'a' and 'b' have only one axis (row vectors).
+    o buff             - the buffer size. Overlap length should be less than buffer
+    o update_time_axis - column which is to be updated based on the constant increment
+                         assumed in 'a[:,update_time_axis]'. If update_time_axis=None 
+                         no update is done.
+    o lprint           - print the square differences of trial slices or not
+
+ --------------------------------------------------------------------------------------------
+                                                                 Last Revision: 31 Aug 2017
+"""
+    assert len(a.shape)==len(b.shape), " Error: The shapes of input arrays are not the same!"
+    assert buff <= min(len(a),len(b)), " Error: Buffer size too large!"
+    # parse columns
+    if len(a.shape)>1: 
+       if axis is None: 
+          raise ValueError, " Error: Column index has not ben specified. Specify the index of column to analyze by setting index=<id> where <id> is in Python convention!"
+       a2 = a[:,axis]; b2 = b[:,axis]
+    else: 
+       a2 = a.copy(); b2 = b.copy()
+    # search for overlap
+    i_ov = None
+    for i in range(1,buff+1):
+        a2_slice = a2[-i:  ]
+        b2_slice = b2[  : i]
+        dsq = sum( (a2_slice - b2_slice)**2 )
+        if lprint: print " Trial overlap length= %4d Square difference= %14.6f" % (i,dsq)
+        if dsq==0.0000000: i_ov = i
+    # check if overlap found
+    if i_ov is None: 
+        print " Warning: The sequences are not mergeable or you must increase the buffer > %d" % buff
+        return None
+    b_copy = b.copy()
+    # update time axis
+    if len(a.shape)>1 and update_time_axis is not None:
+        assert update_time_axis!=index, " Error: Glue column cannot be the time column!"
+        dt_a = a[:,update_time_axis][1] - a[:,update_time_axis][0]
+        t_a_last = a[:,update_time_axis][-1]
+        delta_t_a = dt_a * (len(a)+0)
+        b_copy[:,update_time_axis] += delta_t_a
+    # concatenate
+    c = numpy.concatenate([a,b_copy[i_ov:]]) 
+    return c
+
 
 class TIMER:
     """process timing statistics utility class""" 
