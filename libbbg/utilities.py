@@ -25,60 +25,258 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'make_bqc_inp','bcolors','ParseDipoleMomentFromFchk',
          'ParseGradFromFchk','distribute','ParseAlphaOrbitalEnergiesFromFchk','TIMER',
          'ParseElectronsFromFchk','ParseDistributedPolarizabilitiesWrtImFreqFromGamessEfpFile',
-         'ParseChargesFromFchk','glue'] #'gen_camm'
+         'ParseChargesFromFchk','glue','UnitaryOptimizer'] #'gen_camm'
          
-__version__ = '3.3.3'
+__version__ = '3.3.4'
 
 import os
+import re
+import qm
+import copy
+import time
+import string
+import operator
+import math
+import numpy
+import numpy.linalg
+import scipy.optimize
+import scipy.interpolate
+import PyQuante
+import dma
+import units
+import letters
+import fourier
+import re_templates
+
 import_matplotlib = int(os.environ['LIBBBG_IMPORT_MATPLOTLIB'])
 
 if import_matplotlib:
-   import re, qm, PyQuante,  \
-          scipy.optimize, scipy.integrate, numpy,\
-          math, numpy.linalg, dma, units, re_templates,\
-          copy, os, math, matplotlib.font_manager,\
-          pylab, scitools.numpyutils, scipy.interpolate,\
-          letters, fourier, string, time #, coulomb.multip
+   import matplotlib.font_manager
+   import pylab
+   import scitools.numpyutils
    __all__+= ['QMOscillator','circles','PotentialContourMap','Grid2D']
-else:
-   import re, qm, PyQuante,  \
-          scipy.optimize, scipy.integrate, numpy,\
-          math, numpy.linalg, dma, units, re_templates,\
-          copy, os, math,\
-          scipy.interpolate,\
-          letters, fourier, string, time #, coulomb.multip
+
+   #import re, qm, PyQuante,  \
+   #       scipy.optimize, scipy.integrate, numpy,\
+   #       math, numpy.linalg, dma, units, re_templates,\
+   #       copy, os, math, matplotlib.font_manager,\
+   #       pylab, scitools.numpyutils, scipy.interpolate,\
+   #       letters, fourier, string, time #, coulomb.multip
+#else:
+#   import re, qm, PyQuante,  \
+#          scipy.optimize, scipy.integrate, numpy,\
+#          math, numpy.linalg, dma, units, re_templates,\
+#          copy, os, math,\
+#          scipy.interpolate,\
+#          letters, fourier, string, time #, coulomb.multip
 
 uAtom = units.Atom
 uUNITS= units.UNITS
-#from numpy import transpose, zeros, dot, \
-#                  float64, shape, array, \
-#                  sqrt, ceil, tensordot, \
-#                  cross, sum, where    , \
-#                  concatenate, average , \
-#                  exp, linalg, sign    , \
-#                  arctan2, meshgrid    , \
-#                  logical_and, fft     , \
-#                  roll, real, mgrid    , \
-#                  int64, amax, vectorize, \
-#                  arange, log, linspace
-#from math import exp as mexp   ,\
-#                 sqrt as msqrt ,\
-#                 pi as mPi
-#from numpy.linalg import svd, det, norm
-#from dma   import DMA
-#from units import *
-#from re_templates import *
-#import copy, os, math
-#if bool(os.environ.get('__IMPORT_EASYVIZ__')):
-#from scitools.all import *
-#from matplotlib.font_manager import FontProperties as FP
-#from pylab import plt, Line2D, subplots, rcParams
-#from scitools.numpyutils import seq
-#from scipy.interpolate import RectBivariateSpline as RBS, \
-#                              interp1d as I1D,            \
-#                              interp2d as I2D
-#from letters import greek as let_greek
-#from fourier.ft import fft as libbbg_fft, dft as libbbg_dft
+
+class UnitaryOptimizer:
+  """
+ ---------------------------------------------------------------------------------
+
+ Finds the unitary matrix X that optimizes the following function:
+ 
+ Z(X) = \sum_{ijkl} X_{ij}X_{kl} R_{jl} - \sum_{ij} X_{ij}P_{j} 
+ 
+ where 
+   * X is a square unitary matrix of size N x N
+   * R is a square, in general non-symmetric matrix of size N x N
+   * P is a vector of length N   
+ 
+ Usage:
+   optimizer = UnitaryOptimizer(R, P, conv=1.0e-8, maxiter=100, verbose=True)
+   optimizer.maximize() #or minimize()
+   X = optimizer.X
+ 
+ ---------------------------------------------------------------------------------
+                                                       Last Revision: 25.03.2018
+ """
+  def __init__(self, R, P, conv=1.0e-8, maxiter=100, verbose=True):
+      """Initialize with R and P matrix, as well as optimization options"""
+      self._R   = R.copy()
+      self._P   = P.copy()
+      self._R0  = R.copy()
+      self._P0  = P.copy()
+      self.X    = None
+      self._d   = P.size
+      # optimization options
+      self.conv   = conv
+      self.maxiter=maxiter
+      self.verbose=verbose
+      # initial Z value
+      self._Zinit = self._eval_Z(numpy.identity(self._d), self._R0, self._P0)
+      # functions do find roots in 2D unitary optimization step
+      self._f = lambda x, A, B, C, D:   A*numpy.sin(x)+B*numpy.cos(x)+  C*numpy.sin(2*x)+  D*numpy.cos(2*x)
+      self._fg= lambda x, A, B, C, D:   A*numpy.cos(x)-B*numpy.sin(x)+2*C*numpy.cos(2*x)-2*D*numpy.sin(2*x)
+      self._fh= lambda x, A, B, C, D: -(A*numpy.sin(x)+B*numpy.cos(x)+4*C*numpy.sin(2*x)+4*D*numpy.cos(2*x))
+
+  def maximize(self):
+      """Maximize the Z function under unitary constraint for X""" 
+      self.run('max')
+
+  def minimize(self):
+      """Minimize the Z function under unitary constraint for X"""
+      self.run('min')
+
+  def run(self, opt='minimize'):
+      """Perform the optimization"""
+      assert (opt.lower().startswith('min') or opt.lower().startswith('max')), 'Unrecognized optimization mode < %s >' % opt
+      self._run(opt.lower())
+
+  def Z(self):
+      """Return the current value of objective function"""
+      z = self._eval_Z(self.X, self._R0, self._P0)
+      return z
+
+  # -- protected
+  def _run(self, opt):
+      """Perform the optimization (protected interface)"""
+      conv = 1e8
+      Xold = numpy.identity(self._d)
+      Zold = self._Zinit
+      Xacc = numpy.identity(self._d)
+      if self.verbose: 
+         print     " Start  : Z[1] = %15.6f" % Zold
+      niter = 0
+      while (conv > self.conv):
+         i, j, gamma = self._find_next(opt)
+         Xnew = self._form_X(i, j, gamma)
+         self._uptade_RP(Xnew)
+         Znew = self._eval_Z(numpy.identity(self._d), self._R, self._P)
+         conv = abs(Znew-Zold)
+         Xold = Xnew.copy()
+         Zold = Znew
+         niter += 1
+         Xacc = numpy.dot(Xnew, Xacc)
+         if self.verbose:
+            print  " Iter %2d: Z[X] = %15.6f  Conv= %15.6f" % (niter, Znew, conv)
+         if niter > self.maxiter: 
+            print " Optimization unsuccesfull! Maximum iteration number exceeded!"
+            break
+      self.X = Xacc
+      if self.verbose:
+         print " Optimization succesfull!\n"
+         print " Optimized Z[X] value: %15.6f" % self.Z()
+
+  def _uptade_RP(self, X):
+      self._P = numpy.dot(X, self._P)
+      self._R = numpy.dot(X, numpy.dot(self._R, X.T))
+
+  def _find_next(self, opt):
+      """Determine next pair of degrees of freedom for 2D rotation"""
+      optfunc = operator.lt if opt.startswith('min') else operator.gt
+      I, J = 0, 1
+      Gamma = 0.0
+      dZold = 1e8 if opt.startswith('min') else -1e8
+      for j in range(self._d):
+          for i in range(j):
+              A,B,C,D = self._get_ABCD(i, j)
+              gamma   = self._find_x(A, B, C, D, i, j, opt)
+              dZ = self._eval_dZ(gamma, self._P, self._R, i, j)
+              if optfunc(dZ, dZold):
+                 Gamma = gamma
+                 I = i
+                 J = j
+                 dZold = dZ
+      return I, J, Gamma
+
+  def _find_x(self, A, B, C, D, i, j, opt):
+      """Find the optimal 2D rotation angle"""
+      #f = lambda x, A, B, C, D:   A*numpy.sin(x)+B*numpy.cos(x)+  C*numpy.sin(2*x)+  D*numpy.cos(2*x)
+      #fg= lambda x, A, B, C, D:   A*numpy.cos(x)-B*numpy.sin(x)+2*C*numpy.cos(2*x)-2*D*numpy.sin(2*x)
+      #fh= lambda x, A, B, C, D: -(A*numpy.sin(x)+B*numpy.cos(x)+4*C*numpy.sin(2*x)+4*D*numpy.cos(2*x))
+      X0 = numpy.linspace(0.0, numpy.pi*2.0, 40)
+      X = list()
+      for x0 in X0:
+          x = scipy.optimize.newton(self._f, x0, self._fg, args=(A,B,C,D), maxiter=1000, tol=1e-3, fprime2=self._fh)
+          if not self.__same(x,X): X.append(x)
+      X = numpy.array(X)
+                                                                                                       
+      # discriminate between minima and maxima
+      Xmin = list()
+      Xmax = list()
+      for x in X:
+          F = self._f (x,A,B,C,D)
+          g = self._fg(x,A,B,C,D)
+          if   g> 0.0: Xmin.append(x)
+          elif g< 0.0: Xmax.append(x)
+          else: raise ValueError, "The Hessian of objective function is zero at X=%15.5f" % x
+      Xmin = numpy.array(Xmin)
+      Xmax = numpy.array(Xmax)
+    
+      # Find optimal gamma 
+      gamma = None
+      if opt.startswith('min'):
+         Zold = 1e8
+         for x in Xmin:
+             Z = self._eval_Z(self._form_X(i, j, x), self._R, self._P)
+             if Z < Zold:
+                gamma = x
+             Zold = Z
+      else:
+         Zold = -1e8
+         for x in Xmax:
+             Z = self._eval_Z(self._form_X(i, j, x), self._R, self._P)
+             if Z > Zold:
+                gamma = x
+             Zold = Z
+      assert gamma is not None, "Error while searching for optimum!"
+      return gamma
+
+  def _get_ABCD(self, i, j):
+      """Retrieve ABCD parameters for root search"""
+      A = self._P[i]+self._P[j]
+      B = self._P[i]-self._P[j] 
+      C =-2.*(self._R[i,j]+self._R[j,i])
+      D = 2.*(self._R[j,j]-self._R[i,i])
+      ii = numpy.setdiff1d(numpy.arange(self._P.size), [i,j])
+      A -= self._R[j,ii].sum() + self._R[i,ii].sum() + self._R[ii,j].sum() + self._R[ii,i].sum()
+      B += self._R[j,ii].sum() - self._R[i,ii].sum() + self._R[ii,j].sum() - self._R[ii,i].sum()
+      return A, B, C, D
+
+  def _eval_Z(self, X, R, P):
+      """Evaluate the objective Z function"""            
+      z1 = numpy.dot(X, numpy.dot(R,X.T))
+      z2 = numpy.dot(X, P)
+      return z1.sum() - z2.sum()
+
+  def _eval_dZ(self, g, P, R, i, j):
+      """Compute the change in Z"""
+      dZ = (1.0 - numpy.cos(g)) * (P[i] + P[j]) \
+                + numpy.sin(g)  * (P[i] - P[j])       \
+                + numpy.sin(2.*g) * (R[j,j] - R[i,i]) \
+             - 2.*numpy.sin(g)**2 * (R[i,j] + R[j,i])
+      ii = numpy.setdiff1d(numpy.arange(P.size), [i,j])
+      dZ-= (1-numpy.cos(g))*(R[j,ii].sum() + R[i,ii].sum() + R[ii,j].sum() + R[ii,i].sum())
+      dZ+=    numpy.sin(g) *(R[j,ii].sum() - R[i,ii].sum() + R[ii,j].sum() - R[ii,i].sum())
+      return dZ
+
+  def _form_X(self, i, j, gamma):
+      """Form unitary matrix X"""                                        
+      X = numpy.identity(self._d)
+      T = numpy.cos(gamma)
+      g = numpy.sin(gamma)
+      X[i,i] = T
+      X[j,j] = T
+      X[i,j] = g
+      X[j,i] =-g
+      return X
+ 
+  # private
+  def __same(self, x, X, tol=0.0001):
+      """Check if the solution was already obtained"""
+      #pipi = 2*numpy.pi
+      result = False
+      for xp in X:
+          dx = x-xp
+          if (numpy.abs(dx) < tol) or (numpy.abs(dx+2*numpy.pi) < tol) or (numpy.abs(dx-2*numpy.pi) < tol): 
+          #if not (numpy.abs(dx)%pipi):
+             result = True
+             break
+      return result
 
 def glue(a, b, axis=None, buff=10, update_time_axis=None, lprint=False):
     """
