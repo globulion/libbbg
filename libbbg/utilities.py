@@ -124,6 +124,7 @@ class UnitaryOptimizer:
   def run(self, opt='minimize'):
       """Perform the optimization"""
       assert (opt.lower().startswith('min') or opt.lower().startswith('max')), 'Unrecognized optimization mode < %s >' % opt
+      self._refresh()
       self._run(opt.lower())
 
   def Z(self):
@@ -164,6 +165,12 @@ class UnitaryOptimizer:
   def _uptade_RP(self, X):
       self._P = numpy.dot(X, self._P)
       self._R = numpy.dot(X, numpy.dot(self._R, X.T))
+
+  def _refresh(self):
+      """Restore the initial state of the optimizer"""
+      self._R = self._R0.copy()
+      self._P = self._P0.copy()
+      self.X  = None
 
   def _find_next(self, opt):
       """Determine next pair of degrees of freedom for 2D rotation"""
