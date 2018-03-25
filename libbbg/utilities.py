@@ -73,7 +73,7 @@ if import_matplotlib:
 uAtom = units.Atom
 uUNITS= units.UNITS
 
-class UnitaryOptimizer:
+class UnitaryOptimizer(object):
   """
  ---------------------------------------------------------------------------------
 
@@ -90,6 +90,7 @@ class UnitaryOptimizer:
    optimizer = UnitaryOptimizer(R, P, conv=1.0e-8, maxiter=100, verbose=True)
    optimizer.maximize() #or minimize()
    X = optimizer.X
+   Z = optimizer.Z
  
  ---------------------------------------------------------------------------------
                                                        Last Revision: 25.03.2018
@@ -127,6 +128,7 @@ class UnitaryOptimizer:
       self._refresh()
       self._run(opt.lower())
 
+  @property
   def Z(self):
       """Return the current value of objective function"""
       z = self._eval_Z(self.X, self._R0, self._P0)
@@ -160,7 +162,7 @@ class UnitaryOptimizer:
       self.X = Xacc
       if self.verbose:
          print " Optimization succesfull!\n"
-         print " Optimized Z[X] value: %15.6f" % self.Z()
+         print " Optimized Z[X] value: %15.6f" % self.Z
 
   def _uptade_RP(self, X):
       self._P = numpy.dot(X, self._P)
