@@ -203,14 +203,14 @@ class UnitaryOptimizer:
           g = self._fg(x,A,B,C,D)
           if   g> 0.0: Xmin.append(x)
           elif g< 0.0: Xmax.append(x)
-          else: raise ValueError, "The Hessian of objective function is zero at X=%15.5f" % x
+          #else: raise ValueError, "The Hessian of objective function is zero at X=%15.5f" % x
       Xmin = numpy.array(Xmin)
       Xmax = numpy.array(Xmax)
     
       # Find optimal gamma 
       gamma = None
       if opt.startswith('min'):
-         Zold = 1e8
+         Zold = 1.0e8
          for x in Xmin:
              Z = self._eval_Z(self._form_X(i, j, x), self._R, self._P)
              if Z < Zold:
