@@ -141,6 +141,7 @@ class UnitaryOptimizer(object):
       Xold = numpy.identity(self._d)
       Zold = self._Zinit
       Xacc = numpy.identity(self._d)
+      success = False
       if self.verbose: 
          print     " Start  : Z[1] = %15.6f" % Zold
       niter = 0
@@ -158,9 +159,11 @@ class UnitaryOptimizer(object):
             print  " Iter %2d: Z[X] = %15.6f  Conv= %15.6f" % (niter, Znew, conv)
          if niter > self.maxiter: 
             print " Optimization unsuccesfull! Maximum iteration number exceeded!"
+            success = False
             break
+      success = True if niter <= self.maxiter else False
       self.X = Xacc
-      if self.verbose:
+      if (self.verbose and success):
          print " Optimization succesfull!\n"
          print " Optimized Z[X] value: %15.6f" % self.Z
 
@@ -197,13 +200,22 @@ class UnitaryOptimizer(object):
       #f = lambda x, A, B, C, D:   A*numpy.sin(x)+B*numpy.cos(x)+  C*numpy.sin(2*x)+  D*numpy.cos(2*x)
       #fg= lambda x, A, B, C, D:   A*numpy.cos(x)-B*numpy.sin(x)+2*C*numpy.cos(2*x)-2*D*numpy.sin(2*x)
       #fh= lambda x, A, B, C, D: -(A*numpy.sin(x)+B*numpy.cos(x)+4*C*numpy.sin(2*x)+4*D*numpy.cos(2*x))
-      X0 = numpy.linspace(0.0, numpy.pi*2.0, 40)
-      X = list()
-      for x0 in X0:
-          x = scipy.optimize.newton(self._f, x0, self._fg, args=(A,B,C,D), maxiter=1000, tol=1e-3, fprime2=self._fh)
-          if not self.__same(x,X): X.append(x)
-      X = numpy.array(X)
-                                                                                                       
+
+      # Boyd's method in 4 dimensions: Boyd, J.P.; J. Eng. Math. (2006) 56:203-219
+      d = D - 1.0j * C                        
+      K = numpy.zeros((4,4), numpy.complex64)
+      K[0,1] = 1.0
+      K[1,2] = 1.0
+      K[2,3] = 1.0
+      K[3,0] = -(D + 1.0j * C)/d
+      K[3,1] = -(B + 1.0j * A)/d
+      K[3,2] = 0.0
+      K[3,3] = -(B - 1.0j * A)/d
+      E, X = numpy.linalg.eig(K)
+      X   = -1.0j * numpy.log(E)
+      X[numpy.where(X<0.0)] += 2.0 * numpy.pi
+      X = X.real
+
       # discriminate between minima and maxima
       Xmin = list()
       Xmax = list()
