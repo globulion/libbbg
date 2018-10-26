@@ -6208,14 +6208,12 @@ a.u. as well."""
 
     return qq,qq,qq,qq,qq
     
-def get_elmtp(DMA1,DMA2, return_all=False):
+def get_elmtp(DMA1,DMA2, return_all=False, converter=units.UNITS.HartreePerHbarToCmRec):
     """calculates E(EL)MTP from two DMA distributions.
 dma1 and dma2 are the objects of the class DMA. Calculations are
 in atomic units and a respective interaction energy is in 
 a.u. as well. """
 
-    converter=units.UNITS.HartreePerHbarToCmRec
-    #
     dma1=DMA1.copy()
     dma2=DMA2.copy()
     # make FULL format of DMA distribution
