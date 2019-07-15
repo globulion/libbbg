@@ -22,7 +22,7 @@ def array_outer_product( A, B, result=None ):
     if A.ndim==1:
         result[:,:]=outer( A, B )
     else:
-        for idx in xrange( A.shape[0] ):
+        for idx in range( A.shape[0] ):
             array_outer_product( A[idx,...], B[idx,...], result[idx,...] )
         
     return result
@@ -72,6 +72,6 @@ def array_outer_product_3_1( B, A, result=None):
 
 def array_outer_product_1_n(A, B):
     result = B.copy()
-    for i in xrange(len(A)):
+    for i in range(len(A)):
         result[i] = A[i] * B[i]
     return result

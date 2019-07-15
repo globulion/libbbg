@@ -4,17 +4,6 @@
 
 __all__ = ['DMA']
 
-#from numpy import zeros, float64, trace, array,\
-#                  tensordot, shape, outer, dot,\
-#                  transpose, sqrt, sum, linalg
-#from utilities2 import utilities2.array_outer_product,    \
-#                       utilities2.array_outer_product_1_2,\
-#                       utilities2.array_outer_product_2_1,\
-#                       utilities2.array_outer_product_1_n,\
-#                       utilities2.array_outer_product_2_2,\
-#                       utilities2.array_outer_product_1_3,\
-#                       utilities2.array_outer_product_3_1
-#from units import *
 import numpy, numpy.linalg, copy, units, utilities2
 
 ### SVDSuperimposer from BIOPYTHON PACKAGE
@@ -324,7 +313,6 @@ Gamess reads Stone's DMA analysis
          struct = True
          while 1:
                if querry in line: break
-               #print line
                line = data.readline()
                if not line: 
                   struct = False
@@ -724,7 +712,7 @@ This can be used for a test of the correctness of multipole analysis. The exact 
 expansions should sum up to the total molecular expansion with respect to origin privided.
 """
         if hexadecapoles and not self.has_hexadecapoles:
-           print " WARNING: This DMA object does not contain hexadecapoles but they were requested. It will be ignored by Coulomb."
+           print(" WARNING: This DMA object does not contain hexadecapoles but they were requested. It will be ignored by Coulomb.")
            hexadecapoles = False
         overall = DMA(nfrag=1, hexadecapoles=hexadecapoles)
         #overall.name = 'Test of reproducing multipoles from charges [units: Debyes(*Angstroms^n)]'
@@ -1698,7 +1686,7 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
            # generate vector of identities
            d = numpy.identity(3,dtype=numpy.float64)
            I3= numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
-           for i in xrange(self.nfrag): I3[i] = d.copy()
+           for i in range(self.nfrag): I3[i] = d.copy()
 
            # compute traceless properties 
            Q_T = (3./2.) * Q_P - 0.500 * utilities2.array_outer_product_1_n( Q_P.trace(axis1=1,axis2=2), I3 )
@@ -1785,8 +1773,6 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
         if self.full:
            if zero:
               new_origin_set = numpy.zeros((self.nfrag,3),dtype=numpy.float64)
-           #print new_origin_set
-           #new_origin_set*=-1 
            old_origin_set = numpy.array(self.origin)#numpy.array(self.DMA_FULL[0])
            M0 = numpy.array(self.DMA_FULL[1])
            M1 = numpy.array(self.DMA_FULL[2]) 
@@ -1800,7 +1786,6 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
 
            D = new_origin_set - old_origin_set
            
-           #print old_origin_set
            M1_o = M1 + utilities2.array_outer_product_1_n(M0, old_origin_set)
            #AM = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
            #MA = numpy.zeros((self.nfrag,3,3),dtype=numpy.float64)
@@ -1832,7 +1817,6 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
            BM1B  = utilities2.array_outer_product_1_2(new_origin_set,M1B)#
            #M1AM1 = utilities2.array_outer_product_2_1(M1A,old_origin_set)
            #M1BM1 = utilities2.array_outer_product_2_1(M1B,new_origin_set)
-           #print numpy.shape(utilities2.array_outer_product_1_2(new_origin_set,M2_o))
            BM2TR = numpy.transpose(utilities2.array_outer_product_1_2(new_origin_set,M2_o),
                                    axes=(0,2,1,3))#
            AM2TR = numpy.transpose(utilities2.array_outer_product_1_2(old_origin_set,M2_o),
@@ -1894,9 +1878,9 @@ following Buckingham convention (0.5 * Jackson convention) /add citation!!!"""
         #self.MAKE_FULL()
         if self.full:
            ### transform the origins and positions
-           for i in xrange(len(self.origin)):
+           for i in range(len(self.origin)):
                self.origin[i] = numpy.dot(self.origin[i],rotmat)
-           for i in xrange(len(self.pos)):
+           for i in range(len(self.pos)):
                self.pos[i] = numpy.dot(self.pos[i],rotmat)
            ### transform the dipoles
            self.DMA_FULL[2] = numpy.dot(self.DMA[1],rotmat)

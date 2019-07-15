@@ -140,11 +140,11 @@ class UnitaryOptimizer_4_2(object):
       Xacc = numpy.identity(self._d)
       success = False
       if self.verbose: 
-         print     " Start  : Z[1] = %15.6f" % Zold
+         print    (" Start  : Z[1] = %15.6f" % Zold)
       niter = 0
       while (conv > self.conv):
          i, j, gamma = self._find_next(opt)
-         #print " Chosen x = %14.4f" % gamma
+         #print(" Chosen x = %14.4f" % gamma)
          Xnew = self._form_X(i, j, gamma)
          self._update_RP(Xnew)
          Znew = self._eval_Z(numpy.identity(self._d), self._R, self._P)
@@ -154,16 +154,16 @@ class UnitaryOptimizer_4_2(object):
          niter += 1
          Xacc = numpy.dot(Xacc, Xnew)
          if self.verbose:
-            print  " Iter %2d: Z[X] = %15.6f  Conv= %15.6f" % (niter, Znew, conv)
+            print (" Iter %2d: Z[X] = %15.6f  Conv= %15.6f" % (niter, Znew, conv))
          if niter > self.maxiter: 
-            print " Optimization unsuccesfull! Maximum iteration number exceeded!"
+            print(" Optimization unsuccesfull! Maximum iteration number exceeded!")
             success = False
             break
       success = True if niter <= self.maxiter else False
       self.X = Xacc.copy()
       if (self.verbose and success):
-         print " Optimization succesfull!\n"
-         print " Optimized Z[X] value: %15.6f" % self.Z
+         print(" Optimization succesfull!\n")
+         print(" Optimized Z[X] value: %15.6f" % self.Z)
 
   def _update_RP(self, X):
       """Update R and P tensors by transforming them by using X matrix"""
@@ -553,7 +553,7 @@ class UnitaryOptimizer(object):
       Xacc = numpy.identity(self._d)
       success = False
       if self.verbose: 
-         print     " Start  : Z[1] = %15.6f" % Zold
+         print    (" Start  : Z[1] = %15.6f" % Zold)
       niter = 0
       while (conv > self.conv):
          i, j, gamma = self._find_next(opt)
@@ -566,16 +566,16 @@ class UnitaryOptimizer(object):
          niter += 1
          Xacc = numpy.dot(Xnew, Xacc)
          if self.verbose:
-            print  " Iter %2d: Z[X] = %15.6f  Conv= %15.6f" % (niter, Znew, conv)
+            print (" Iter %2d: Z[X] = %15.6f  Conv= %15.6f" % (niter, Znew, conv))
          if niter > self.maxiter: 
-            print " Optimization unsuccesfull! Maximum iteration number exceeded!"
+            print(" Optimization unsuccesfull! Maximum iteration number exceeded!")
             success = False
             break
       success = True if niter <= self.maxiter else False
       self.X = Xacc
       if (self.verbose and success):
-         print " Optimization succesfull!\n"
-         print " Optimized Z[X] value: %15.6f" % self.Z
+         print(" Optimization succesfull!\n")
+         print(" Optimized Z[X] value: %15.6f" % self.Z)
 
   def _uptade_RP(self, X):
       self._P = numpy.dot(X, self._P)
@@ -634,7 +634,7 @@ class UnitaryOptimizer(object):
           g = self._fg(x,A,B,C,D)
           if   g> 0.0: Xmin.append(x)
           elif g< 0.0: Xmax.append(x)
-          #else: raise ValueError, "The Hessian of objective function is zero at X=%15.5f" % x
+          #else: raise ValueError("The Hessian of objective function is zero at X=%15.5f" % x)
       Xmin = numpy.array(Xmin)
       Xmax = numpy.array(Xmax)
     
@@ -742,7 +742,7 @@ def glue(a, b, axis=None, buff=10, update_time_axis=None, lprint=False):
     # parse columns
     if len(a.shape)>1: 
        if axis is None: 
-          raise ValueError, " Error: Column index has not ben specified. Specify the index of column to analyze by setting index=<id> where <id> is in Python convention!"
+          raise ValueError(" Error: Column index has not ben specified. Specify the index of column to analyze by setting index=<id> where <id> is in Python convention!")
        a2 = a[:,axis]; b2 = b[:,axis]
     else: 
        a2 = a.copy(); b2 = b.copy()
@@ -752,11 +752,11 @@ def glue(a, b, axis=None, buff=10, update_time_axis=None, lprint=False):
         a2_slice = a2[-i:  ]
         b2_slice = b2[  : i]
         dsq = sum( (a2_slice - b2_slice)**2 )
-        if lprint: print " Trial overlap length= %4d Square difference= %14.6f" % (i,dsq)
+        if lprint: print(" Trial overlap length= %4d Square difference= %14.6f" % (i,dsq))
         if dsq==0.0000000: i_ov = i
     # check if overlap found
     if i_ov is None: 
-        print " Warning: The sequences are not mergeable or you must increase the buffer > %d" % buff
+        print(" Warning: The sequences are not mergeable or you must increase the buffer > %d" % buff)
         return None
     b_copy = b.copy()
     # update time axis
@@ -1171,9 +1171,9 @@ if import_matplotlib:
           self.__dmat = dmat
           self.__dma_pot = dma_pot; self.__qm_mask_thr = qm_mask_thr
           if pad_left is None and pad_right is not None or pad_right is None and pad_left is not None:
-             print " You must specify padding in both right and left directions!"; exit()
+             print(" You must specify padding in both right and left directions!"); exit()
           if pad_down is None and pad_up is not None or pad_up is None and pad_down is not None:
-             print " You must specify padding in both up and down directions!"; exit()
+             print(" You must specify padding in both up and down directions!"); exit()
           if pad_left is None and pad_right is None:
              self.__pad_left = pad_x ; self.__pad_right= pad_x
           else:
@@ -1226,7 +1226,7 @@ if import_matplotlib:
              self.__dma_pot.MakeTraceless()
              self.__dma_pot.makeDMAfromFULL()
              self._create_mol()
-          print " The alligned coordinates [Angstrom]:\n"
+          print(" The alligned coordinates [Angstrom]:\n")
           PRINTL(self.__xyz*units.UNITS.BohrToAngstrom,'','')
           # generate the rotated density matrix
           if self.__mask_with_qm:
@@ -1380,7 +1380,7 @@ if import_matplotlib:
           self.__x = x
           self.__y = y
           self.__z = numpy.zeros((nx,ny),numpy.float64)
-          print " This map will contain %10d points" % (nx*ny)
+          print(" This map will contain %10d points" % (nx*ny))
           return 
    
       def _create_cmap(self):
@@ -1748,7 +1748,7 @@ Notes:
        if n is not None: 
           message = " Requested number of points <n=%d> is smaller than data size <%d> so n is ignored" % (n,nf)
           if n<nf: 
-             print message
+             print(message)
              np = len(nf)
              fr = f_real.copy()
              if f_imag is not None:
@@ -1780,7 +1780,7 @@ Notes:
     # bad algorithm request
     else:
        error = " Not known algorithm=%s requested!" % algorithm.lower()
-       raise ValueError, error
+       raise ValueError(error)
     #
     v *= uconv
     gr*= uconv   ; v_max*=uconv
@@ -1800,7 +1800,7 @@ def resol(t,dt):
     df*= units.UNITS.HzToCmRec * 2.*math.pi
     #
     fm= 1./(2.*dt) * 1.0e+12 * units.UNITS.HzToCmRec * 2.*math.pi
-    print " Max: %10.1f [cm-1], Resolution: %10.1f [cm-1] " % (fm,df)
+    print(" Max: %10.1f [cm-1], Resolution: %10.1f [cm-1] " % (fm,df))
     return
 
 def ParseLmocFromGamessEfpFile(efp_file):
@@ -1892,7 +1892,6 @@ class MDOut(units.UNITS):
    def _open(self,file):
        """read the text from MD output file"""
        if type(file) == '''<type 'str'>''':
-          print 'fff'
           p = open(file)
           self.__text = p.read()
           p.close()
@@ -1921,7 +1920,7 @@ class MDOut(units.UNITS):
        title = '#\n' ; log = ''
        report.write(title)
        if len(x)!=len(y): 
-          print " Not equal number of X and Y points for observable %s" % obs.upper()
+          print(" Not equal number of X and Y points for observable %s" % obs.upper())
        else:   
           for i in range(len(x)):
               log+= '%16.3f %16.6f\n' % (x[i],y[i])
@@ -2282,8 +2281,8 @@ class RungeKutta:
     v, gr, gi, v_max, v_res = utilities.ft_1d(y_1,steps,dt,algorithm='FFT',
                                                            cunit='Hz')
     s = sqrt(gi**2. + gr**2.)
-    print " Resolution of spectrum      : %10.6f" % v_res
-    print " Maximal reasonable frequency: %10.2f" % v_max
+    print(" Resolution of spectrum      : %10.6f") % v_res
+    print(" Maximal reasonable frequency: %10.2f") % v_max
     
     # plot the happy results
     import pylab as pl
@@ -2645,7 +2644,7 @@ mol   - molecule object that will be inserted (only coordinates and atoms)
        if self.__pos   is not None:
           self.__pos    = numpy.dot(self.__pos , rot)
        if self.__eigvec  is not None:
-          print "Eigenvectors were not rotated!"
+          print("Eigenvectors were not rotated!")
        #   self.__eigvec   = dot(self.__lvec, rot)
        if self.__pol is not None:
           self.__pol = numpy.dot(numpy.transpose(rot),numpy.dot(self.__pol,rot))
@@ -2958,42 +2957,42 @@ mol   - molecule object that will be inserted (only coordinates and atoms)
           realP  = numpy.zeros(n,numpy.float64)
           for j in range( n/5+bool(n%5) ):
               # frequencies
-              freqs[(j*5):j*5+self.__dupa(j)] =\
-              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
-                                              for x in range(self.__dupa(j)) ]
+              freqs[(j*5):j*5+self.__nmj5(j)] =\
+              [ numpy.float64(line.replace('D','E').split()[-self.__nmj5(j):][x])\
+                                              for x in range(self.__nmj5(j)) ]
               # reduced masses
               line = file.readline()
-              redmss[(j*5):j*5+self.__dupa(j)] =\
-              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
-                                              for x in range(self.__dupa(j)) ]
+              redmss[(j*5):j*5+self.__nmj5(j)] =\
+              [ numpy.float64(line.replace('D','E').split()[-self.__nmj5(j):][x])\
+                                              for x in range(self.__nmj5(j)) ]
               # force constants
               line = file.readline()
-              forcec[(j*5):j*5+self.__dupa(j)] =\
-              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
-                                              for x in range(self.__dupa(j)) ]
+              forcec[(j*5):j*5+self.__nmj5(j)] =\
+              [ numpy.float64(line.replace('D','E').split()[-self.__nmj5(j):][x])\
+                                              for x in range(self.__nmj5(j)) ]
               if oniom: 
                  # Percent ModelSys
                  line = file.readline()
-                 modelP[(j*5):j*5+self.__dupa(j)] =\
-                    [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
-                                                    for x in range(self.__dupa(j)) ]
+                 modelP[(j*5):j*5+self.__nmj5(j)] =\
+                    [ numpy.float64(line.replace('D','E').split()[-self.__nmj5(j):][x])\
+                                                    for x in range(self.__nmj5(j)) ]
                  # Percent RealSys
                  line = file.readline()
-                 realP [(j*5):j*5+self.__dupa(j)] =\
-                    [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
-                                                    for x in range(self.__dupa(j)) ]
+                 realP [(j*5):j*5+self.__nmj5(j)] =\
+                    [ numpy.float64(line.replace('D','E').split()[-self.__nmj5(j):][x])\
+                                                    for x in range(self.__nmj5(j)) ]
               # IR intensities
               line = file.readline()
-              irints[(j*5):j*5+self.__dupa(j)] =\
-              [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
-                                              for x in range(self.__dupa(j)) ]
+              irints[(j*5):j*5+self.__nmj5(j)] =\
+              [ numpy.float64(line.replace('D','E').split()[-self.__nmj5(j):][x])\
+                                              for x in range(self.__nmj5(j)) ]
               # Eigenvectors
               line = file.readline()
               line = file.readline()
               for i in range(self.__n3):
-                  eigvec[i][(j*5):j*5+self.__dupa(j)] =\
-                  [ numpy.float64(line.replace('D','E').split()[-self.__dupa(j):][x])\
-                                                  for x in range(self.__dupa(j)) ]
+                  eigvec[i][(j*5):j*5+self.__nmj5(j)] =\
+                  [ numpy.float64(line.replace('D','E').split()[-self.__nmj5(j):][x])\
+                                                  for x in range(self.__nmj5(j)) ]
                   if (i+1)==self.__n3:
                      for h in range(3): line = file.readline()
                   else: line = file.readline()
@@ -3025,7 +3024,7 @@ mol   - molecule object that will be inserted (only coordinates and atoms)
        return
    
    # U T I L I T I E S
-   def __dupa(self,j):
+   def __nmj5(self,j):
        """some strange but extremely helpful utility:D"""
        if self.__nmodes-j*5 >= 5: return 5
        else                   : return self.__nmodes%5
@@ -3425,7 +3424,7 @@ a.set_peak(<n>=1,<func_name>='g')
 a.fit(<parameters>,[method='slsqp',bounds=[],**kwargs])
 a.get_r2()
 a.get_parameters()
-print peak
+print(peak)
 
 Notes:
 
@@ -3934,7 +3933,7 @@ a.fit(<parameters>,[method='slsqp',bounds=[],**kwargs])
 a.get_r2()
 a.get_parameters()
 a.get_fwhm()
-print peak
+print(peak)
 
 Notes:
 
@@ -4579,7 +4578,7 @@ def order(R,P,start=0,lprint=1):
         rad.append(rads)
     for i in xrange(len(R)-start):
         s = numpy.sum(numpy.sign(new_P[i])/numpy.sign(R[i]))
-        if lprint: print "%10d %f" %(i+1,s)
+        if lprint: print("%10d %f" %(i+1,s))
         r_ = sum(( R[i+start]-new_P[i+start])**2)
         r__= sum((-R[i+start]-new_P[i+start])**2)
        
@@ -4587,7 +4586,7 @@ def order(R,P,start=0,lprint=1):
         #   print "TUTAJ s < -154"
         #   #new_P[i]*=-1.
         if r__<r_:
-          if lprint: print "    HERE r__ < r_ (sign reversal)"
+          if lprint: print("    HERE r__ < r_ (sign reversal)")
           new_P[i]*=-1.
     return new_P, sim#, array(rad,dtype=float)
 
@@ -4689,7 +4688,7 @@ outfile- if save: provide the name of output
     if save:
        out = open(outfile,'w')
        for i in range(ndels):
-           print >> out, "%10i %13.5E" % ((i+1),r[i])
+           print("%10i %13.5E" % ((i+1),r[i]), file=out) 
        out.close()
     # return results:
     tcf = numpy.zeros((ndels,2),dtype=numpy.float64)
@@ -4907,7 +4906,7 @@ ar     - return also array with only coordinates
 
     ### handle g09.fchk files
     elif file[-4:].lower() == 'fchk':
-       print "WARNING: set charge and multiplicity correctly because they are not read from FCHK!"
+       print("WARNING: set charge and multiplicity correctly because they are not read from FCHK!")
        file = open(file)
        line = file.readline()
        g = lambda n,m: n/m+bool(n%m)
@@ -5558,7 +5557,7 @@ def ParseVecFromFchk(file):
 
 def ParseAlphaOrbitalEnergiesFromFchk(file, spin='alpha'):
     """parse alpha or beta orbital energies coeeficients from g09 fchk"""
-    if spin!='alpha': raise NotImplementedError, "UTILITIES: Not Implemented beta spins!"
+    if spin!='alpha': raise NotImplementedError("UTILITIES: Not Implemented beta spins!")
 
     data = open(file)
     line = data.readline()
@@ -5766,7 +5765,7 @@ def Parse_EDS_InteractionEnergies(file, method='HF'):
             'E\\(MP,2\\)'  , 'E\\(EL,R,12\\)', 'E\\(EL,M,2\\)', 
             'E\\(EL,P,2\\)', 'E\\(DS,20\\)'  , 'DE\\(EX-DEL,2\\)',
             'DE\\(MP2\\)'  ]
-    else: raise ValueError, 'Incorrect method %s specified! Quitting...' % method.upper()
+    else: raise ValueError('Incorrect method %s specified! Quitting...' % method.upper())
          
     for term in E:
         querry+= '\s*%s\s+(%s).*\n' % (term,re_templates.re_real_e)
@@ -5813,10 +5812,10 @@ def CalculateCAMM(basis='6-311++G**'):
     pliki_fchk.sort()
     pliki_log   = glob.glob('./*_.log')
     pliki_log .sort()    
-    print "\n Kolejność plików. Sprawdź czy się zgadzają!\n"  
+    print("\n Kolejność plików. Sprawdź czy się zgadzają!\n")  
     for i in range(len(pliki_log)):
-        print pliki_log[i], pliki_fchk[i]
-    print
+        print(pliki_log[i], pliki_fchk[i])
+    print()
        
     for i,file_log in enumerate(pliki_log):
         #dma, fragment = ParseDMA( file_log, 'gaussian' )
@@ -5843,7 +5842,7 @@ def CalculateCAMM(basis='6-311++G**'):
                                       units='Bohr')
                             
         basis_size = len(PyQuante.Ints.getbasis(molecule,basis))
-        print " - basis size= ",basis_size
+        print(" - basis size= ", basis_size)
         dmat = ParseDmatFromFchk(pliki_fchk[i],basis_size)
        
         ### calculate CAMMs                    
@@ -5885,8 +5884,8 @@ def CalculateCAMM(basis='6-311++G**'):
         out = open(file_log[:-4]+'.camm','w')
         out.write(str(result))
         out.close()
-        print " Writing file:  :", file_log[:-4]+'.camm'
-    print
+        print(" Writing file:  :", file_log[:-4]+'.camm')
+    print()
 
 def RotationMatrix(initial=None,final=None):
     """returns rotation matrix and rms from SVD superposition of two structures.
@@ -6384,7 +6383,7 @@ def FrequencyShiftPol(solvent,solpol,point):
     Returns frequency shift in [cm-1]"""
     
     field = ElectricField(solvent,point,is_full=True)
-    print field
+    print(field)
     shift = numpy.tensordot(field,numpy.tensordot(solpol,field,(0,0)),(0,0))
     shift*= -1./2.
     
@@ -6437,12 +6436,12 @@ class Allign:
         self.__dma_alligned = None
         self.__allign() ### ---> init,final
         self.rot,self.rms = RotationMatrix(initial=self.initial,final=self.final)
-        if abs(self.rms)>0.0001: print " Warning! Not orthogonal set! (rms=%f)"%self.rms
+        if abs(self.rms)>0.0001: print(" Warning! Not orthogonal set! (rms=%f)"%self.rms)
 
         self.xyz=numpy.dot(self.xyz,self.rot)  # rotate
         self.trans = self.xyz.copy()[self.atid[0]-1]
         self.xyz-=self.trans                   # translate
-        if dma is not None: self.__dma_alligned = self.allignDMA(dma,self.rot,-self.trans); print " DMA is alligned!\n"
+        if dma is not None: self.__dma_alligned = self.allignDMA(dma,self.rot,-self.trans); print(" DMA is alligned!\n")
 
     def allignDMA(self,dma,rot,trans):
         dma_copy=dma.copy()
@@ -6548,7 +6547,7 @@ where i and j is the atom ID (starting from 1)."""
         n_groups = len(g)
         
         if n_points==n_groups:
-           print "\n No groups found for thershold = %.5f a.u.\n" % threshold
+           print("\n No groups found for thershold = %.5f a.u.\n" % threshold)
         else:
            n_del = n_points - n_groups
            ring = [numpy.zeros(3,dtype=numpy.float64)]
@@ -6560,7 +6559,7 @@ where i and j is the atom ID (starting from 1)."""
                ring.append(average_point)
                #ring.append(self.ring[group[0]+1])
            self.ring = numpy.array( ring, dtype=numpy.float64)
-           print "\n %i points deleted for thershold = %.5f a.u.\n" % (n_del,threshold)
+           print("\n %i points deleted for thershold = %.5f a.u.\n" % (n_del,threshold))
            
         return
     
@@ -6868,8 +6867,8 @@ def PRINT(vec):
         log+= " %3d : %12.6f " % ( i+1 , vec[i] )
         if (i+1)%6==0: log+= "\n"
         else: continue
-    print log
-    print
+    print(log)
+    print()
 
 
 
@@ -6893,9 +6892,9 @@ def PRINTV(M,list1,list2,list3):
            for u in range(len(m)):
              for i in range(len(numpy.transpose(m))):
                v = "%.6f" % m[u][i]
-               print "%10s" % v.rjust(10),
-             print
-           print
+               print("%10s" % v.rjust(10), end='')
+             print()
+           print()
     elif list2 == '':
         for b in range(n):
            try:
@@ -6907,20 +6906,20 @@ def PRINTV(M,list1,list2,list3):
 
            for i in range(len(l1)):
                t1 = "%s" % l1[i]
-               print "%15s" % t1.rjust(15),
-           print
+               print("%15s" % t1.rjust(15), end='')
+           print()
            for i in range(len(l1)):
                kk = '-'*13
-               print "%s" % kk.rjust(15),
-           print
+               print("%s" % kk.rjust(15), end='')
+           print()
 
            for u in range(len(m)):
              for i in range(len(numpy.transpose(m))):
                v = "%.3f" % m[u][i]
-               print "%15s" % v.rjust(15),
+               print("%15s" % v.rjust(15), end='')
              t3 = "%s" % list3[u]
-             print ': %4s' % t3.rjust(4)
-           print
+             print(': %4s' % t3.rjust(4), end='')
+           print()
     else:
 
        for b in range(n):
@@ -6935,24 +6934,24 @@ def PRINTV(M,list1,list2,list3):
 
            for i in range(len(l1)):
                t1 = "%4d" % round(l1[i],0) # oryginalna wersja: "%s" % l1[i]
-               print "%15s" % t1.rjust(15),
-           print
+               print("%15s" % t1.rjust(15), end='')
+           print()
            for i in range(len(l1)):
                t2 = "%s" % l2[i]
-               print "%15s" % t2.rjust(15),
-           print
+               print("%15s" % t2.rjust(15), end='')
+           print()
            for i in range(len(l1)):
                kk = '-'*13
-               print "%s" % kk.rjust(15),
-           print
+               print("%s" % kk.rjust(15), end='')
+           print()
            
            for u in range(len(m)):
              for i in range(len(numpy.transpose(m))):
                v = "%.3f" % m[u][i] # oryginalna wersja: %.5E
-               print "%15s" % v.rjust(15),
+               print("%15s" % v.rjust(15), end='')
              t3 = "%4d" % round(list3[u],0)   # oryginalna wersja: "%s" % list3[u]
-             print ': %4s' % t3.rjust(4)
-           print
+             print(': %4s' % t3.rjust(4))
+           print()
            
 def PUPA(a):
     """ print helper 1 """
@@ -6983,9 +6982,9 @@ def PRINTL(M,list1="",list2=""):
            for u in range(len(m)):
              for i in range(len(numpy.transpose(m))):
                v = "%12.6f" % m[u][i]
-               print "%14s" % v.rjust(14),
-             print
-           print
+               print("%14s" % v.rjust(14), end='')
+             print()
+           print()
 
     elif list2 == '':
 
@@ -6999,19 +6998,19 @@ def PRINTL(M,list1="",list2=""):
 
            for i in range(len(l1)):
                t = "%s" % l1[i]
-               print "%10s" % t.rjust(10),
-           print
+               print("%10s" % t.rjust(10), end='')
+           print()
            for i in range(len(l1)):
                kk = '-'*8
-               print "%s" % kk.rjust(10),
-           print
+               print("%s" % kk.rjust(10), end='')
+           print()
 
            for u in range(len(m)):
              for i in range(len(numpy.transpose(m))):
                v = "%.6e" % m[u][i]
-               print "%10s" % v.rjust(10),
-             print
-           print
+               print("%10s" % v.rjust(10), end='')
+             print()
+           print()
 
     else:
 
@@ -7027,23 +7026,23 @@ def PRINTL(M,list1="",list2=""):
 
            for i in range(len(l1)):
                t1 = "%s" % l1[i]
-               print "%15s" % t1.rjust(15),
-           print
+               print("%15s" % t1.rjust(15), end='')
+           print()
            for i in range(len(l1)):
                t2 = "%s" % l2[i]
-               print "%15s" % t2.rjust(15),
-           print
+               print("%15s" % t2.rjust(15), end='')
+           print()
            for i in range(len(l1)):
                kk = '-'*13
-               print "%s" % kk.rjust(15),
-           print
+               print("%s" % kk.rjust(15), end='')
+           print()
 
            for u in range(len(m)):
              for i in range(len(numpy.transpose(m))):
                v = "%.6e" % m[u][i]
-               print "%15s" % v.rjust(15),
-             print
-           print
+               print("%15s" % v.rjust(15), end='')
+             print()
+           print()
 
 
 def Histogram(data=[],npoints=100,out="histogram.dat"):
@@ -7094,7 +7093,7 @@ def MakeSoluteAndSolventFiles(file,typ,solute_ids,charges=0):
     N1 = 12
     I = 0
     Imax = max(solute_ids)
-    dupa = '       Atomic Center'
+    atcn_line = '       Atomic Center'
     while 1:
         if I>max(solute_ids):  break
         if I in solute_ids: 
@@ -7104,7 +7103,7 @@ def MakeSoluteAndSolventFiles(file,typ,solute_ids,charges=0):
     I = 0
     N1+= Imax+1
     while 1:
-        if not text_solute[N1].startswith(dupa):  break
+        if not text_solute[N1].startswith(atcn_line):  break
         if I not in solute_ids:
            text_solute.pop(N1)
         I+=1
@@ -7149,7 +7148,7 @@ def MakeSoluteAndSolventFiles(file,typ,solute_ids,charges=0):
     # write!
     for i in text_solvent: solvent.write(i)
     for i in text_solute: solute.write(i)
-    print "\n The files: \n      < solute_%s > and < solvent_%s > \n have been saved in the actuall directory! \n" %(typ,typ)
+    print("\n The files: \n      < solute_%s > and < solvent_%s > \n have been saved in the actuall directory! \n" %(typ,typ))
     
     return #text_solvent, text_solute
 
@@ -7285,5 +7284,5 @@ if __name__ == '__main__':
    #b=ParseDMA(argv[1][:-4]+'log','gaussian')[0]
    #a.pos = array(b.pos)
    #a.origin = array(b.pos)
-   print a
-   print a.OverallMoments_old()
+   print(a)
+   print(a.OverallMoments_old())

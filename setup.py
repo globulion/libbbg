@@ -1,10 +1,10 @@
-﻿#!/usr/bin/python
+﻿#!/usr/bin/python2.7
 # -*- coding: utf-8 -*-
 """
 Standard library for BBG packages 
 """
 # -----------------------------------------------
-import os, commands
+import os, subprocess
 from numpy.distutils.core import setup, Extension
 # -----------------------------------------------
 
@@ -14,7 +14,7 @@ from numpy.distutils.core import setup, Extension
 f2py_cmd =    'f2py -h gentcf.pyf -m gentcf gentcf.f --overwrite-signature'
 f2py_cmd+= '&& f2py -c --fcompiler=gnu95 -m gentcf gentcf.f' 
 
-print "Compiling extension module: ", f2py_cmd
+print("Compiling extension module: "), f2py_cmd
 #failure, output = commands.getstatusoutput(f2py_cmd)
 
 # extension module specifications

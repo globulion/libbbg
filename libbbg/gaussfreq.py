@@ -125,7 +125,7 @@ and changing to AU units (frequencies and reduced masses)"""
           for i in range(self.Natoms):
               atoms.append( units.Atom(line.split()[0]) )
               line = data.readline()
-          for i in atoms: print i
+          for i in atoms: print(i)
           return atoms
           
       def HarmonicFrequencies(self):
@@ -160,9 +160,9 @@ and changing to AU units (frequencies and reduced masses)"""
           
           T = numpy.zeros(n)
           for j in range( n/5+bool(n%5) ):
-              T[(j*5):j*5+self.dupa(j)] =\
-              [ numpy.float64(line.replace('D','E').split()[-self.dupa(j):][x])\
-                                                            for x in range(self.dupa(j)) ]
+              T[(j*5):j*5+self.nmj5(j)] =\
+              [ numpy.float64(line.replace('D','E').split()[-self.nmj5(j):][x])\
+                                                            for x in range(self.nmj5(j)) ]
               for h in range(7+self.a): line = data.readline()
 
           return numpy.array(T,dtype=numpy.float64)
@@ -182,9 +182,9 @@ and changing to AU units (frequencies and reduced masses)"""
           T = numpy.zeros((self.a,n))
           for j in range( n/5+bool(n%5) ):
               for i in range(self.a):
-                  T[i][(j*5):j*5+self.dupa(j)] =\
-                  [ numpy.float64(line.replace('D','E').split()[-self.dupa(j):][x])\
-                                                                for x in range(self.dupa(j)) ]
+                  T[i][(j*5):j*5+self.nmj5(j)] =\
+                  [ numpy.float64(line.replace('D','E').split()[-self.nmj5(j):][x])\
+                                                                for x in range(self.nmj5(j)) ]
                   if (i+1)==self.a:
                      for h in range(8): line = data.readline()
                   else: line = data.readline()
@@ -194,7 +194,7 @@ and changing to AU units (frequencies and reduced masses)"""
           #print PRINTL(numpy.array(T,dtype=numpy.float64))
           return numpy.array(T,dtype=numpy.float64)
 
-      def dupa(self,j):
+      def nmj5(self,j):
           """some strange but extremely helpful utility:D"""
           if self.Nmodes-j*5 >= 5: return 5
           else                   : return self.Nmodes%5
@@ -256,19 +256,19 @@ and changing to AU units (frequencies and reduced masses)"""
       def COE(self,structure=[]):
           """calculates the center of squared eigenvector for each mode given the structure [in Bohr]"""
           COEs = []
-          for mode in xrange(self.Nmodes):
+          for mode in range(self.Nmodes):
               vec = self.L_[:,mode].reshape(self.Natoms,3)
               r_origin = numpy.zeros(3,dtype=numpy.float64)       
-              for atom in xrange(self.Natoms):
+              for atom in range(self.Natoms):
                   #r_origin+= numpy.sum(vec[atom]**2,axis=0) * structure[atom] / numpy.sum(vec**2,axis=0) #/ sum(vec**2,axis=0)
                   #r_origin+= numpy.sum(vec[atom]**2) * structure[atom]
                   r_origin+= vec[atom]**2 * structure[atom]
               #r_origin/= numpy.sum(vec**2)#,axis=0)
               COEs.append(r_origin)
           COEs = numpy.array(COEs)
-          print " COE for each mode [in Angstrom]\n"
+          print(" COE for each mode [in Angstrom]\n")
           for i in range(self.Nmodes):
-              print (i+1), " mode      ",(COEs[i] * self.BohrToAngstrom)
+              print((i+1), " mode      ",(COEs[i] * self.BohrToAngstrom))
               
           return numpy.array(COEs)
           
@@ -444,12 +444,12 @@ and changing to AU units (frequencies and reduced masses)"""
 
           if Print:
              y = numpy.arange(self.Nmodes)+1
-             print " \n First Derivatives of Dipole Moment \n"
+             print(" \n First Derivatives of Dipole Moment \n")
              if Debye:
-                       print "                deriv units: Debye "
-             else:     print "                deriv inits: AU    "
-             print           "                frequencies given in [cm-1]"
-             print
+                       print("                deriv units: Debye ")
+             else:     print("                deriv inits: AU    ")
+             print          ("                frequencies given in [cm-1]")
+             print()
              PRINTV(numpy.transpose(C),y,self.freq,["x","y","z"])
 
 
@@ -467,14 +467,14 @@ and changing to AU units (frequencies and reduced masses)"""
 
           if Print:
              y = numpy.arange(self.Nmodes)+1
-             print " \n Fundamental Harmonic Intensities \n"
+             print(" \n Fundamental Harmonic Intensities \n")
              if Debye:
-                       print "                deriv units: Debye "
-             else:     print "                deriv units: AU    "
-             print
-             print           "                frequencies [cm-1]"
+                       print("                deriv units: Debye ")
+             else:     print("                deriv units: AU    ")
+             print()
+             print          ("                frequencies [cm-1]")
              PRINT(self.freq)
-             print           "                intensities "
+             print          ("                intensities ")
              PRINT(intens)
 
           return intens
