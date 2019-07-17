@@ -1,321 +1,264 @@
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
       SUBROUTINE PMLOCA(NATOMS,NBASIS,NMOS,MAPI,SAO,VECIN,
-     &                  MAXIT,CVGLOC,N2,NAE,LPRINT,TRAN)
+     &                  MAXIT,CVGLOC,LPRINT,TRAN)
 C
 C -----------------------------------------------------------------------------
 C              PIPEK-MEZEY MOLECULAR ORBITAL LOCALIZATION SCHEME
 C          J. PIPEK AND P. G. MEZEY  J. CHEM. PHYS. 90, 4916 (1989),
 C 
-C                The algorithm is taken from GAMESS package
+C                The algorithm is taken from Psi4 package
+C                  Code adapted from C++ to Fortran 77
 C
-C                                                  19.08.2013
+C                                    Created:      19.08.2013 Seoul
+C                                    Revised:      17.07.2019 Gundelfingen
 C -----------------------------------------------------------------------------
 C   Variables:
 C     MAPI   - list of atomic indices in bfs order
 C     VECIN  - input canonical orbitals
-C     CVGLOC - convergence criterion
-C     NAE    - no of alpha electrons (assumed closed shell)
-C     N2     - no of triangular matrix elements (N+1)N/2
+C     CVGLOC - convergence criterion (population)
 C     
 C   Returns:
 C     TRAN   - transformation matrix
 C -----------------------------------------------------------------------------
+C   Original implementation license and credit (algorithm):
+C
+C     Psi4: an open-source quantum chemistry software package
+C
+C     Copyright (c) 2007-2018 The Psi4 Developers.
+C
+C     Psi4 is free software; you can redistribute it and/or modify                   
+C     it under the terms of the GNU Lesser General Public License as published by
+C     the Free Software Foundation, version 3.
+C                                                                                    
+C     Psi4 is distributed in the hope that it will be useful,
+C     but WITHOUT ANY WARRANTY; without even the implied warranty of
+C     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+C     GNU Lesser General Public License for more details.
+C                                                                                    
+C     You should have received a copy of the GNU Lesser General Public License along
+C     with Psi4; if not, write to the Free Software Foundation, Inc.,
+C     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+C
+C -----------------------------------------------------------------------------
 C
       IMPLICIT DOUBLE PRECISION(A-H,O-Z)
       DIMENSION VECIN(NMOS,NBASIS), SAO(NBASIS,NBASIS),
-     &          MAPI(NBASIS),RIJ(N2,NATOMS),QPIX(NBASIS),
-     &          QPJX(NBASIS),IORD(NBASIS),IIR(NBASIS)
-      PARAMETER (ZERO=0.D0,ONE=1.0D+00,TWO=2.0D+00,FOUR=4.0D+00,
-     &           TENM3=1.0D-03,TENM8=1.0D-08,TENM10=1.0D-10)
-      DOUBLE PRECISION TRAN(NMOS,NMOS), LMORND
+     &          MAPI(NBASIS)
+      PARAMETER (T45DEG=3.141592653589793D+00/4.0D+00)
+      PARAMETER (ZERO=0.D0,ONE=1.0D+00,TWO=2.0D+00,HALF=0.5D+00,
+     &           TENM8=1.0D-08)
       LOGICAL LPRINT
+c
+c.....internal
+      DIMENSION CS(NBASIS,NMOS)
+      DIMENSION VECOUT(NBASIS,NMOS)
+c     DIMENSION IORD(NMOS)
+      DIMENSION NNATL(NATOMS+1)
+      DIMENSION TRAN(NMOS,NMOS)
 Cf2py INTENT(OUT) TRAN
-C
-      INDX(I,J) = ((MAX(I,J)*(MAX(I,J)-1))/2+MIN(I,J))
-C
-      NREDO = 0
-  110 CONTINUE
-      NREDO=NREDO+1
-C
-C...construct initial atomic populations
-      CALL VCLR(RIJ,1,N2*NATOMS)
-      IJ = 0
-      DO 280 I = 1,NMOS
-      DO 280 J = 1,I
-         IJ = IJ+1
-         DO 260 K = 1,NBASIS
-            KK = MAPI(K)
-            DO 260 L = 1,NBASIS
-               LL = MAPI(L)
-C                KL = INDX(K,L)
-               SUM = VECIN(I,K)*VECIN(J,L)*SAO(K,L)/TWO
-               RIJ(IJ,KK) = RIJ(IJ,KK) + SUM
-               RIJ(IJ,LL) = RIJ(IJ,LL) + SUM
-  260       CONTINUE
-  280 CONTINUE
-C
-C...seed the random function
-      ONEPT0 = ONE
-      IF (NREDO.EQ.1) XX = LMORND(ONEPT0,VECIN,NBASIS,NAE,NBASIS)
-c      IF (NREDO.EQ.1) XX = LMORN2(ONEPT0,NMOS)
-C
-C...initialize transformation matrix
-      CALL VCLR(TRAN,1,NMOS*NMOS)
-      DO 340 I = 1,NMOS
+c
+c...initialize transformation matrix
+      DO I = 1, NMOS
          TRAN(I,I) = ONE
-  340 CONTINUE
-C        -------------------------
-C        BEGIN LOCALIZATION CYCLES
-C        -------------------------
-      ITER = 0
-      SHIFT = DATAN(ONEPT0)
+         DO J = 1, I-1            
+              TRAN(I,J) = ZERO
+              TRAN(J,I) = ZERO
+         END DO
+      END DO
+c
+c.....copy input vectors C to initialize C_loc
+      DO K = 1, NBASIS
+      DO I = 1, NMOS
+         VECOUT(K, I) = VECIN(I, K)
+      END DO
+      END DO
+c
+c.....Compute CS matrix
+      DO K = 1, NBASIS
+      DO I = 1, NMOS
+         CS_KI = ZERO
+         DO L = 1, NBASIS
+            CS_KI = CS_KI + SAO(K,L)*VECOUT(L,I)
+         END DO
+         CS(K,I) = CS_KI
+      END DO
+      END DO
+c
+c.....Populate basis function number per atom
+      CALL FILLNA(NNATL, MAPI, NBASIS, NATOMS)
+c
+c.....Population metric (initial)
+      DMET = ZERO
+      DO I = 1, NMOS
+         DO K = 1, NATOMS
+            KOF= NNATL(K)
+            KM = NNATL(K+1) - KOF
+            PA = CMYDOT(CS,VECOUT,KOF,KM,I,I,NBASIS,NMOS)
+            DMET = DMET + PA*PA
+         END DO
+      END DO
+c
+      DMET_OLD = DMET
+      write(*,*) "Init Metric: ", DMET
+c
+c.....Iteration cycles
+      DO ITER = 1, MAXIT
+         DO I2 = 1, NMOS - 1
+         DO J2 = I2 + 1, NMOS 
+c           I = IORD(I2)
+c           J = IORD(J2)
+            I = I2
+            J = J2
+c...........Determine rotation angle
+            A = ZERO 
+            B = ZERO 
+            C = ZERO 
+            DO K = 1, NATOMS
+               KOF= NNATL(K)
+               KM = NNATL(K+1) - KOF
+               AII= CMYDOT(CS,VECOUT,KOF,KM,I,I,NBASIS,NMOS)
+               AJJ= CMYDOT(CS,VECOUT,KOF,KM,J,J,NBASIS,NMOS)
+               AIJ= CMYDOT(CS,VECOUT,KOF,KM,I,J,NBASIS,NMOS)
+     &            + CMYDOT(CS,VECOUT,KOF,KM,J,I,NBASIS,NMOS)
+               AIJ= HALF * AIJ
+               AD = AII - AJJ
+               AO = TWO * AIJ
+               A  = A + AD * AD
+               B  = B + AO * AO
+               C  = C + AD * AO
+            END DO
+c
+            HD = A - B
+            HO = TWO * C
+            T  = HALF * DATAN2(HO, HD + DSQRT(HD*HD + HO*HO))
+c
+c...........check for trivial rotation angle
+            IF (DABS(T).LT.TENM8) THEN
+                O0 = ZERO
+                O1 = ZERO
+                DO K = 1, NATOMS
+                   KOF= NNATL(K)
+                   KM = NNATL(K+1) - KOF
+                   AII= CMYDOT(CS,VECOUT,KOF,KM,I,I,NBASIS,NMOS) 
+                   AJJ= CMYDOT(CS,VECOUT,KOF,KM,J,J,NBASIS,NMOS)
+                   AIJ= CMYDOT(CS,VECOUT,KOF,KM,I,J,NBASIS,NMOS)
+     &                + CMYDOT(CS,VECOUT,KOF,KM,J,I,NBASIS,NMOS)
+                   AIJ= HALF * AIJ
+                   O0 = O0 + AIJ * AIJ
+                   DA = AJJ - AII
+                   O1 = O1 + DA*DA
+                END DO
+                O1 = O1 * 0.25D+00
+                IF (O1.LT.O0) T = T45DEG
+            END IF
+c
+c...........Plane rotation
+            CC = DCOS(T)
+            SS = DSIN(T)
+            CALL CMYROT(CS,CC,SS,NBASIS,NMOS,I,J,.TRUE.)
+            CALL CMYROT(VECOUT,CC,SS,NBASIS,NMOS,I,J,.TRUE.)
+            CALL CMYROT(TRAN,CC,SS,NMOS,NMOS,I,J,.TRUE.)
+         END DO 
+         END DO
+c
+c........Population metric
+         DMET = ZERO
+         DO I = 1, NMOS                                    
+            DO K = 1, NATOMS
+               KOF= NNATL(K)
+               KM = NNATL(K+1) - KOF
+               PA = CMYDOT(CS,VECOUT,KOF,KM,I,I,NBASIS,NMOS)
+               DMET = DMET + PA*PA
+            END DO
+         END DO
+         write(*,*) "Metric: ", DMET, ITER
+c
+c........Convergence criterion
+         CONV = DABS(DMET - DMET_OLD) / DABS(DMET_OLD)
+         DMET_OLD = DMET
+c
+c........Converged?
+         IF (CONV.LT.CVGLOC) GO TO 500
+      END DO
 C
-  360 CONTINUE
-      CHANGE = ZERO
-      ITER = ITER+1
-      DO 380 I = 1,NMOS
-         IIR(I) = I
-  380 CONTINUE
-      NNN = NMOS
-      DO 400 I = 1,NMOS
-         XX = LMORND(CHANGE,VECIN,NBASIS,NAE,NBASIS)
-c         XX = LMORN2(CHANGE,NMOS)
-         III = INT(XX*NNN+ONE)
-c         III = INT(XX*NNN)
-         IORD(I) = IIR(III)
-         IIR(III) = IIR(NNN)
-         NNN = NNN-1
-  400 CONTINUE
-C
-C        FOR EACH PAIR OF ORBITALS A TWO DIMENSIONAL UNITARY
-C        TRANSFORMATION IS PERFORMED. THE TRANSFORMATION IS
-C
-C           PSI'(I) =  COS(T)*PSI(I) + SIN(T)*PSI(J)  AND
-C           PSI'(J) = -SIN(T)*PSI(I) + COS(T)*PSI(J).
-C
-C        LOCALIZATION REQUIRES THAT T BE SUCH AS TO MAXIMIZE
-C        THE SUM OF THE SQUARES OF THE ATOMIC POPULATIONS.
-C
-      DO 920 III = 1,NMOS
-         I  = IORD(III)
-         II = INDX(I,I)
-         JM = 1
-         RM = ZERO
-         TM = ZERO
-         SM = ZERO
-         CM = ONE
-         DO 580 J = 1,NMOS
-            IF(I.EQ.J) GO TO 580
-            IJ = INDX(I,J)
-            JJ = INDX(J,J)
-            T = ZERO
-            TX = ZERO
-            DO 480 KK = 1,NATOMS
-               T= T + FOUR*RIJ(IJ,KK)**2 - RIJ(II,KK)**2 - RIJ(JJ,KK)**2
-     &         + TWO*RIJ(II,KK)*RIJ(JJ,KK)
-               TX = TX + RIJ(IJ,KK)*(RIJ(JJ,KK) - RIJ(II,KK))
-  480       CONTINUE
-            IF ((DABS(T).LE.TENM10).AND.(DABS(TX).LE.TENM10)) GO TO 580
-            TX = FOUR*TX
-            T = DATAN2(TX,T)/FOUR
-            SIGN = ONE
-            IF (T.GT.ZERO) SIGN = -ONE
-            T = T+SIGN*SHIFT
-            ITIM = 0
-  500       ITIM = ITIM+1
-            S = DSIN(T)
-            C = DCOS(T)
-            RIN = ZERO
-            DO 520 KK = 1,NATOMS
-               QPI = C*C*RIJ(II,KK)+S*S*RIJ(JJ,KK)+TWO*C*S*RIJ(IJ,KK)
-               QPJ = C*C*RIJ(JJ,KK)+S*S*RIJ(II,KK)-TWO*C*S*RIJ(IJ,KK)
-               RIN = RIN+QPI*QPI+QPJ*QPJ-RIJ(II,KK)**2-RIJ(JJ,KK)**2
-  520       CONTINUE
-            TTEST = DABS(T)-SHIFT
-            IF ((DABS(T).LE.TENM8).OR.(DABS(TTEST).LE.TENM8)) GO TO 560
-            IF (RIN .GE. -TENM8) GO TO 560
-            IF (ITIM .LE. 1) GO TO 540
-            RETURN
-C
-  540       SIGN = ONE
-            IF (T .GT. ZERO) SIGN = -ONE
-            T = T+SHIFT*SIGN
-            GO TO 500
-C
-  560       IF (RIN .LE. RM) GO TO 580
-            RM = RIN
-            TM = T
-            SM = S
-            CM = C
-            JM = J
-  580    CONTINUE
-C
-         RIN = RM
-         T = TM
-         S = SM
-         C = CM
-         J = JM
-         IJ = INDX(I,J)
-         JJ = INDX(J,J)
-C
-C...accumulate the 2x2 rotation
-         CHANGE = CHANGE+T*T
-         CALL DROT(NMOS,TRAN(1,I),1,TRAN(1,J),1,C,S)
-C
-C...update the atomic populations
-         DO 880 KK = 1,NATOMS
-            QPI = C*C*RIJ(II,KK)+S*S*RIJ(JJ,KK)+TWO*C*S*RIJ(IJ,KK)
-            QPJ = C*C*RIJ(JJ,KK)+S*S*RIJ(II,KK)-TWO*C*S*RIJ(IJ,KK)
-            QPIJ = (C*C-S*S)*RIJ(IJ,KK)+C*S*(RIJ(JJ,KK)-RIJ(II,KK))
-            DO 720 K = 1,NMOS
-               IF (I.EQ.K.OR.J.EQ.K) GO TO 720
-               IK = INDX(I,K)
-               JK = INDX(J,K)
-               QPIX(K) = C*RIJ(IK,KK)+S*RIJ(JK,KK)
-               QPJX(K) = C*RIJ(JK,KK)-S*RIJ(IK,KK)
-               RIJ(IK,KK) = QPIX(K)
-               RIJ(JK,KK) = QPJX(K)
-  720       CONTINUE
-            RIN = RIN+QPI+QPJ-RIJ(II,KK)-RIJ(JJ,KK)
-            RIJ(II,KK) = QPI
-            RIJ(JJ,KK) = QPJ
-            RIJ(IJ,KK) = QPIJ
-  880    CONTINUE
-  920 CONTINUE
-C
-C        CONVERGED?
-C
-      CHANGE = DSQRT(TWO*CHANGE/(NMOS*(NMOS-1)))
-      IF(ITER.LT.MAXIT  .AND.  CHANGE.GT.TENM3*CVGLOC) GO TO 360
-      IF(CHANGE.LE.CVGLOC) GO TO 1000
-         IF(NREDO.LE.2) GO TO 110
-            RETURN
-C          ---------------------------------
-C          FINISHED WITH LOCALIZATION CYCLES
-C          ---------------------------------
- 1000 CONTINUE
+ 500  CONTINUE
+c
+c.....Print out
       IF (LPRINT) THEN
-          WRITE (6,9080) ITER
+          WRITE (6,1000) ITER
       ENDIF
- 9080 FORMAT(10X,'LOCALIZATION CONVERGED IN',I6,' ITERATIONS')
+C
+ 1000 FORMAT(10X,'LOCALIZATION CONVERGED IN',I6,' ITERATIONS')
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
 
-      SUBROUTINE VCLR(C,IC,N)
+      SUBROUTINE CMYROT(U,C,S,NA,NB,I,J,COL)
 C
-C     Return clear vector of zeros (dp) of size N in increment IC
+C     Internal adaptation of CROT
 C
-      INTEGER IC,N,KK,M
-      DOUBLE PRECISION C(1)
-      IF (N.LE.0) GO TO 12
-      KK = 1
-      DO 10 M=1,N
-        C(KK) = 0.D0
-        KK = KK + IC
-10    CONTINUE
-12    RETURN
-      END
-C-----|--|---------|---------|---------|---------|---------|---------|--|------|
-
-      subroutine  drot (n,dx,incx,dy,incy,c,s)
-C
-C     applies a plane rotation.
-C     jack dongarra, linpack, 3/11/78.
-C     modified 12/3/93, array(1) declarations changed to array(*)
-C
-      double precision dx(n),dy(n),dtemp,c,s
-      integer i,incx,incy,ix,iy,n
-C
-      if(n.le.0)return
-      if(incx.eq.1.and.incy.eq.1)go to 20
-C
-C       code for unequal increments or equal increments not equal
-C         to 1
-C
-      ix = 1
-      iy = 1
-      if(incx.lt.0)ix = (-n+1)*incx + 1
-      if(incy.lt.0)iy = (-n+1)*incy + 1
-      do 10 i = 1,n
-        dtemp = c*dx(ix) + s*dy(iy)
-        dy(iy) = c*dy(iy) - s*dx(ix)
-        dx(ix) = dtemp
-        ix = ix + incx
-        iy = iy + incy
-   10 continue
-      return
-C
-C       code for both increments equal to 1
-C
-   20 do 30 i = 1,n
-        dtemp = c*dx(i) + s*dy(i)
-        dy(i) = c*dy(i) - s*dx(i)
-        dx(i) = dtemp
-   30 continue
-      return
-      end
-C-----|--|---------|---------|---------|---------|---------|---------|--|------|
-
-      DOUBLE PRECISION FUNCTION LMORND(XX,D,L1,NAE,NBASIS)
-C
-C         Return some random
-C
-      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      PARAMETER (MXATM=2000)
-C      DIMENSION D(L1,L1),U(1)
-      DIMENSION D(NAE,NBASIS),U(1)
-      SAVE U
-      PARAMETER (ZERO=0.0D+00, ONE=1.0D+00)
-C
-      PI = DACOS(-ONE)
-      IF (XX .EQ. ZERO) GO TO 100
-c         N = ABS(NAE-NBASIS)+1
-         N = 1
-c         N = NAE
-         M = N+5
-c         M = N
-         XY = D(N,M)*DATAN(ONE)
-         U(1) = (PI+XY)**5
-         IU1 = INT(U(1))
-         XY = IU1
-         U(1) = U(1)-XY
-         LMORND = U(1)
-         RETURN
-C
-  100 CONTINUE
-      U(1) = (PI+U(1))**5
-      IU1 = INT(U(1))
-      XY = IU1
-      U(1) = U(1)-XY
-      LMORND = U(1)
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      LOGICAL COL
+      DIMENSION U(NA,NB)
+c.....Rotation of column pair
+      IF (COL) THEN
+          DO K = 1, NA                 
+             TEMP   = C*U(K,I) + S*U(K,J) 
+             U(K,J) =-S*U(K,I) + C*U(K,J)
+             U(K,I) = TEMP
+          END DO
+c.....Rotation of row pair
+      ELSE
+          DO K = 1, NB
+             TEMP   = C*U(I,K) + S*U(J,K) 
+             U(J,K) =-S*U(I,K) + C*U(J,K)
+             U(I,K) = TEMP
+          END DO
+      END IF
+c
       RETURN
       END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|
-c
-c     DOUBLE PRECISION FUNCTION LMORN2(XX,NMOS)
+
+      DOUBLE PRECISION FUNCTION CMYDOT(C1,C2,NSTART,NGO,I,J,NBASIS,NMOS)
 C
-C         Return some random LMO indice
+C     Internal adaptation of CDOT
 C
-c     IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-c     DIMENSION U(1)
-c     SAVE U
-c     PARAMETER (ZERO=0.0D+00, ONE=1.0D+00)
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION C1(NBASIS, NMOS)
+      DIMENSION C2(NBASIS, NMOS)
+      CMYDOT = 0.0D+00
 C
-c     IF (XX .EQ. ZERO) GO TO 100
-cc        CALL INIT_RANDOM_SEED()
-c         CALL RANDOM_NUMBER(U)
-c         U(1) = INT(U(1)*NMOS)
-c         LMORN2 = U(1)
-c         RETURN
+      DO N = NSTART, NSTART+NGO-1
+         CMYDOT = CMYDOT + C1(N, I) * C2(N, J)
+      END DO
 C
-c100  CONTINUE
-c     PI = DACOS(-ONE)
-c     U(1) = (PI+U(1))**5
-c     IU1 = INT(U(1))
-c     XY = IU1
-c     U(1) = U(1)-XY
-c     LMORN2 = U(1)
-c     RETURN
-c     END
+      RETURN
+      END
+C-----|--|---------|---------|---------|---------|---------|---------|--|------|
+
+      SUBROUTINE FILLNA(NNATL, MAPI, NBASIS, NATOMS)
+C
+C     Fills in the starting values of basis function numbers
+C     Per atom. Last element is NBASIS+1.
+C
+      IMPLICIT DOUBLE PRECISION(A-H,O-Z)
+      DIMENSION NNATL(NATOMS+1), MAPI(NBASIS)
+C
+      K = 1
+      IPREV = -1
+C
+      DO N = 1, NBASIS
+         INEXT = MAPI(N)
+         IF (INEXT.NE.IPREV) THEN
+             NNATL(K) = N
+             K = K + 1
+         END IF
+         IPREV = INEXT
+      END DO
+C
+      NNATL(NATOMS+1) = NBASIS+1
+C
+      RETURN
+      END
 C-----|--|---------|---------|---------|---------|---------|---------|--|------|

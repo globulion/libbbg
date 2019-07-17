@@ -3849,7 +3849,7 @@ Python-like!)"""
     #
     return numpy.concatenate(t)
 
-def get_pmloca(natoms,mapi,sao,vecin,nae,
+def get_pmloca(natoms,mapi,sao,vecin,nae=None,
                maxit=1000,conv=1.0E-06,lprint=False,
                freeze=None):
     """\
@@ -3859,7 +3859,7 @@ Reference:
 J. PIPEK AND P. G. MEZEY  J. CHEM. PHYS. 90, 4916 (1989)
 
 Usage:
-get_pmloca(natoms,mapi,sao,vecin,nae,
+get_pmloca(natoms,mapi,sao,vecin,
            [maxit=1000,conv=1.0E-06,lprint=False,
             freeze=None])
 
@@ -3877,8 +3877,9 @@ arguments:
 natoms - number of atoms in molecule
 mapi   - list of atoms in basis set order (LIST1 in PyQuanteM)
 sao    - array of AO overlap integrals of size (nbasis,nbasis)
-vecin  - input MO coefficients
-nae    - number of alpha electrons
+vecin  - input MO coefficients (nmos,nbasis)
+nae    - number of alpha electrons (will be deprecated: do not
+         use anymore because it is unnecessary)
 
 optional:
 maxit  - maximum number of iterations
@@ -3893,11 +3894,11 @@ lprint - whether print no of iteration or not after finish
     # in triangular matrix (n2) for PM localizator matrix elements
     mapi = numpy.array(mapi,int) + 1
     nmos = len(vecin)
-    n2   = (nmos+1)*nmos/2
+    #n2   = (nmos+1)*nmos/2 -> to be deprecated
     #
     tran = qm.pmloca.pmloca(natoms=natoms,mapi=mapi,sao=sao,vecin=vecin,
-                         maxit=maxit,cvgloc=conv,n2=n2,nae=nae,
-                         lprint=lprint)
+                            maxit=maxit,cvgloc=conv,#n2=n2,nae=nae,
+                            lprint=lprint)
     #
     tran = numpy.transpose(tran)
     vecout = numpy.dot(tran,vecin)
