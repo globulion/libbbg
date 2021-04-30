@@ -1,4 +1,4 @@
-﻿#!/usr/bin/python2.7
+﻿#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Standard library for BBG packages 
@@ -41,7 +41,7 @@ EFPROT = Extension(name='libbbg.qm.efprot',
 # --- Install libbbg!
 
 setup(name='LIBBBG',
-      version='1.0.4',
+      version='1.1.0',
       description='Libraries for BBG packages',
       author='Bartosz Błasiak',
       author_email='blasiak.bartosz@gmail.com',
