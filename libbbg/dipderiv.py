@@ -21,13 +21,6 @@ class DipDeriv(UNITS,FREQ):
         # calculate second derivatives (helico)
         self.sdip = self.SDeriv()
         
-        #print "pierwsze pochodne z fdipa"       
-        #print self.fdip[7]
-        #print "drugie pochodne z sdipa"
-        #print self.sdip[-1][7]
-        #print self.sdip[-2][7,7]
-        
-        
     def SDeriv(self,symm=0):
         """ computes second derivatives of dipole moment wrt normal modes """
         A = os.listdir('.')
@@ -35,7 +28,7 @@ class DipDeriv(UNITS,FREQ):
         B = A[:]
         for file in B:
             if (not file.endswith('_.log') ) : A.remove(file)
-        #for i in A:print i
+
         a = len(A)
         b = self.Nmodes ; N = self.Natoms
         D = zeros((a  ,3*N,3  ))  # first derivatives wrt cartesian coordinate
@@ -49,7 +42,6 @@ class DipDeriv(UNITS,FREQ):
             S[i] = (1./12.) * ( 8.*(D[K+1] - D[K+2]) + 
                                    (D[K+3] - D[K+0]) )  / (self.h * self.AngstromToBohr )
         LT = transpose(self.L)
-        #print self.h
 
         # transform to normal mode space
         XS = dot(dot(LT,S[:,:,0]),self.L)

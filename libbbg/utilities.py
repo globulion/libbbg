@@ -31,7 +31,7 @@ __version__ = '3.3.4'
 
 import os
 import re
-import qm
+from . import qm
 import copy
 import time
 import string

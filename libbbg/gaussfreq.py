@@ -5,9 +5,6 @@
 __all__=['FREQ',]
 __version__ = '2.2.1'
 
-#from units     import *
-#from numpy     import *
-#from utilities import *
 import units, numpy, utilities, copy, math
 
 class FREQ(units.UNITS):
@@ -412,7 +409,7 @@ and changing to AU units (frequencies and reduced masses)"""
                    search = 'OK'
                    break
                 line = data.readline()
-          if search=='ERR': raise ValueError, "No DipoleDeriv found"
+          if search=='ERR': raise ValueError("No DipoleDeriv found")
 
           T = numpy.zeros((self.a,3),dtype=numpy.float64)
           for i in range(self.a):

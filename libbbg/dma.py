@@ -932,7 +932,7 @@ where n is rank of multipole moment"""
         if self.has_hexadecapoles and other.has_hexadecapoles:
            self.set_moments(hexadecapoles=o.get_hexadecapoles())
         elif self.has_hexadecapoles and not other.has_hexadecapoles:
-           raise TypeError, " %s object does not have hexadecapoles so they cannot be copied to %s object!" % (other.get_name(), self.get_name())
+           raise TypeError(" %s object does not have hexadecapoles so they cannot be copied to %s object!" % (other.get_name(), self.get_name()) )
         return
 
 
