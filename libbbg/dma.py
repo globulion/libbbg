@@ -4,7 +4,8 @@
 
 __all__ = ['DMA']
 
-import numpy, numpy.linalg, copy, units, utilities2
+import numpy, numpy.linalg, copy
+from . import units, utilities2
 
 ### SVDSuperimposer from BIOPYTHON PACKAGE
 # Copyright (C) 2002, Thomas Hamelryck (thamelry@vub.ac.be)

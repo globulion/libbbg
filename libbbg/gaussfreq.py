@@ -5,7 +5,8 @@
 __all__=['FREQ',]
 __version__ = '2.2.1'
 
-import units, numpy, utilities, copy, math
+import numpy, copy, math
+from . import units, utilities
 
 class FREQ(units.UNITS):
       """

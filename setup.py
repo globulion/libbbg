@@ -1,21 +1,13 @@
-﻿#!/usr/bin/python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Standard library for BBG packages 
 """
-# -----------------------------------------------
-import os, subprocess
-from numpy.distutils.core import setup, Extension
-# -----------------------------------------------
+# --------------------------------------
+from setuptools import setup, Extension
+# --------------------------------------
 
 # --- Extension modules
-
-# commands to compile and link
-f2py_cmd =    'f2py -h gentcf.pyf -m gentcf gentcf.f --overwrite-signature'
-f2py_cmd+= '&& f2py -c --fcompiler=gnu95 -m gentcf gentcf.f' 
-
-print("Compiling extension module: "), f2py_cmd
-#failure, output = commands.getstatusoutput(f2py_cmd)
 
 # extension module specifications
 GENTCF = Extension(name='libbbg.qm.gentcf',
@@ -61,5 +53,5 @@ setup(name='LIBBBG',
                   'libbbg.dipderiv','libbbg.re_templates',
                   'libbbg.mpfit','libbbg.letters.greek',],
       ext_modules=[GENTCF,ORBLOC,CLEMTP,CLEMTP2,FT_LIB,EFPROT],
+      requires                     = ['numpy (>=1.10.0)',],
      )
-

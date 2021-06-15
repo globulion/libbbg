@@ -6,10 +6,10 @@ __all__=["DipDeriv"]
 
 import os
 from numpy import zeros, float64, array, transpose, dot
-from gaussfreq import FREQ
-from units import UNITS, Atom
+from .gaussfreq import FREQ
+from .units import UNITS, Atom
 
-class DipDeriv(UNITS,FREQ):
+class DipDeriv(FREQ):
     """dipole derivatives wrt normal mode class in helico representation"""
     
     def __init__(self,file="",L=0,step=0.006):

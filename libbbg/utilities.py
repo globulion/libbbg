@@ -31,7 +31,7 @@ __version__ = '3.3.4'
 
 import os
 import re
-from . import qm
+import sys
 import copy
 import time
 import string
@@ -42,33 +42,23 @@ import numpy.linalg
 import scipy.optimize
 import scipy.interpolate
 import PyQuante
-import dma
-import units
-import letters
-import fourier
-import re_templates
+from . import qm
+from . import dma
+from . import units
+from . import letters
+from . import fourier
+from . import re_templates
 
-import_matplotlib = int(os.environ['LIBBBG_IMPORT_MATPLOTLIB'])
+try:
+   import_matplotlib = int(os.environ['LIBBBG_IMPORT_MATPLOTLIB'])
+except KeyError:
+   print(" Please set LIBBBG_IMPORT_MATPLOTLIB environmental variable to either 1 or 0.")
+   sys.exit(1)
 
 if import_matplotlib:
    import matplotlib.font_manager
    import pylab
-   import scitools.numpyutils
    __all__+= ['QMOscillator','circles','PotentialContourMap','Grid2D']
-
-   #import re, qm, PyQuante,  \
-   #       scipy.optimize, scipy.integrate, numpy,\
-   #       math, numpy.linalg, dma, units, re_templates,\
-   #       copy, os, math, matplotlib.font_manager,\
-   #       pylab, scitools.numpyutils, scipy.interpolate,\
-   #       letters, fourier, string, time #, coulomb.multip
-#else:
-#   import re, qm, PyQuante,  \
-#          scipy.optimize, scipy.integrate, numpy,\
-#          math, numpy.linalg, dma, units, re_templates,\
-#          copy, os, math,\
-#          scipy.interpolate,\
-#          letters, fourier, string, time #, coulomb.multip
 
 uAtom = units.Atom
 uUNITS= units.UNITS
@@ -6721,23 +6711,6 @@ if import_matplotlib:
            self.xcoorv = numpy.float64(x)*dx + xmin
            self.ycoorv = numpy.float64(y)*dy + ymin
    
-       def __init________(self,
-                    xmin=0, xmax=1, dx=0.5,
-                    ymin=0, ymax=1, dy=0.5):
-           # coordinates in each space direction
-           self.xcoor = scitools.numpyutils.seq(xmin, xmax, dx)
-           self.ycoor = scitools.numpyutils.seq(ymin, ymax, dy)
-           
-           # store for convenience
-           self.dx = dx;  self.dy = dy
-           self.nx = self.xcoor.size;  self.ny = self.ycoor.size
-           self.shape = (self.nx,self.ny)
-           # make 2D versions of the coordinate arrays
-           # (needed for vectorized  function evaluators)
-           ###self.xcoorv = self.xcoor[:, numpy.newaxis]
-           ###self.ycoorv = self.ycoor[numpy.newaxis, :]
-           self.ycoorv, self.xcoorv = numpy.meshgrid(self.ycoor,self.xcoor)
-       
        def eval(self,f,**kwargs):
            """Evaluate vectorized function f at each grid point"""
            return f(self.xcoorv,self.ycoorv,**kwargs)
