@@ -12,7 +12,7 @@ __all__=['SVDSuperimposer','ParseDMA','RotationMatrix',
          'CalcStep','ModifyStruct','ParseUnitedAtoms',
          'MakeSoluteAndSolventFiles','GROUPS','DistanceRelationMatrix',
          'status','ROTATE','get_tcf','choose','get_pmloca','get_elmtp',
-         'ParseVecFromFchk','interchange','Peak','PUPA','VIB',
+         'ParseVecFromFchk','interchange','Peak','PRINT0','VIB',
          'ParseFCFromFchk','ParseDipoleDerivFromFchk',
          'ParseFockFromGamessLog','lind','order','check_sim','MakeMol',
          'ParseDistributedPolarizabilitiesFromGamessEfpFile','reorder',
@@ -6926,7 +6926,7 @@ def PRINTV(M,list1,list2,list3):
              print(': %4s' % t3.rjust(4))
            print()
            
-def PUPA(a):
+def PRINT0(a):
     """ print helper 1 """
     log=""
     for i in range(len(a)):
