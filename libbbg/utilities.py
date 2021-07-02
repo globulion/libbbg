@@ -2077,7 +2077,7 @@ step - delta x for numerical integration
     ci  = 2.0 - 10.0*H * Q
     d   = H * (S[2:] + 10.0*S[1:-1] + S[:-2])
     # proceed the integration
-    for i in xrange(2,npoints):
+    for i in range(2,npoints):
         y[i] = (d[i-2] + y[i-1]*ci[i-1] - y[i-2]*ci1[i-2]) / ci1[i]
     return x,y
 
@@ -2114,7 +2114,7 @@ step - delta x for numerical integration
     ci1 = 1.0 +      H * Q
     ci  = 2.0 - 10.0*H * Q
     # proceed the integration
-    for i in xrange(2,npoints):
+    for i in range(2,npoints):
         y[i] = (y[i-1]*ci[i-1] - y[i-2]*ci1[i-2]) / ci1[i]
     return x,y
 
@@ -2335,7 +2335,7 @@ class RungeKutta:
        # initial conditions
        y[0] = self.__init
        # proceed with time
-       for i in xrange(1,n_pass):
+       for i in range(1,n_pass):
            ti = self.__tau*i
            a = y[i-1]
            c1 = self.__gfc( a      , tau=ti               ,**kwargs) * self.__tau
@@ -2793,7 +2793,7 @@ mol   - molecule object that will be inserted (only coordinates and atoms)
        file = open(file)
        self.__file_obj = file
        line = file.readline()
-       g = lambda n,m: n/m+bool(n%m)
+       g = lambda n,m: int(n/m)+bool(n%m)
 
        # search for charge and multiplicity
        querry = "Charge"
@@ -2817,7 +2817,7 @@ mol   - molecule object that will be inserted (only coordinates and atoms)
        line = file.readline()
        
        atnos = []
-       for i in xrange(g(n_atoms,6)):
+       for i in range(g(n_atoms,6)):
            atnos += line.split()
            line = file.readline()
            
@@ -2832,7 +2832,7 @@ mol   - molecule object that will be inserted (only coordinates and atoms)
        line = file.readline()
        
        coord = []
-       for i in xrange(g(N,5)):
+       for i in range(g(N,5)):
            coord += line.split()
            line = file.readline()
            
@@ -3244,7 +3244,7 @@ Represents vibrational analysis tool
         """M matrix"""
         N = len(self.mol.atoms)
         M = numpy.zeros((N*3,N*3),dtype=numpy.float64)
-        for i in xrange(N):
+        for i in range(N):
             m = 1./numpy.sqrt(self.masses[i])
             M[3*i+0,3*i+0] = m
             M[3*i+1,3*i+1] = m
@@ -3254,7 +3254,7 @@ Represents vibrational analysis tool
         """M^-1 matrix"""
         N = len(self.mol.atoms)
         M = numpy.zeros((N*3,N*3),dtype=numpy.float64)
-        for i in xrange(N):
+        for i in range(N):
             m = numpy.sqrt(self.masses[i])
             M[3*i+0,3*i+0] = m
             M[3*i+1,3*i+1] = m
@@ -3290,9 +3290,9 @@ Represents vibrational analysis tool
         return
     def _weight_old(self):
         """weight Hessian"""
-        for i in xrange(len(self.mol.atoms)):
+        for i in range(len(self.mol.atoms)):
             mi = 1./numpy.sqrt(self.masses[i])
-            for j in xrange(len(self.mol.atoms)):
+            for j in range(len(self.mol.atoms)):
                 mj = 1./numpy.sqrt(self.masses[j])
                 mij = mi*mj
                 self.hess[3*i+0,3*j+0] *= mij
@@ -3316,7 +3316,7 @@ Represents vibrational analysis tool
         """moment of inertia tensor"""
         I = numpy.zeros((3,3),numpy.float64)
         r = self._r()
-        for i in xrange(len(self.coords)):
+        for i in range(len(self.coords)):
             x,y,z = r[i]
             m = self.masses[i]
             I[0,0]+= m*(y**2+z**2)
@@ -3332,7 +3332,7 @@ Represents vibrational analysis tool
     def _vec_t(self):
         """translational vectors"""
         D1 = []; D2 = []; D3 = []
-        for i in xrange(len(self.coords)):
+        for i in range(len(self.coords)):
             m = numpy.sqrt(self.masses[i])
             v1 = [m,0,0]
             v2 = [0,m,0]
@@ -3348,7 +3348,7 @@ Represents vibrational analysis tool
         X = numpy.linalg.eigh(self._I())[1]
         X1,X2,X3 = X
         r = self._r()
-        for i in xrange(len(self.coords)):
+        for i in range(len(self.coords)):
             m = numpy.sqrt(self.masses[i])
             ri = r[i]
             P1 = numpy.dot(ri,X1)
@@ -3390,7 +3390,7 @@ Represents vibrational analysis tool
         #t1,t2,t3,r1,r2,r3 = transpose(U[:,:6])
         d1,d2,d3 = self._vec_t()
         d4,d5,d6 = self._vec_r()
-        for i in xrange(u.shape[1]):
+        for i in range(u.shape[1]):
             vec = u[:,i]
             #vec = u[i]
             for trvec in [d1,d2,d3,d4,d5,d6]:
@@ -3484,7 +3484,7 @@ Notes:
             
             ### experimental data
             Z = numpy.zeros((self.Y.shape[0],self.X.shape[0],self.__nTw),numpy.float64)
-            for i in xrange(self.__nTw):
+            for i in range(self.__nTw):
                 exp_grid = scipy.interpolate.RectBivariateSpline(y,x,z[:,:,i])
                 Z[:,:,i] = exp_grid(self.Y,self.X)
             self.Z = Z
@@ -3593,7 +3593,7 @@ w_01_1D      - experimental center frequency (now it is useless)
     def get_peaks(self):
         """return all separate peaks"""
         peaks = []
-        for i in xrange(self.n):
+        for i in range(self.n):
             if self.__func == 'r':
                w_01   = self.param[8*i+0]
                anh    = self.param[8*i+1]
@@ -4010,7 +4010,7 @@ Notes:
     def get_fwhm(self):
         """calculate FWHM for peaks"""
         fwhm = []
-        for i in xrange(self.n):
+        for i in range(self.n):
             if (self.__func == 'g' or self.__func == 'l'):
                fwhm.append(self.param[3*i+1])
             elif self.__func == 'lg1':
@@ -4031,7 +4031,7 @@ Notes:
                
     def get_peaks(self):
         peaks = []
-        for i in xrange(self.n):
+        for i in range(self.n):
             if self.__func == 'g':
                x_0   = self.param[3*i+0]
                sigma = self.param[3*i+1]
@@ -4307,14 +4307,14 @@ Notes:
 
     def _voigt1(self,xo_1,sigmaL_1,sigmaG_1,A_1):
         y = numpy.zeros(len(self.x),dtype=numpy.float64)
-        for i in xrange(len(self.x)):
+        for i in range(len(self.x)):
             y[i] = scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_1,sigmaL_1,sigmaG_1,A_1))[0]
         return y
     
     def _voigt2(self,xo_1,sigmaL_1,sigmaG_1,A_1,
                      xo_2,sigmaL_2,sigmaG_2,A_2):
         y = numpy.zeros(len(self.x),dtype=numpy.float64)
-        for i in xrange(len(self.x)):
+        for i in range(len(self.x)):
             val = scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_1,sigmaL_1,sigmaG_1,A_1))[0]
             val+= scipy.integrate.quad(self.__v,-inf,inf,full_output=0,args=(self.x[i],xo_2,sigmaL_2,sigmaG_2,A_2))[0]
             y[i] = val
@@ -4468,7 +4468,7 @@ Python-like!)"""
     # first range
     t.append(a[:ids[0]])
     # inranges
-    for r in xrange(inranges):
+    for r in range(inranges):
         t.append( a[ ids[r]+1: ids[r+1] ] )
     # last range
     t.append(a[ids[-1]+1:])
@@ -4566,7 +4566,7 @@ def order(R,P,start=0,lprint=1):
         sim.append((i+1,J+1))
         new_P[i+start] = P[J+start]
         rad.append(rads)
-    for i in xrange(len(R)-start):
+    for i in range(len(R)-start):
         s = numpy.sum(numpy.sign(new_P[i])/numpy.sign(R[i]))
         if lprint: print("%10d %f" %(i+1,s))
         r_ = sum(( R[i+start]-new_P[i+start])**2)
@@ -4832,7 +4832,7 @@ Notes: atno is a list or array of atomic numbers,
        coord is an array of size (natoms,3) in Bohrs,
        unless units='Angstroms' was also specified."""
     coords = []
-    for i in xrange(len(atno)):
+    for i in range(len(atno)):
         atom  = (atno[i], tuple(coord[i]))
         coords.append(atom)
     Mol = PyQuante.Molecule(name,coords,**opts)
@@ -4910,7 +4910,7 @@ ar     - return also array with only coordinates
        line = file.readline()
        
        atnos = []
-       for i in xrange(g(n_atoms,6)):
+       for i in range(g(n_atoms,6)):
            atnos += line.split()
            line = file.readline()
            
@@ -4925,7 +4925,7 @@ ar     - return also array with only coordinates
        line = file.readline()
        
        coord = []
-       for i in xrange(g(N,5)):
+       for i in range(g(N,5)):
            coord += line.split()
            line = file.readline()
            
@@ -5597,18 +5597,18 @@ def ParseFockFromGamessLog(file,interpol=False):
     g = lambda n: n/5+bool(n%5)
     fock = []
     fock = numpy.zeros((nbasis,nbasis),dtype=numpy.float64)
-    for i in xrange(g(nbasis)):
+    for i in range(g(nbasis)):
         line = data.readline()
         line = data.readline()
         nxses= numpy.array(line.split(),int)-1
         line = data.readline()
 
-        for j in xrange(nbasis-i*5):
+        for j in range(nbasis-i*5):
             line = data.readline()
             line = re_templates.re_dbl_fort_c.sub(r'\1E\2', line)
             ny = int(line.split()[0])-1
             values = line.split()[4:]
-            for k in xrange(len(values)):
+            for k in range(len(values)):
                 nx = nxses[k]
                 v  = values[k]
                 fock[nx,ny] = v
@@ -5683,8 +5683,8 @@ def ParseFCFromFchk(file):
     FC = numpy.array(FC,numpy.float64)
     H = numpy.zeros((N*3,N*3),dtype=numpy.float64)
     I = 0
-    for i in xrange(N*3):
-        for j in xrange(i+1):
+    for i in range(N*3):
+        for j in range(i+1):
             H[i,j] = FC[I]
             H[j,i] = H[i,j]
             I+=1
@@ -6004,8 +6004,8 @@ qH = 0 ; Hq = 0
 #
 Tensordot = numpy.tensordot
 Dot = numpy.dot
-for i in xrange(len(Ra)):
-         for j in xrange(len(Rb)):
+for i in range(len(Ra)):
+         for j in range(len(Rb)):
             R    = Rb[j]-Ra[i]
             Rab=numpy.sqrt(numpy.sum(R**2,axis=0))
             if (Rab < threshold and Rab !=0):
@@ -6234,8 +6234,8 @@ a.u. as well. """
     qH = 0 ; Hq = 0
     #
     Tensordot = numpy.tensordot
-    for i in xrange(len(Ra)):
-         for j in xrange(len(Rb)):
+    for i in range(len(Ra)):
+         for j in range(len(Rb)):
              R    = Rb[j]-Ra[i]
              Rab=numpy.sqrt(numpy.sum(R**2,axis=0))
              qq  +=   qa[i]*qb[j]/Rab                                                               # qa - qb  | R1
@@ -6787,7 +6787,7 @@ class Integrator:
         
     def eval(self,f):
         sum = 0.0
-        for i in xrange(len(self.points)): sum += self.weights[i]*f(self.points[i])
+        for i in range(len(self.points)): sum += self.weights[i]*f(self.points[i])
         return sum
     
 class Trapezoidal(Integrator):
@@ -6819,7 +6819,7 @@ def integrate(integrator, a, b, f, n):
     sum = 0.0
     h = (b-a)/float64(n)
     g = TransFunc(f,h,a)
-    for j in xrange(1,n+1):
+    for j in range(1,n+1):
         g.j = j
         sum += integrator.eval(g)
     return 0.5*sum*h

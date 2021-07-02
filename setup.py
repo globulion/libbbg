@@ -3,9 +3,9 @@
 """
 Standard library for BBG packages 
 """
-# --------------------------------------
-from setuptools import setup, Extension
-# --------------------------------------
+# -----------------------------------------------
+from numpy.distutils.core import setup, Extension
+# -----------------------------------------------
 
 # --- Extension modules
 
